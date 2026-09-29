@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { CORES } from '../utils/tema';
 
 export default function BarraProgresso({ total, concluidos }) {
   const porcentagem = total === 0 ? 0 : (concluidos / total) * 100;
@@ -8,17 +9,11 @@ export default function BarraProgresso({ total, concluidos }) {
     <View style={styles.container}>
       <Text style={[styles.texto, completo && styles.textoCompleto]}>
         {completo
-          ? 'Treino completo! '
+          ? 'Treino completo!'
           : `${concluidos} de ${total} concluídos`}
       </Text>
       <View style={styles.fundo}>
-        <View
-          style={[
-            styles.preenchimento,
-            { width: `${porcentagem}%` },
-            completo && styles.preenchimentoCompleto,
-          ]}
-        />
+        <View style={[styles.preenchimento, { width: `${porcentagem}%` }]} />
       </View>
     </View>
   );
@@ -30,26 +25,23 @@ const styles = StyleSheet.create({
   },
   texto: {
     fontSize: 14,
-    color: '#1F2D30',
+    color: CORES.textoSecundario,
     marginBottom: 8,
   },
   textoCompleto: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#2E9E6B',
+    color: CORES.destaque,
   },
   fundo: {
     height: 10,
-    backgroundColor: '#D5DDD8',
+    backgroundColor: CORES.borda,
     borderRadius: 5,
     overflow: 'hidden',
   },
   preenchimento: {
     height: 10,
-    backgroundColor: '#2E9E6B',
+    backgroundColor: CORES.destaque,
     borderRadius: 5,
-  },
-  preenchimentoCompleto: {
-    backgroundColor: '#0F4C5C',
   },
 });

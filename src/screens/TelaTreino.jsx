@@ -11,6 +11,7 @@ import BarraProgresso from '../components/BarraProgresso';
 import Botao from '../components/Botao';
 import CartaoExercicio from '../components/CartaoExercicio';
 import { GRUPOS } from '../utils/grupos';
+import { CORES } from '../utils/tema';
 
 export default function TelaTreino({ usuario, aoSair }) {
   const [nome, setNome] = useState('');
@@ -70,6 +71,7 @@ export default function TelaTreino({ usuario, aoSair }) {
       <TextInput
         style={styles.input}
         placeholder="Ex.: Supino reto"
+        placeholderTextColor={CORES.textoSecundario}
         value={nome}
         onChangeText={setNome}
       />
@@ -95,17 +97,22 @@ export default function TelaTreino({ usuario, aoSair }) {
         <TextInput
           style={[styles.input, styles.inputPequeno]}
           placeholder="Séries"
+          placeholderTextColor={CORES.textoSecundario}
           keyboardType="numeric"
           value={series}
           onChangeText={setSeries}
         />
         <TextInput
-          style={[styles.input, styles.inputPequeno]}
+          style={[styles.input, styles.inputPequeno, styles.ultimoInput]}
           placeholder="Reps"
+          placeholderTextColor={CORES.textoSecundario}
           keyboardType="numeric"
           value={repeticoes}
           onChangeText={setRepeticoes}
         />
+      </View>
+
+      <View style={styles.adicionar}>
         <Botao titulo="Adicionar" aoPressionar={adicionarExercicio} />
       </View>
 
@@ -118,7 +125,7 @@ export default function TelaTreino({ usuario, aoSair }) {
           <Botao
             titulo="Limpar concluídos"
             aoPressionar={limparConcluidos}
-            cor="#C0392B"
+            cor={CORES.erro}
           />
         </View>
       )}
@@ -146,7 +153,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 60,
     paddingHorizontal: 20,
-    backgroundColor: '#F2F5F0',
+    backgroundColor: CORES.fundo,
   },
   cabecalho: {
     flexDirection: 'row',
@@ -156,26 +163,29 @@ const styles = StyleSheet.create({
   },
   saudacao: {
     fontSize: 15,
-    color: '#6B7A7F',
+    color: CORES.textoSecundario,
   },
   titulo: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#0F4C5C',
+    fontWeight: '900',
+    fontStyle: 'italic',
+    textTransform: 'uppercase',
+    color: CORES.destaque,
   },
   sair: {
     fontSize: 15,
-    color: '#C0392B',
+    color: CORES.erro,
     fontWeight: 'bold',
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: CORES.cartao,
     borderWidth: 1,
-    borderColor: '#D5DDD8',
+    borderColor: CORES.borda,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 16,
+    color: CORES.texto,
     marginBottom: 12,
   },
   grupos: {
@@ -185,8 +195,8 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderWidth: 1,
-    borderColor: '#D5DDD8',
-    backgroundColor: '#fff',
+    borderColor: CORES.borda,
+    backgroundColor: CORES.cartao,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -195,7 +205,7 @@ const styles = StyleSheet.create({
   },
   textoChip: {
     fontSize: 14,
-    color: '#1F2D30',
+    color: CORES.texto,
   },
   textoChipAtivo: {
     color: '#fff',
@@ -203,17 +213,24 @@ const styles = StyleSheet.create({
   },
   formulario: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginTop: 4,
   },
   inputPequeno: {
     flex: 1,
+    minWidth: 0,
     marginRight: 10,
+  },
+  ultimoInput: {
+    marginRight: 0,
+  },
+  adicionar: {
+    marginBottom: 16,
   },
   limpar: {
     marginBottom: 16,
   },
   vazio: {
     fontSize: 16,
-    color: '#6B7A7F',
+    color: CORES.textoSecundario,
   },
 });

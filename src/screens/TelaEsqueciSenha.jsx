@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import Botao from '../components/Botao';
 import CampoTexto from '../components/CampoTexto';
+import { CORES } from '../utils/tema';
 
 export default function TelaEsqueciSenha({ aoIrParaLogin }) {
   const [email, setEmail] = useState('');
@@ -52,7 +53,7 @@ export default function TelaEsqueciSenha({ aoIrParaLogin }) {
 const styles = StyleSheet.create({
   fundo: {
     flex: 1,
-    backgroundColor: '#F2F5F0',
+    backgroundColor: CORES.fundo,
   },
   conteudo: {
     flexGrow: 1,
@@ -61,12 +62,14 @@ const styles = StyleSheet.create({
   },
   titulo: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#0F4C5C',
+    fontWeight: '900',
+    fontStyle: 'italic',
+    textTransform: 'uppercase',
+    color: CORES.destaque,
   },
   subtitulo: {
     fontSize: 16,
-    color: '#6B7A7F',
+    color: CORES.textoSecundario,
     marginTop: 4,
     marginBottom: 28,
   },
@@ -76,7 +79,7 @@ const styles = StyleSheet.create({
   },
   textoLink: {
     fontSize: 15,
-    color: '#0F4C5C',
+    color: CORES.destaque,
     fontWeight: 'bold',
   },
 });

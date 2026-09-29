@@ -1,72 +1,69 @@
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import Botao from '../components/Botao';
 import CampoTexto from '../components/CampoTexto';
+import FundoTela from '../components/FundoTela';
+import Logo from '../components/Logo';
+import { avisar } from '../utils/avisar';
+import { CORES } from '../utils/tema';
 
-export default function TelaLogin({
-  usuarios,
-  aoEntrar,
-  aoIrParaCadastro,
-  aoIrParaEsqueci,
-}) {
+export default function TelaLogin({ usuarios, aoEntrar, aoIrParaCadastro, aoIrParaEsqueci }) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
 
   function entrar() {
     const emailLimpo = email.trim().toLowerCase();
-    const usuario = usuarios.find(
-      (u) => u.email === emailLimpo && u.senha === senha
-    );
+    const usuario = usuarios.find((u) => u.email === emailLimpo && u.senha === senha);
 
     if (!usuario) {
-      Alert.alert('Não foi possível entrar', 'E-mail ou senha incorretos.');
+      avisar('Não foi possível entrar', 'E-mail ou senha incorretos.');
       return;
     }
-
     aoEntrar(usuario);
   }
 
   return (
-    <ScrollView
-      style={styles.fundo}
-      contentContainerStyle={styles.conteudo}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Text style={styles.titulo}>Meu Treino</Text>
-      <Text style={styles.subtitulo}>Entre para ver seus exercícios</Text>
+    <FundoTela>
+      <ScrollView
+        style={styles.fundo}
+        contentContainerStyle={styles.conteudo}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Logo />
+        <Text style={styles.titulo}>Entrar</Text>
+        <Text style={styles.subtitulo}>Bem-vindo de volta</Text>
 
-      <CampoTexto
-        rotulo="E-mail"
-        valor={email}
-        aoMudar={setEmail}
-        placeholder="voce@email.com"
-        teclado="email-address"
-      />
-      <CampoTexto
-        rotulo="Senha"
-        valor={senha}
-        aoMudar={setSenha}
-        placeholder="Sua senha"
-        senha
-      />
+        <CampoTexto
+          rotulo="E-mail"
+          valor={email}
+          aoMudar={setEmail}
+          placeholder="voce@email.com"
+          teclado="email-address"
+        />
+        <CampoTexto
+          rotulo="Senha"
+          valor={senha}
+          aoMudar={setSenha}
+          placeholder="Sua senha"
+          senha
+        />
 
-      <Botao titulo="Entrar" aoPressionar={entrar} />
+        <Botao titulo="Entrar" aoPressionar={entrar} />
 
-      <TouchableOpacity style={styles.link} onPress={aoIrParaEsqueci}>
-        <Text style={styles.textoLink}>Esqueci a senha</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.link} onPress={aoIrParaCadastro}>
-        <Text style={styles.textoLink}>Não tem conta? Cadastre-se</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity style={styles.link} onPress={aoIrParaEsqueci}>
+          <Text style={styles.textoLink}>Esqueci a senha</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.link} onPress={aoIrParaCadastro}>
+          <Text style={styles.textoLink}>Não tem conta? Cadastre-se</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </FundoTela>
   );
 }
 
 const styles = StyleSheet.create({
   fundo: {
     flex: 1,
-    backgroundColor: '#F2F5F0',
   },
   conteudo: {
     flexGrow: 1,
@@ -75,12 +72,14 @@ const styles = StyleSheet.create({
   },
   titulo: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#0F4C5C',
+    fontWeight: '900',
+    fontStyle: 'italic',
+    textTransform: 'uppercase',
+    color: CORES.destaque,
   },
   subtitulo: {
     fontSize: 16,
-    color: '#6B7A7F',
+    color: CORES.textoSecundario,
     marginTop: 4,
     marginBottom: 28,
   },
@@ -90,7 +89,7 @@ const styles = StyleSheet.create({
   },
   textoLink: {
     fontSize: 15,
-    color: '#0F4C5C',
+    color: CORES.destaque,
     fontWeight: 'bold',
   },
 });

@@ -1,4 +1,5 @@
 import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { CORES } from '../utils/tema';
 
 export default function CampoTexto({
   rotulo,
@@ -17,6 +18,8 @@ export default function CampoTexto({
         value={valor}
         onChangeText={aoMudar}
         placeholder={placeholder}
+        placeholderTextColor={CORES.textoSecundario}
+        selectionColor={CORES.destaque}
         secureTextEntry={senha}
         keyboardType={teclado}
         autoCapitalize={capitalizar}
@@ -31,17 +34,21 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   rotulo: {
-    fontSize: 14,
-    color: '#1F2D30',
+    fontSize: 13,
+    color: CORES.textoSecundario,
     marginBottom: 6,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: CORES.cartao,
     borderWidth: 1,
-    borderColor: '#D5DDD8',
-    borderRadius: 10,
+    borderColor: CORES.borda,
+    borderRadius: 6,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 12,
     fontSize: 16,
+    color: CORES.texto,
   },
 });

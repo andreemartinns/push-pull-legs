@@ -1,9 +1,10 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GRUPOS } from '../utils/grupos';
+import { CORES } from '../utils/tema';
 
 export default function CartaoExercicio({ exercicio, aoAlternar, aoRemover }) {
   const grupo = GRUPOS.find((g) => g.nome === exercicio.grupo);
-  const cor = grupo ? grupo.cor : '#6B7A7F';
+  const cor = grupo ? grupo.cor : CORES.textoSecundario;
   const detalhe =
     exercicio.series && exercicio.repeticoes
       ? `${exercicio.series} x ${exercicio.repeticoes}`
@@ -41,13 +42,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
+    backgroundColor: CORES.cartao,
+    borderWidth: 1,
+    borderColor: CORES.borda,
     borderRadius: 10,
     padding: 16,
     marginBottom: 10,
   },
   cartaoConcluido: {
-    backgroundColor: '#E3EFE9',
+    opacity: 0.6,
   },
   area: {
     flex: 1,
@@ -59,16 +62,16 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#0F4C5C',
+    borderColor: CORES.destaque,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   marcadorAtivo: {
-    backgroundColor: '#0F4C5C',
+    backgroundColor: CORES.destaque,
   },
   check: {
-    color: '#fff',
+    color: CORES.textoSobreDestaque,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -77,11 +80,11 @@ const styles = StyleSheet.create({
   },
   nome: {
     fontSize: 16,
-    color: '#1F2D30',
+    color: CORES.texto,
   },
   nomeConcluido: {
     textDecorationLine: 'line-through',
-    color: '#6B7A7F',
+    color: CORES.textoSecundario,
   },
   linhaDetalhes: {
     flexDirection: 'row',
@@ -101,10 +104,10 @@ const styles = StyleSheet.create({
   },
   detalhe: {
     fontSize: 13,
-    color: '#6B7A7F',
+    color: CORES.textoSecundario,
   },
   remover: {
-    color: '#C0392B',
+    color: CORES.erro,
     fontSize: 14,
     marginLeft: 10,
   },
