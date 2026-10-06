@@ -1,5 +1,6 @@
+import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CORES } from '../utils/tema';
 
 const OPCOES = [30, 60, 90, 120];
@@ -9,12 +10,18 @@ export default function TemporizadorDescanso({ visivel, aoFechar }) {
   const [restante, setRestante] = useState(60);
   const [rodando, setRodando] = useState(false);
   const intervaloRef = useRef(null);
+  const jaVibrouRef = useRef(false);
+
+  const larguraBarra = useRef(new Animated.Value(100)).current;
+  const escalaPulso = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (visivel) {
       setDuracao(60);
       setRestante(60);
       setRodando(true);
+      jaVibrouRef.current = false;
+      larguraBarra.setValue(100);
     } else {
       setRodando(false);
     }
@@ -25,6 +32,12 @@ export default function TemporizadorDescanso({ visivel, aoFechar }) {
 
     if (restante <= 0) {
       setRodando(false);
+
+      if (!jaVibrouRef.current) {
+        jaVibrouRef.current = true;
+        dispararVibracao();
+        animarPulso();
+      }
       return;
     }
 
@@ -35,10 +48,37 @@ export default function TemporizadorDescanso({ visivel, aoFechar }) {
     return () => clearTimeout(intervaloRef.current);
   }, [rodando, restante]);
 
+  useEffect(() => {
+    const progresso = duracao === 0 ? 0 : (restante / duracao) * 100;
+    Animated.timing(larguraBarra, {
+      toValue: progresso,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [restante, duracao]);
+
+  function dispararVibracao() {
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (erro) {
+      // Haptics pode não existir em alguns ambientes (ex.: web); ignora silenciosamente
+    }
+  }
+
+  function animarPulso() {
+    Animated.sequence([
+      Animated.timing(escalaPulso, { toValue: 1.15, duration: 180, useNativeDriver: true }),
+      Animated.timing(escalaPulso, { toValue: 1, duration: 180, useNativeDriver: true }),
+      Animated.timing(escalaPulso, { toValue: 1.1, duration: 150, useNativeDriver: true }),
+      Animated.timing(escalaPulso, { toValue: 1, duration: 150, useNativeDriver: true }),
+    ]).start();
+  }
+
   function escolherDuracao(segundos) {
     setDuracao(segundos);
     setRestante(segundos);
     setRodando(true);
+    jaVibrouRef.current = false;
   }
 
   function alternarPausa() {
@@ -48,6 +88,7 @@ export default function TemporizadorDescanso({ visivel, aoFechar }) {
   function reiniciar() {
     setRestante(duracao);
     setRodando(true);
+    jaVibrouRef.current = false;
   }
 
   if (!visivel) return null;
@@ -55,12 +96,11 @@ export default function TemporizadorDescanso({ visivel, aoFechar }) {
   const minutos = Math.floor(restante / 60);
   const segundos = restante % 60;
   const tempoFormatado = `${minutos}:${segundos.toString().padStart(2, '0')}`;
-  const progresso = duracao === 0 ? 0 : (restante / duracao) * 100;
   const terminou = restante <= 0;
 
   return (
     <View style={styles.container}>
-      <View style={styles.cartao}>
+      <Animated.View style={[styles.cartao, { transform: [{ scale: escalaPulso }] }]}>
         <View style={styles.cabecalho}>
           <Text style={styles.titulo}>{terminou ? 'Descanso concluído! 💪' : 'Descansando...'}</Text>
           <TouchableOpacity onPress={aoFechar}>
@@ -71,7 +111,17 @@ export default function TemporizadorDescanso({ visivel, aoFechar }) {
         <Text style={styles.tempo}>{tempoFormatado}</Text>
 
         <View style={styles.barraFundo}>
-          <View style={[styles.barraPreenchimento, { width: `${progresso}%` }]} />
+          <Animated.View
+            style={[
+              styles.barraPreenchimento,
+              {
+                width: larguraBarra.interpolate({
+                  inputRange: [0, 100],
+                  outputRange: ['0%', '100%'],
+                }),
+              },
+            ]}
+          />
         </View>
 
         <View style={styles.opcoes}>
@@ -96,7 +146,7 @@ export default function TemporizadorDescanso({ visivel, aoFechar }) {
             <Text style={styles.textoBotaoAcao}>Reiniciar</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 }
