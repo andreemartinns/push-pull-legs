@@ -2,13 +2,14 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GRUPOS } from '../utils/grupos';
 import { CORES } from '../utils/tema';
 
-export default function CartaoExercicio({ exercicio, aoAlternar, aoRemover }) {
+export default function CartaoExercicio({ exercicio, aoAlternar, aoRemover, aoEditar }) {
   const grupo = GRUPOS.find((g) => g.nome === exercicio.grupo);
   const cor = grupo ? grupo.cor : CORES.textoSecundario;
   const detalhe =
     exercicio.series && exercicio.repeticoes
       ? `${exercicio.series} x ${exercicio.repeticoes}`
       : '';
+  const peso = exercicio.peso ? `${exercicio.peso} kg` : '';
 
   return (
     <View style={[styles.cartao, exercicio.concluido && styles.cartaoConcluido]}>
@@ -26,13 +27,19 @@ export default function CartaoExercicio({ exercicio, aoAlternar, aoRemover }) {
               <Text style={styles.textoEtiqueta}>{exercicio.grupo}</Text>
             </View>
             {detalhe !== '' && <Text style={styles.detalhe}>{detalhe}</Text>}
+            {peso !== '' && <Text style={styles.peso}>{peso}</Text>}
           </View>
         </View>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={aoRemover}>
-        <Text style={styles.remover}>Remover</Text>
-      </TouchableOpacity>
+      <View style={styles.acoes}>
+        <TouchableOpacity onPress={aoEditar}>
+          <Text style={styles.editar}>Editar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={aoRemover}>
+          <Text style={styles.remover}>Remover</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -89,6 +96,7 @@ const styles = StyleSheet.create({
   linhaDetalhes: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     marginTop: 6,
   },
   etiqueta: {
@@ -96,6 +104,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     marginRight: 8,
+    marginBottom: 4,
   },
   textoEtiqueta: {
     color: '#fff',
@@ -105,10 +114,25 @@ const styles = StyleSheet.create({
   detalhe: {
     fontSize: 13,
     color: CORES.textoSecundario,
+    marginRight: 8,
+  },
+  peso: {
+    fontSize: 13,
+    color: CORES.destaque,
+    fontWeight: 'bold',
+  },
+  acoes: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  editar: {
+    color: CORES.destaque,
+    fontSize: 14,
+    marginRight: 14,
   },
   remover: {
     color: CORES.erro,
     fontSize: 14,
-    marginLeft: 10,
   },
 });

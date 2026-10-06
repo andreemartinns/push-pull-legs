@@ -1,51 +1,60 @@
 import { useState } from 'react';
-import {
-  FlatList,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import BarraProgresso from '../components/BarraProgresso';
 import Botao from '../components/Botao';
 import CartaoExercicio from '../components/CartaoExercicio';
+import ModalEditarExercicio from '../components/ModalEditarExercicio';
+import ModalExercicios from '../components/ModalExercicios';
+import TemporizadorDescanso from '../components/TemporizadorDescanso';
 import { GRUPOS } from '../utils/grupos';
 import { CORES } from '../utils/tema';
 
 export default function TelaTreino({ usuario, aoSair }) {
-  const [nome, setNome] = useState('');
-  const [series, setSeries] = useState('');
-  const [repeticoes, setRepeticoes] = useState('');
-  const [grupo, setGrupo] = useState(GRUPOS[0].nome);
   const [exercicios, setExercicios] = useState([]);
+  const [modalVisivel, setModalVisivel] = useState(false);
+  const [grupoModal, setGrupoModal] = useState(null);
+  const [exercicioEditando, setExercicioEditando] = useState(null);
+  const [temporizadorVisivel, setTemporizadorVisivel] = useState(false);
 
   const concluidos = exercicios.filter((item) => item.concluido).length;
 
-  function adicionarExercicio() {
-    if (nome.trim() === '') return;
+  function abrirModal(nomeGrupo) {
+    setGrupoModal(nomeGrupo);
+    setModalVisivel(true);
+  }
 
+  function fecharModal() {
+    setModalVisivel(false);
+  }
+
+  function adicionarExercicio(nomeExercicio) {
     const novoExercicio = {
       id: Date.now().toString(),
-      nome: nome.trim(),
-      series: series.trim(),
-      repeticoes: repeticoes.trim(),
-      grupo: grupo,
+      nome: nomeExercicio,
+      series: '3',
+      repeticoes: '12',
+      peso: '',
+      grupo: grupoModal,
       concluido: false,
     };
 
     setExercicios([...exercicios, novoExercicio]);
-    setNome('');
-    setSeries('');
-    setRepeticoes('');
+    setModalVisivel(false);
   }
 
   function alternarConcluido(id) {
+    const exercicio = exercicios.find((item) => item.id === id);
+    const vaiConcluir = !exercicio.concluido;
+
     setExercicios(
       exercicios.map((item) =>
-        item.id === id ? { ...item, concluido: !item.concluido } : item
+        item.id === id ? { ...item, concluido: vaiConcluir } : item
       )
     );
+
+    if (vaiConcluir) {
+      setTemporizadorVisivel(true);
+    }
   }
 
   function removerExercicio(id) {
@@ -54,6 +63,25 @@ export default function TelaTreino({ usuario, aoSair }) {
 
   function limparConcluidos() {
     setExercicios(exercicios.filter((item) => !item.concluido));
+  }
+
+  function abrirEdicao(exercicio) {
+    setExercicioEditando(exercicio);
+  }
+
+  function fecharEdicao() {
+    setExercicioEditando(null);
+  }
+
+  function salvarEdicao(novasSeries, novasRepeticoes, novoPeso) {
+    setExercicios(
+      exercicios.map((item) =>
+        item.id === exercicioEditando.id
+          ? { ...item, series: novasSeries, repeticoes: novasRepeticoes, peso: novoPeso }
+          : item
+      )
+    );
+    setExercicioEditando(null);
   }
 
   return (
@@ -68,52 +96,18 @@ export default function TelaTreino({ usuario, aoSair }) {
         </TouchableOpacity>
       </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Ex.: Supino reto"
-        placeholderTextColor={CORES.textoSecundario}
-        value={nome}
-        onChangeText={setNome}
-      />
+      <Text style={styles.instrucao}>Escolha um grupo muscular para ver os exercícios</Text>
 
       <View style={styles.grupos}>
         {GRUPOS.map((item) => (
           <TouchableOpacity
             key={item.nome}
-            style={[
-              styles.chip,
-              grupo === item.nome && { backgroundColor: item.cor, borderColor: item.cor },
-            ]}
-            onPress={() => setGrupo(item.nome)}
+            style={[styles.chip, { borderColor: item.cor }]}
+            onPress={() => abrirModal(item.nome)}
           >
-            <Text style={[styles.textoChip, grupo === item.nome && styles.textoChipAtivo]}>
-              {item.nome}
-            </Text>
+            <Text style={[styles.textoChip, { color: item.cor }]}>{item.nome}</Text>
           </TouchableOpacity>
         ))}
-      </View>
-
-      <View style={styles.formulario}>
-        <TextInput
-          style={[styles.input, styles.inputPequeno]}
-          placeholder="Séries"
-          placeholderTextColor={CORES.textoSecundario}
-          keyboardType="numeric"
-          value={series}
-          onChangeText={setSeries}
-        />
-        <TextInput
-          style={[styles.input, styles.inputPequeno, styles.ultimoInput]}
-          placeholder="Reps"
-          placeholderTextColor={CORES.textoSecundario}
-          keyboardType="numeric"
-          value={repeticoes}
-          onChangeText={setRepeticoes}
-        />
-      </View>
-
-      <View style={styles.adicionar}>
-        <Botao titulo="Adicionar" aoPressionar={adicionarExercicio} />
       </View>
 
       {exercicios.length > 0 && (
@@ -138,11 +132,31 @@ export default function TelaTreino({ usuario, aoSair }) {
             exercicio={item}
             aoAlternar={() => alternarConcluido(item.id)}
             aoRemover={() => removerExercicio(item.id)}
+            aoEditar={() => abrirEdicao(item)}
           />
         )}
         ListEmptyComponent={
-          <Text style={styles.vazio}>Nenhum exercício ainda</Text>
+          <Text style={styles.vazio}>Nenhum exercício ainda. Toque em um grupo acima para começar.</Text>
         }
+      />
+
+      <ModalExercicios
+        visivel={modalVisivel}
+        grupo={grupoModal}
+        aoFechar={fecharModal}
+        aoSelecionar={adicionarExercicio}
+      />
+
+      <ModalEditarExercicio
+        visivel={exercicioEditando !== null}
+        exercicio={exercicioEditando}
+        aoFechar={fecharEdicao}
+        aoSalvar={salvarEdicao}
+      />
+
+      <TemporizadorDescanso
+        visivel={temporizadorVisivel}
+        aoFechar={() => setTemporizadorVisivel(false)}
       />
     </View>
   );
@@ -177,54 +191,28 @@ const styles = StyleSheet.create({
     color: CORES.erro,
     fontWeight: 'bold',
   },
-  input: {
-    backgroundColor: CORES.cartao,
-    borderWidth: 1,
-    borderColor: CORES.borda,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: CORES.texto,
+  instrucao: {
+    fontSize: 14,
+    color: CORES.textoSecundario,
     marginBottom: 12,
   },
   grupos: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 4,
+    marginBottom: 16,
   },
   chip: {
-    borderWidth: 1,
-    borderColor: CORES.borda,
+    borderWidth: 1.5,
     backgroundColor: CORES.cartao,
     borderRadius: 20,
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 8,
     marginRight: 8,
     marginBottom: 8,
   },
   textoChip: {
     fontSize: 14,
-    color: CORES.texto,
-  },
-  textoChipAtivo: {
-    color: '#fff',
     fontWeight: 'bold',
-  },
-  formulario: {
-    flexDirection: 'row',
-    marginTop: 4,
-  },
-  inputPequeno: {
-    flex: 1,
-    minWidth: 0,
-    marginRight: 10,
-  },
-  ultimoInput: {
-    marginRight: 0,
-  },
-  adicionar: {
-    marginBottom: 16,
   },
   limpar: {
     marginBottom: 16,
