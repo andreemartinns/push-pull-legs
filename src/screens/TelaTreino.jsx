@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import BarraProgresso from '../components/BarraProgresso';
 import Botao from '../components/Botao';
@@ -8,15 +8,39 @@ import ModalExercicios from '../components/ModalExercicios';
 import TemporizadorDescanso from '../components/TemporizadorDescanso';
 import { GRUPOS } from '../utils/grupos';
 import { CORES } from '../utils/tema';
+import { carregarExerciciosAndamento, salvarExerciciosAndamento } from '../utils/armazenamento';
 
-export default function TelaTreino({ usuario, aoSair }) {
+export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHistorico }) {
   const [exercicios, setExercicios] = useState([]);
   const [modalVisivel, setModalVisivel] = useState(false);
   const [grupoModal, setGrupoModal] = useState(null);
   const [exercicioEditando, setExercicioEditando] = useState(null);
   const [temporizadorVisivel, setTemporizadorVisivel] = useState(false);
+  const carregouInicial = useRef(false);
 
   const concluidos = exercicios.filter((item) => item.concluido).length;
+
+  useEffect(() => {
+    async function carregar() {
+      const salvos = await carregarExerciciosAndamento();
+      setExercicios(salvos);
+      carregouInicial.current = true;
+    }
+    carregar();
+  }, []);
+
+  useEffect(() => {
+    if (carregouInicial.current) {
+      salvarExerciciosAndamento(exercicios);
+    }
+  }, [exercicios]);
+
+  useEffect(() => {
+    if (exercicios.length > 0 && concluidos === exercicios.length) {
+      aoSalvarTreino(exercicios);
+      setExercicios([]);
+    }
+  }, [concluidos]);
 
   function abrirModal(nomeGrupo) {
     setGrupoModal(nomeGrupo);
@@ -91,9 +115,14 @@ export default function TelaTreino({ usuario, aoSair }) {
           <Text style={styles.saudacao}>Olá, {usuario.nome}</Text>
           <Text style={styles.titulo}>Meu Treino</Text>
         </View>
-        <TouchableOpacity onPress={aoSair}>
-          <Text style={styles.sair}>Sair</Text>
-        </TouchableOpacity>
+        <View style={styles.acoesCabecalho}>
+          <TouchableOpacity onPress={aoVerHistorico}>
+            <Text style={styles.historico}>Histórico</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={aoSair}>
+            <Text style={styles.sair}>Sair</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Text style={styles.instrucao}>Escolha um grupo muscular para ver os exercícios</Text>
@@ -185,6 +214,15 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textTransform: 'uppercase',
     color: CORES.destaque,
+  },
+  acoesCabecalho: {
+    alignItems: 'flex-end',
+  },
+  historico: {
+    fontSize: 14,
+    color: CORES.destaque,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
   sair: {
     fontSize: 15,
