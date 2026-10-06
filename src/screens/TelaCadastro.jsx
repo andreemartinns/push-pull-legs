@@ -35,9 +35,7 @@ export default function TelaCadastro({ usuarios, aoCadastrar, aoIrParaLogin }) {
     }
 
     aoCadastrar({ nome: nome.trim(), email: emailLimpo, senha });
-    Alert.alert('Conta criada!', 'Agora é só entrar com seu e-mail e senha.', [
-      { text: 'Entrar', onPress: aoIrParaLogin },
-    ]);
+    aoIrParaLogin();
   }
 
   return (
