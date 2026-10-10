@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -18,13 +18,9 @@ import ModalExercicios from '../components/ModalExercicios';
 import TemporizadorDescanso from '../components/TemporizadorDescanso';
 import { DIVISOES } from '../utils/divisoes';
 import { GRUPOS } from '../utils/grupos';
+import { supabase } from '../utils/supabase';
 import { CORES } from '../utils/tema';
 import { DIVISAO_ABC, FULL_BODY } from '../utils/treinosProntos';
-import {
-  carregarExerciciosAndamento,
-  carregarHistorico,
-  salvarExerciciosAndamento,
-} from '../utils/armazenamento';
 
 // Converte "12,5" ou "12.5" em número. Se não for número, devolve 0.
 function paraNumero(valor) {
@@ -66,23 +62,6 @@ function montarRecordes(historico) {
       if (peso > 0 && (mapa[ex.nome] === undefined || peso > mapa[ex.nome])) {
         mapa[ex.nome] = peso;
       }
-    }
-  }
-
-  return mapa;
-}
-
-// Pega as cargas de um treino que acabou de ser finalizado.
-function cargasDoTreino(lista) {
-  const mapa = {};
-
-  for (const ex of lista) {
-    if (ex.peso) {
-      mapa[ex.nome] = {
-        peso: ex.peso,
-        series: ex.series,
-        repeticoes: ex.repeticoes,
-      };
     }
   }
 
@@ -182,6 +161,7 @@ function sugestaoDoHistorico(historico) {
 
 export default function TelaTreino({
   usuario,
+  historico = [],
   aoSair,
   aoSalvarTreino,
   aoVerHistorico,
@@ -193,36 +173,53 @@ export default function TelaTreino({
   const [divisaoAberta, setDivisaoAberta] = useState(null);
   const [exercicioEditando, setExercicioEditando] = useState(null);
   const [temporizadorVisivel, setTemporizadorVisivel] = useState(false);
-  const [ultimasCargas, setUltimasCargas] = useState({});
-  const [recordes, setRecordes] = useState({});
-  const [datasTreino, setDatasTreino] = useState([]);
-  const [sugestao, setSugestao] = useState(null);
   const [anotacao, setAnotacao] = useState('');
   const [anotacaoFocada, setAnotacaoFocada] = useState(false);
   const carregouInicial = useRef(false);
 
-  const concluidos = exercicios.filter((item) => item.concluido).length;
-  const sequencia = calcularSequencia(datasTreino);
+  // Tudo isso vem do histórico (que o App carrega do Supabase) e se atualiza sozinho.
+  const ultimasCargas = useMemo(() => montarUltimasCargas(historico), [historico]);
+  const recordes = useMemo(() => montarRecordes(historico), [historico]);
+  const sequencia = useMemo(
+    () => calcularSequencia(montarDatasTreino(historico)),
+    [historico]
+  );
+  const sugestao = useMemo(() => sugestaoDoHistorico(historico), [historico]);
 
+  const concluidos = exercicios.filter((item) => item.concluido).length;
+
+  // Carrega o treino em andamento da nuvem.
   useEffect(() => {
     async function carregar() {
-      const salvos = await carregarExerciciosAndamento();
-      setExercicios(salvos);
-      carregouInicial.current = true;
+      const { data, error } = await supabase
+        .from('andamento')
+        .select('exercicios')
+        .maybeSingle();
 
-      const historico = await carregarHistorico();
-      setUltimasCargas(montarUltimasCargas(historico));
-      setRecordes(montarRecordes(historico));
-      setDatasTreino(montarDatasTreino(historico));
-      setSugestao(sugestaoDoHistorico(historico));
+      if (error) {
+        console.log('Erro ao carregar treino em andamento', error);
+        return;
+      }
+
+      setExercicios(data?.exercicios || []);
+      carregouInicial.current = true;
     }
     carregar();
   }, []);
 
+  // Salva o treino em andamento na nuvem a cada mudança.
   useEffect(() => {
-    if (carregouInicial.current) {
-      salvarExerciciosAndamento(exercicios);
-    }
+    if (!carregouInicial.current) return;
+
+    supabase
+      .from('andamento')
+      .upsert(
+        { exercicios, atualizado_em: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      )
+      .then(({ error }) => {
+        if (error) console.log('Erro ao salvar treino em andamento', error);
+      });
   }, [exercicios]);
 
   // Se a lista de exercícios ficar vazia, a anotação do treino é descartada.
@@ -232,26 +229,9 @@ export default function TelaTreino({
     }
   }, [exercicios.length]);
 
+  // Quando todos os exercícios estão concluídos, o treino é salvo no histórico.
   useEffect(() => {
     if (exercicios.length > 0 && concluidos === exercicios.length) {
-      setUltimasCargas((atual) => ({ ...atual, ...cargasDoTreino(exercicios) }));
-      setRecordes((atual) => {
-        const novo = { ...atual };
-        for (const ex of exercicios) {
-          const peso = paraNumero(ex.peso);
-          if (peso > (novo[ex.nome] || 0)) {
-            novo[ex.nome] = peso;
-          }
-        }
-        return novo;
-      });
-      setDatasTreino((atual) => [...atual, formatarData(new Date())]);
-
-      const feita = divisaoDoTreino(exercicios);
-      if (feita) {
-        setSugestao(sugerirProxima(feita, true));
-      }
-
       aoSalvarTreino(exercicios, anotacao);
       setAnotacao('');
       setExercicios([]);

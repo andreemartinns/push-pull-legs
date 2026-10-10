@@ -153,6 +153,7 @@ export default function App() {
   return (
     <TelaTreino
       usuario={usuarioLogado}
+      historico={historico}
       aoSair={sair}
       aoSalvarTreino={salvarTreinoConcluido}
       aoVerHistorico={() => setTela('historico')}
