@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import GraficoEvolucao from '../components/GraficoEvolucao';
-import { GRUPOS } from '../utils/grupos';
 import { CORES } from '../utils/tema';
 import { listarExerciciosComPeso, obterEvolucao } from '../utils/evolucao';
 
@@ -46,12 +45,11 @@ export default function TelaHistorico({ historico, aoVoltar }) {
         <FlatList
           data={historico}
           keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.conteudoLista}
           renderItem={({ item }) => (
             <View style={styles.cartaoTreino}>
               <Text style={styles.data}>{item.data}</Text>
               {item.exercicios.map((exercicio) => {
-                const grupo = GRUPOS.find((g) => g.nome === exercicio.grupo);
-                const cor = grupo ? grupo.cor : CORES.textoSecundario;
                 const detalhe =
                   exercicio.series && exercicio.repeticoes
                     ? `${exercicio.series} x ${exercicio.repeticoes}`
@@ -60,7 +58,7 @@ export default function TelaHistorico({ historico, aoVoltar }) {
 
                 return (
                   <View key={exercicio.id} style={styles.linhaExercicio}>
-                    <View style={[styles.etiqueta, { backgroundColor: cor }]}>
+                    <View style={styles.etiqueta}>
                       <Text style={styles.textoEtiqueta}>{exercicio.grupo}</Text>
                     </View>
                     <Text style={styles.nomeExercicio}>{exercicio.nome}</Text>
@@ -82,7 +80,10 @@ export default function TelaHistorico({ historico, aoVoltar }) {
       )}
 
       {aba === 'evolucao' && (
-        <View style={styles.evolucaoContainer}>
+        <ScrollView
+          style={styles.evolucaoContainer}
+          contentContainerStyle={styles.conteudoLista}
+        >
           {exerciciosComPeso.length === 0 ? (
             <Text style={styles.vazio}>
               Registre o peso de algum exercício para ver a evolução aqui.
@@ -115,7 +116,7 @@ export default function TelaHistorico({ historico, aoVoltar }) {
               {exercicioSelecionado && <GraficoEvolucao pontos={pontosEvolucao} />}
             </>
           )}
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -128,12 +129,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: CORES.fundo,
   },
+  conteudoLista: {
+    paddingBottom: 40,
+  },
   cabecalho: {
     marginBottom: 16,
   },
   voltar: {
     fontSize: 15,
-    color: CORES.destaque,
+    fontWeight: 'bold',
+    color: CORES.texto,
     marginBottom: 8,
   },
   titulo: {
@@ -141,7 +146,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
-    color: CORES.destaque,
+    color: CORES.texto,
   },
   abas: {
     flexDirection: 'row',
@@ -162,7 +167,7 @@ const styles = StyleSheet.create({
     color: CORES.textoSecundario,
   },
   textoAbaAtiva: {
-    color: CORES.destaque,
+    color: CORES.texto,
     fontWeight: 'bold',
   },
   cartaoTreino: {
@@ -174,23 +179,25 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   data: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.destaque,
+    fontSize: 15,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    color: CORES.texto,
     marginBottom: 10,
   },
   linhaExercicio: {
-    marginBottom: 8,
+    marginBottom: 10,
   },
   etiqueta: {
     alignSelf: 'flex-start',
+    backgroundColor: CORES.borda,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 2,
     marginBottom: 4,
   },
   textoEtiqueta: {
-    color: '#fff',
+    color: CORES.texto,
     fontSize: 11,
     fontWeight: 'bold',
   },
