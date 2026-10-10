@@ -4,9 +4,11 @@ import BarraProgresso from '../components/BarraProgresso';
 import Botao from '../components/Botao';
 import CartaoExercicio from '../components/CartaoExercicio';
 import Logo from '../components/Logo';
+import ModalDivisao from '../components/ModalDivisao';
 import ModalEditarExercicio from '../components/ModalEditarExercicio';
 import ModalExercicios from '../components/ModalExercicios';
 import TemporizadorDescanso from '../components/TemporizadorDescanso';
+import { DIVISOES } from '../utils/divisoes';
 import { GRUPOS } from '../utils/grupos';
 import { CORES } from '../utils/tema';
 import {
@@ -111,6 +113,7 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
   const [exercicios, setExercicios] = useState([]);
   const [modalVisivel, setModalVisivel] = useState(false);
   const [grupoModal, setGrupoModal] = useState(null);
+  const [divisaoAberta, setDivisaoAberta] = useState(null);
   const [exercicioEditando, setExercicioEditando] = useState(null);
   const [temporizadorVisivel, setTemporizadorVisivel] = useState(false);
   const [ultimasCargas, setUltimasCargas] = useState({});
@@ -174,6 +177,36 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
 
   function fecharModal() {
     setModalVisivel(false);
+  }
+
+  function abrirDivisao(divisao) {
+    setDivisaoAberta(divisao);
+  }
+
+  function fecharDivisao() {
+    setDivisaoAberta(null);
+  }
+
+  // Adiciona vários exercícios de uma vez, sem repetir os que já estão na lista.
+  function adicionarDaDivisao(lista) {
+    const nomesAtuais = exercicios.map((item) => item.nome);
+    const base = Date.now();
+
+    const novos = lista
+      .filter((item) => !nomesAtuais.includes(item.nome))
+      .map((item, indice) => ({
+        id: (base + indice).toString(),
+        nome: item.nome,
+        series: '3',
+        repeticoes: '12',
+        peso: '',
+        grupo: item.grupo,
+        concluido: false,
+      }));
+
+    if (novos.length > 0) {
+      setExercicios([...exercicios, ...novos]);
+    }
   }
 
   function adicionarExercicio(nomeExercicio) {
@@ -267,7 +300,48 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
           : 'Conclua um treino para começar sua sequência'}
       </Text>
 
-      <Text style={styles.instrucao}>Escolha um grupo muscular para ver os exercícios</Text>
+      <Text style={styles.instrucao}>Monte o treino do dia</Text>
+
+      <View style={styles.divisoes}>
+        {DIVISOES.map((item, indice) => {
+          const aberta = divisaoAberta !== null && divisaoAberta.nome === item.nome;
+
+          return (
+            <Pressable
+              key={item.nome}
+              onPress={() => abrirDivisao(item)}
+              style={({ pressed }) => [
+                styles.divisao,
+                indice < DIVISOES.length - 1 && styles.divisaoEspaco,
+                (pressed || aberta) && styles.divisaoAtiva,
+              ]}
+            >
+              {({ pressed }) => (
+                <>
+                  <Text
+                    style={[
+                      styles.nomeDivisao,
+                      (pressed || aberta) && styles.textoAtivo,
+                    ]}
+                  >
+                    {item.nome}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.descricaoDivisao,
+                      (pressed || aberta) && styles.textoAtivo,
+                    ]}
+                  >
+                    {item.descricao}
+                  </Text>
+                </>
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Text style={styles.instrucao}>Ou escolha um grupo muscular</Text>
 
       <View style={styles.grupos}>
         {GRUPOS.map((item) => {
@@ -325,7 +399,9 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
           />
         )}
         ListEmptyComponent={
-          <Text style={styles.vazio}>Nenhum exercício ainda. Toque em um grupo acima para começar.</Text>
+          <Text style={styles.vazio}>
+            Nenhum exercício ainda. Escolha um treino ou um grupo acima para começar.
+          </Text>
         }
       />
 
@@ -334,6 +410,14 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
         grupo={grupoModal}
         aoFechar={fecharModal}
         aoSelecionar={adicionarExercicio}
+      />
+
+      <ModalDivisao
+        visivel={divisaoAberta !== null}
+        divisao={divisaoAberta}
+        jaAdicionados={exercicios.map((item) => item.nome)}
+        aoFechar={fecharDivisao}
+        aoAdicionar={adicionarDaDivisao}
       />
 
       <ModalEditarExercicio
@@ -430,6 +514,43 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: CORES.textoSecundario,
     marginBottom: 12,
+  },
+  divisoes: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  divisao: {
+    flex: 1,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: CORES.borda,
+    backgroundColor: CORES.cartao,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+  },
+  divisaoEspaco: {
+    marginRight: 8,
+  },
+  divisaoAtiva: {
+    backgroundColor: CORES.destaque,
+    borderColor: CORES.destaque,
+  },
+  nomeDivisao: {
+    fontSize: 20,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    textTransform: 'uppercase',
+    color: CORES.texto,
+  },
+  descricaoDivisao: {
+    fontSize: 11,
+    color: CORES.textoSecundario,
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  textoAtivo: {
+    color: CORES.textoSobreDestaque,
   },
   grupos: {
     flexDirection: 'row',
