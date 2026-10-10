@@ -109,6 +109,68 @@ function calcularSequencia(datas) {
   return total;
 }
 
+// ----- Treino sugerido -----
+
+// Descobre a que divisão (Push, Pull ou Legs) cada exercício pertence.
+// Primeiro pelo nome, nos treinos prontos. Se não achar, pelo grupo muscular.
+// Braços fica de fora do grupo porque mistura bíceps e tríceps.
+const DIVISAO_POR_NOME = {};
+DIVISOES.forEach((divisao) => {
+  divisao.exercicios.forEach((ex) => {
+    DIVISAO_POR_NOME[ex.nome] = divisao.nome;
+  });
+});
+
+const DIVISAO_POR_GRUPO = {
+  Peito: 'Push',
+  Ombros: 'Push',
+  Costas: 'Pull',
+  Pernas: 'Legs',
+};
+
+// Diz qual divisão foi um treino, pela que tem mais exercícios.
+function divisaoDoTreino(lista) {
+  const contagem = {};
+
+  for (const ex of lista) {
+    const nome = DIVISAO_POR_NOME[ex.nome] || DIVISAO_POR_GRUPO[ex.grupo];
+    if (nome) {
+      contagem[nome] = (contagem[nome] || 0) + 1;
+    }
+  }
+
+  let melhor = null;
+  for (const divisao of DIVISOES) {
+    if ((contagem[divisao.nome] || 0) > (contagem[melhor] || 0)) {
+      melhor = divisao.nome;
+    }
+  }
+
+  return melhor;
+}
+
+// Monta a sugestão: a divisão que vem depois da que foi feita por último.
+function sugerirProxima(nomeAtual, treinouHoje) {
+  if (!nomeAtual) return null;
+
+  const indice = DIVISOES.findIndex((divisao) => divisao.nome === nomeAtual);
+  return {
+    nome: DIVISOES[(indice + 1) % DIVISOES.length].nome,
+    hoje: !treinouHoje,
+  };
+}
+
+// Olha o treino mais recente do histórico e sugere o próximo.
+function sugestaoDoHistorico(historico) {
+  const ultimo = historico[0];
+  if (!ultimo) return null;
+
+  const lista = Array.isArray(ultimo) ? ultimo : ultimo.exercicios || [];
+  const treinouHoje = ultimo.data === formatarData(new Date());
+
+  return sugerirProxima(divisaoDoTreino(lista), treinouHoje);
+}
+
 export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHistorico }) {
   const [exercicios, setExercicios] = useState([]);
   const [modalVisivel, setModalVisivel] = useState(false);
@@ -119,6 +181,7 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
   const [ultimasCargas, setUltimasCargas] = useState({});
   const [recordes, setRecordes] = useState({});
   const [datasTreino, setDatasTreino] = useState([]);
+  const [sugestao, setSugestao] = useState(null);
   const carregouInicial = useRef(false);
 
   const concluidos = exercicios.filter((item) => item.concluido).length;
@@ -134,6 +197,7 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
       setUltimasCargas(montarUltimasCargas(historico));
       setRecordes(montarRecordes(historico));
       setDatasTreino(montarDatasTreino(historico));
+      setSugestao(sugestaoDoHistorico(historico));
     }
     carregar();
   }, []);
@@ -158,6 +222,12 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
         return novo;
       });
       setDatasTreino((atual) => [...atual, formatarData(new Date())]);
+
+      const feita = divisaoDoTreino(exercicios);
+      if (feita) {
+        setSugestao(sugerirProxima(feita, true));
+      }
+
       aoSalvarTreino(exercicios);
       setExercicios([]);
     }
@@ -305,6 +375,7 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
       <View style={styles.divisoes}>
         {DIVISOES.map((item, indice) => {
           const aberta = divisaoAberta !== null && divisaoAberta.nome === item.nome;
+          const sugerida = sugestao !== null && sugestao.nome === item.nome;
 
           return (
             <Pressable
@@ -313,6 +384,7 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
               style={({ pressed }) => [
                 styles.divisao,
                 indice < DIVISOES.length - 1 && styles.divisaoEspaco,
+                sugerida && styles.divisaoSugerida,
                 (pressed || aberta) && styles.divisaoAtiva,
               ]}
             >
@@ -334,6 +406,23 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
                   >
                     {item.descricao}
                   </Text>
+                  {sugerida && (
+                    <View
+                      style={[
+                        styles.etiquetaSugestao,
+                        (pressed || aberta) && styles.etiquetaSugestaoAtiva,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.textoEtiquetaSugestao,
+                          (pressed || aberta) && styles.textoEtiquetaSugestaoAtiva,
+                        ]}
+                      >
+                        {sugestao.hoje ? 'Hoje' : 'Próximo'}
+                      </Text>
+                    </View>
+                  )}
                 </>
               )}
             </Pressable>
@@ -532,6 +621,9 @@ const styles = StyleSheet.create({
   divisaoEspaco: {
     marginRight: 8,
   },
+  divisaoSugerida: {
+    borderColor: CORES.destaque,
+  },
   divisaoAtiva: {
     backgroundColor: CORES.destaque,
     borderColor: CORES.destaque,
@@ -551,6 +643,25 @@ const styles = StyleSheet.create({
   },
   textoAtivo: {
     color: CORES.textoSobreDestaque,
+  },
+  etiquetaSugestao: {
+    backgroundColor: CORES.destaque,
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 1,
+    marginTop: 8,
+  },
+  etiquetaSugestaoAtiva: {
+    backgroundColor: CORES.textoSobreDestaque,
+  },
+  textoEtiquetaSugestao: {
+    fontSize: 11,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    color: CORES.textoSobreDestaque,
+  },
+  textoEtiquetaSugestaoAtiva: {
+    color: CORES.destaque,
   },
   grupos: {
     flexDirection: 'row',
