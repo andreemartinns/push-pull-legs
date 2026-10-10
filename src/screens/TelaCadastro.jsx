@@ -5,15 +5,18 @@ import CampoTexto from '../components/CampoTexto';
 import FundoTela from '../components/FundoTela';
 import Logo from '../components/Logo';
 import { avisar } from '../utils/avisar';
+import { supabase } from '../utils/supabase';
 import { CORES } from '../utils/tema';
 
-export default function TelaCadastro({ usuarios, aoCadastrar, aoIrParaLogin }) {
+export default function TelaCadastro({ aoIrParaLogin }) {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmacao, setConfirmacao] = useState('');
+  const [enviando, setEnviando] = useState(false);
 
-  function cadastrar() {
+  async function cadastrar() {
+    if (enviando) return;
     const emailLimpo = email.trim().toLowerCase();
 
     if (nome.trim() === '' || emailLimpo === '' || senha === '') {
@@ -32,12 +35,21 @@ export default function TelaCadastro({ usuarios, aoCadastrar, aoIrParaLogin }) {
       avisar('Senhas diferentes', 'A confirmação não é igual à senha.');
       return;
     }
-    if (usuarios.some((u) => u.email === emailLimpo)) {
-      avisar('E-mail já cadastrado', 'Use outro e-mail ou entre na sua conta.');
+
+    setEnviando(true);
+    const { error } = await supabase.auth.signUp({
+      email: emailLimpo,
+      password: senha,
+      options: { data: { nome: nome.trim() } },
+    });
+    setEnviando(false);
+
+    if (error) {
+      avisar('Não foi possível cadastrar', error.message);
       return;
     }
 
-    aoCadastrar({ nome: nome.trim(), email: emailLimpo, senha });
+    avisar('Conta criada', 'Agora é só entrar.');
     aoIrParaLogin();
   }
 

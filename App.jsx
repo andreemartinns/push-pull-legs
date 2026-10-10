@@ -6,92 +6,108 @@ import TelaHistorico from './src/screens/TelaHistorico';
 import TelaLogin from './src/screens/TelaLogin';
 import TelaMedidas from './src/screens/TelaMedidas';
 import TelaTreino from './src/screens/TelaTreino';
+import { avisar } from './src/utils/avisar';
+import { supabase } from './src/utils/supabase';
 import { CORES } from './src/utils/tema';
-import {
-  carregarHistorico,
-  carregarMedidas,
-  carregarUsuarioLogado,
-  carregarUsuarios,
-  salvarHistorico,
-  salvarMedidas,
-  salvarUsuarioLogado,
-  salvarUsuarios,
-} from './src/utils/armazenamento';
 
 export default function App() {
   const [carregando, setCarregando] = useState(true);
   const [tela, setTela] = useState('login');
-  const [usuarios, setUsuarios] = useState([]);
-  const [usuarioLogado, setUsuarioLogado] = useState(null);
+  const [sessao, setSessao] = useState(null);
   const [historico, setHistorico] = useState([]);
   const [medidas, setMedidas] = useState([]);
 
+  const usuarioId = sessao?.user?.id ?? null;
+
+  const usuarioLogado = sessao
+    ? {
+        id: sessao.user.id,
+        email: sessao.user.email,
+        nome: sessao.user.user_metadata?.nome || sessao.user.email,
+      }
+    : null;
+
+  // Acompanha o login: pega a sessão salva e escuta entradas e saídas.
   useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSessao(data.session);
+      setCarregando(false);
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((_evento, novaSessao) => {
+      setSessao(novaSessao);
+    });
+
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  // Quando entra ou sai alguém, troca a tela e carrega os dados do aluno.
+  useEffect(() => {
+    if (!usuarioId) {
+      setTela('login');
+      setHistorico([]);
+      setMedidas([]);
+      return;
+    }
+
+    setTela('treino');
+
     async function carregarDados() {
-      const [usuariosSalvos, usuarioSalvo, historicoSalvo, medidasSalvas] = await Promise.all([
-        carregarUsuarios(),
-        carregarUsuarioLogado(),
-        carregarHistorico(),
-        carregarMedidas(),
+      const [respHistorico, respMedidas] = await Promise.all([
+        supabase.from('historico').select('dados').order('criado_em', { ascending: false }),
+        supabase.from('medidas').select('dados').order('criado_em', { ascending: false }),
       ]);
 
-      setUsuarios(usuariosSalvos);
-      setHistorico(historicoSalvo);
-      setMedidas(medidasSalvas);
+      if (respHistorico.error) console.log('Erro ao carregar histórico', respHistorico.error);
+      if (respMedidas.error) console.log('Erro ao carregar medidas', respMedidas.error);
 
-      if (usuarioSalvo) {
-        setUsuarioLogado(usuarioSalvo);
-        setTela('treino');
-      }
-
-      setCarregando(false);
+      setHistorico((respHistorico.data || []).map((linha) => linha.dados));
+      setMedidas((respMedidas.data || []).map((linha) => linha.dados));
     }
 
     carregarDados();
-  }, []);
+  }, [usuarioId]);
 
-  function cadastrar(novoUsuario) {
-    const novaLista = [...usuarios, novoUsuario];
-    setUsuarios(novaLista);
-    salvarUsuarios(novaLista);
-  }
-
-  function entrar(usuario) {
-    setUsuarioLogado(usuario);
-    salvarUsuarioLogado(usuario);
-    setTela('treino');
-  }
-
-  function sair() {
-    setUsuarioLogado(null);
-    salvarUsuarioLogado(null);
-    setTela('login');
+  async function sair() {
+    await supabase.auth.signOut();
   }
 
   // A anotação é opcional: se não vier, o treino é salvo com o campo vazio.
-  function salvarTreinoConcluido(exerciciosConcluidos, anotacao = '') {
+  async function salvarTreinoConcluido(exerciciosConcluidos, anotacao = '') {
     const novoRegistro = {
       id: Date.now().toString(),
       data: new Date().toLocaleDateString('pt-BR'),
       exercicios: exerciciosConcluidos,
       anotacao: String(anotacao || '').trim(),
     };
-    const novoHistorico = [novoRegistro, ...historico];
-    setHistorico(novoHistorico);
-    salvarHistorico(novoHistorico);
+    setHistorico((atual) => [novoRegistro, ...atual]);
+
+    const { error } = await supabase.from('historico').insert({ dados: novoRegistro });
+    if (error) {
+      console.log('Erro ao salvar treino', error);
+      avisar('Erro ao salvar', 'Não foi possível salvar o treino na nuvem.');
+    }
   }
 
   // Medidas ficam da mais nova para a mais antiga, como o histórico.
-  function salvarMedida(registro) {
-    const novasMedidas = [registro, ...medidas];
-    setMedidas(novasMedidas);
-    salvarMedidas(novasMedidas);
+  async function salvarMedida(registro) {
+    setMedidas((atual) => [registro, ...atual]);
+
+    const { error } = await supabase.from('medidas').insert({ dados: registro });
+    if (error) {
+      console.log('Erro ao salvar medida', error);
+      avisar('Erro ao salvar', 'Não foi possível salvar a medida na nuvem.');
+    }
   }
 
-  function removerMedida(id) {
-    const novasMedidas = medidas.filter((item) => item.id !== id);
-    setMedidas(novasMedidas);
-    salvarMedidas(novasMedidas);
+  async function removerMedida(id) {
+    setMedidas((atual) => atual.filter((item) => item.id !== id));
+
+    const { error } = await supabase.from('medidas').delete().eq('dados->>id', String(id));
+    if (error) {
+      console.log('Erro ao remover medida', error);
+      avisar('Erro ao remover', 'Não foi possível remover a medida na nuvem.');
+    }
   }
 
   if (carregando) {
@@ -102,20 +118,23 @@ export default function App() {
     );
   }
 
-  if (tela === 'cadastro') {
+  // Sem sessão, só pode aparecer login, cadastro ou esqueci a senha.
+  if (!sessao) {
+    if (tela === 'cadastro') {
+      return <TelaCadastro aoIrParaLogin={() => setTela('login')} />;
+    }
+    if (tela === 'esqueci') {
+      return <TelaEsqueciSenha aoIrParaLogin={() => setTela('login')} />;
+    }
     return (
-      <TelaCadastro
-        usuarios={usuarios}
-        aoCadastrar={cadastrar}
-        aoIrParaLogin={() => setTela('login')}
+      <TelaLogin
+        aoIrParaCadastro={() => setTela('cadastro')}
+        aoIrParaEsqueci={() => setTela('esqueci')}
       />
     );
   }
 
-  if (tela === 'esqueci') {
-    return <TelaEsqueciSenha aoIrParaLogin={() => setTela('login')} />;
-  }
-
+  // Com sessão, as telas do aluno.
   if (tela === 'historico') {
     return <TelaHistorico historico={historico} aoVoltar={() => setTela('treino')} />;
   }
@@ -131,24 +150,13 @@ export default function App() {
     );
   }
 
-  if (tela === 'treino') {
-    return (
-      <TelaTreino
-        usuario={usuarioLogado}
-        aoSair={sair}
-        aoSalvarTreino={salvarTreinoConcluido}
-        aoVerHistorico={() => setTela('historico')}
-        aoVerMedidas={() => setTela('medidas')}
-      />
-    );
-  }
-
   return (
-    <TelaLogin
-      usuarios={usuarios}
-      aoEntrar={entrar}
-      aoIrParaCadastro={() => setTela('cadastro')}
-      aoIrParaEsqueci={() => setTela('esqueci')}
+    <TelaTreino
+      usuario={usuarioLogado}
+      aoSair={sair}
+      aoSalvarTreino={salvarTreinoConcluido}
+      aoVerHistorico={() => setTela('historico')}
+      aoVerMedidas={() => setTela('medidas')}
     />
   );
 }

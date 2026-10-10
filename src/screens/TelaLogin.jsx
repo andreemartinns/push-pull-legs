@@ -5,21 +5,34 @@ import CampoTexto from '../components/CampoTexto';
 import FundoTela from '../components/FundoTela';
 import Logo from '../components/Logo';
 import { avisar } from '../utils/avisar';
+import { supabase } from '../utils/supabase';
 import { CORES } from '../utils/tema';
 
-export default function TelaLogin({ usuarios, aoEntrar, aoIrParaCadastro, aoIrParaEsqueci }) {
+export default function TelaLogin({ aoIrParaCadastro, aoIrParaEsqueci }) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [enviando, setEnviando] = useState(false);
 
-  function entrar() {
+  async function entrar() {
+    if (enviando) return;
     const emailLimpo = email.trim().toLowerCase();
-    const usuario = usuarios.find((u) => u.email === emailLimpo && u.senha === senha);
 
-    if (!usuario) {
-      avisar('Não foi possível entrar', 'E-mail ou senha incorretos.');
+    if (emailLimpo === '' || senha === '') {
+      avisar('Campos vazios', 'Preencha e-mail e senha.');
       return;
     }
-    aoEntrar(usuario);
+
+    setEnviando(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: emailLimpo,
+      password: senha,
+    });
+    setEnviando(false);
+
+    if (error) {
+      avisar('Não foi possível entrar', 'E-mail ou senha incorretos.');
+    }
+    // Se deu certo, o App.jsx percebe a sessão e abre o app sozinho.
   }
 
   return (

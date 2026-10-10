@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { CORES } from '../utils/tema';
 
 export default function CampoTexto({
@@ -24,10 +24,22 @@ export default function CampoTexto({
         keyboardType={teclado}
         autoCapitalize={capitalizar}
         autoCorrect={false}
+        autoComplete="off"
       />
     </View>
   );
 }
+
+// No navegador, o Chrome pinta o campo preenchido automaticamente de azul-claro.
+// Esse truque de sombra interna cobre essa cor com a cor do cartão.
+const estiloWeb =
+  Platform.OS === 'web'
+    ? {
+        boxShadow: `0 0 0 1000px ${CORES.cartao} inset`,
+        WebkitTextFillColor: CORES.texto,
+        caretColor: CORES.texto,
+      }
+    : {};
 
 const styles = StyleSheet.create({
   container: {
@@ -50,5 +62,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: CORES.texto,
+    ...estiloWeb,
   },
 });
