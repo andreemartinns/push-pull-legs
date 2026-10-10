@@ -49,6 +49,14 @@ export default function TelaHistorico({ historico, aoVoltar }) {
           renderItem={({ item }) => (
             <View style={styles.cartaoTreino}>
               <Text style={styles.data}>{item.data}</Text>
+
+              {item.anotacao ? (
+                <View style={styles.blocoAnotacao}>
+                  <Text style={styles.rotuloAnotacao}>Anotação</Text>
+                  <Text style={styles.textoAnotacao}>{item.anotacao}</Text>
+                </View>
+              ) : null}
+
               {item.exercicios.map((exercicio) => {
                 const detalhe =
                   exercicio.series && exercicio.repeticoes
@@ -184,6 +192,24 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: CORES.texto,
     marginBottom: 10,
+  },
+  blocoAnotacao: {
+    borderLeftWidth: 3,
+    borderLeftColor: CORES.textoSecundario,
+    paddingLeft: 10,
+    marginBottom: 14,
+  },
+  rotuloAnotacao: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    color: CORES.textoSecundario,
+    marginBottom: 2,
+  },
+  textoAnotacao: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: CORES.texto,
   },
   linhaExercicio: {
     marginBottom: 10,

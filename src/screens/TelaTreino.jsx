@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import BarraProgresso from '../components/BarraProgresso';
 import Botao from '../components/Botao';
 import CartaoExercicio from '../components/CartaoExercicio';
@@ -182,6 +190,8 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
   const [recordes, setRecordes] = useState({});
   const [datasTreino, setDatasTreino] = useState([]);
   const [sugestao, setSugestao] = useState(null);
+  const [anotacao, setAnotacao] = useState('');
+  const [anotacaoFocada, setAnotacaoFocada] = useState(false);
   const carregouInicial = useRef(false);
 
   const concluidos = exercicios.filter((item) => item.concluido).length;
@@ -208,6 +218,13 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
     }
   }, [exercicios]);
 
+  // Se a lista de exercícios ficar vazia, a anotação do treino é descartada.
+  useEffect(() => {
+    if (exercicios.length === 0) {
+      setAnotacao('');
+    }
+  }, [exercicios.length]);
+
   useEffect(() => {
     if (exercicios.length > 0 && concluidos === exercicios.length) {
       setUltimasCargas((atual) => ({ ...atual, ...cargasDoTreino(exercicios) }));
@@ -228,7 +245,8 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
         setSugestao(sugerirProxima(feita, true));
       }
 
-      aoSalvarTreino(exercicios);
+      aoSalvarTreino(exercicios, anotacao);
+      setAnotacao('');
       setExercicios([]);
     }
   }, [concluidos]);
@@ -478,12 +496,34 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
     </View>
   );
 
+  // Campo de anotação, no fim da lista. Só aparece quando há exercícios.
+  const rodapeDaLista = (
+    <View style={styles.anotacao}>
+      <Text style={styles.rotuloAnotacao}>Como foi o treino?</Text>
+      <TextInput
+        style={[styles.campoAnotacao, anotacaoFocada && styles.campoAnotacaoFocado]}
+        value={anotacao}
+        onChangeText={setAnotacao}
+        onFocus={() => setAnotacaoFocada(true)}
+        onBlur={() => setAnotacaoFocada(false)}
+        placeholder="Ex: dormi mal, ombro doendo, treino pesado"
+        placeholderTextColor={CORES.textoSecundario}
+        multiline
+        maxLength={200}
+      />
+      <Text style={styles.dicaAnotacao}>
+        Escreva antes de concluir o último exercício, porque o treino é salvo nesse momento.
+      </Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <FlatList
         data={exercicios}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={cabecalhoDaLista}
+        ListFooterComponent={exercicios.length > 0 ? rodapeDaLista : null}
         contentContainerStyle={styles.conteudoLista}
         keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => (
@@ -708,5 +748,34 @@ const styles = StyleSheet.create({
   vazio: {
     fontSize: 16,
     color: CORES.textoSecundario,
+  },
+  anotacao: {
+    marginTop: 8,
+  },
+  rotuloAnotacao: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: CORES.texto,
+    marginBottom: 8,
+  },
+  campoAnotacao: {
+    minHeight: 80,
+    backgroundColor: CORES.cartao,
+    borderWidth: 1.5,
+    borderColor: CORES.borda,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: CORES.texto,
+    textAlignVertical: 'top',
+  },
+  campoAnotacaoFocado: {
+    borderColor: CORES.destaque,
+  },
+  dicaAnotacao: {
+    fontSize: 12,
+    color: CORES.textoSecundario,
+    marginTop: 6,
   },
 });

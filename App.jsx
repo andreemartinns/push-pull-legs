@@ -62,11 +62,13 @@ export default function App() {
     setTela('login');
   }
 
-  function salvarTreinoConcluido(exerciciosConcluidos) {
+  // A anotação é opcional: se não vier, o treino é salvo com o campo vazio.
+  function salvarTreinoConcluido(exerciciosConcluidos, anotacao = '') {
     const novoRegistro = {
       id: Date.now().toString(),
       data: new Date().toLocaleDateString('pt-BR'),
       exercicios: exerciciosConcluidos,
+      anotacao: String(anotacao || '').trim(),
     };
     const novoHistorico = [novoRegistro, ...historico];
     setHistorico(novoHistorico);
