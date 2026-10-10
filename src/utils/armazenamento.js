@@ -5,6 +5,7 @@ const CHAVES = {
   USUARIO_LOGADO: '@meutreino:usuarioLogado',
   HISTORICO: '@meutreino:historico',
   EXERCICIOS_ANDAMENTO: '@meutreino:exerciciosAndamento',
+  MEDIDAS: '@meutreino:medidas',
 };
 
 export async function salvarUsuarios(usuarios) {
@@ -79,6 +80,24 @@ export async function carregarExerciciosAndamento() {
     return valor ? JSON.parse(valor) : [];
   } catch (erro) {
     console.log('Erro ao carregar exercícios em andamento', erro);
+    return [];
+  }
+}
+
+export async function salvarMedidas(medidas) {
+  try {
+    await AsyncStorage.setItem(CHAVES.MEDIDAS, JSON.stringify(medidas));
+  } catch (erro) {
+    console.log('Erro ao salvar medidas', erro);
+  }
+}
+
+export async function carregarMedidas() {
+  try {
+    const valor = await AsyncStorage.getItem(CHAVES.MEDIDAS);
+    return valor ? JSON.parse(valor) : [];
+  } catch (erro) {
+    console.log('Erro ao carregar medidas', erro);
     return [];
   }
 }

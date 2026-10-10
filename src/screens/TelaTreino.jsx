@@ -179,7 +179,13 @@ function sugestaoDoHistorico(historico) {
   return sugerirProxima(divisaoDoTreino(lista), treinouHoje);
 }
 
-export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHistorico }) {
+export default function TelaTreino({
+  usuario,
+  aoSair,
+  aoSalvarTreino,
+  aoVerHistorico,
+  aoVerMedidas,
+}) {
   const [exercicios, setExercicios] = useState([]);
   const [modalVisivel, setModalVisivel] = useState(false);
   const [grupoModal, setGrupoModal] = useState(null);
@@ -370,6 +376,9 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
         <View style={styles.acoesCabecalho}>
           <TouchableOpacity onPress={aoVerHistorico}>
             <Text style={styles.historico}>Histórico</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={aoVerMedidas}>
+            <Text style={styles.historico}>Medidas</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={aoSair}>
             <Text style={styles.sair}>Sair</Text>

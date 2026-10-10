@@ -4,13 +4,16 @@ import TelaCadastro from './src/screens/TelaCadastro';
 import TelaEsqueciSenha from './src/screens/TelaEsqueciSenha';
 import TelaHistorico from './src/screens/TelaHistorico';
 import TelaLogin from './src/screens/TelaLogin';
+import TelaMedidas from './src/screens/TelaMedidas';
 import TelaTreino from './src/screens/TelaTreino';
 import { CORES } from './src/utils/tema';
 import {
   carregarHistorico,
+  carregarMedidas,
   carregarUsuarioLogado,
   carregarUsuarios,
   salvarHistorico,
+  salvarMedidas,
   salvarUsuarioLogado,
   salvarUsuarios,
 } from './src/utils/armazenamento';
@@ -21,17 +24,20 @@ export default function App() {
   const [usuarios, setUsuarios] = useState([]);
   const [usuarioLogado, setUsuarioLogado] = useState(null);
   const [historico, setHistorico] = useState([]);
+  const [medidas, setMedidas] = useState([]);
 
   useEffect(() => {
     async function carregarDados() {
-      const [usuariosSalvos, usuarioSalvo, historicoSalvo] = await Promise.all([
+      const [usuariosSalvos, usuarioSalvo, historicoSalvo, medidasSalvas] = await Promise.all([
         carregarUsuarios(),
         carregarUsuarioLogado(),
         carregarHistorico(),
+        carregarMedidas(),
       ]);
 
       setUsuarios(usuariosSalvos);
       setHistorico(historicoSalvo);
+      setMedidas(medidasSalvas);
 
       if (usuarioSalvo) {
         setUsuarioLogado(usuarioSalvo);
@@ -75,6 +81,19 @@ export default function App() {
     salvarHistorico(novoHistorico);
   }
 
+  // Medidas ficam da mais nova para a mais antiga, como o histórico.
+  function salvarMedida(registro) {
+    const novasMedidas = [registro, ...medidas];
+    setMedidas(novasMedidas);
+    salvarMedidas(novasMedidas);
+  }
+
+  function removerMedida(id) {
+    const novasMedidas = medidas.filter((item) => item.id !== id);
+    setMedidas(novasMedidas);
+    salvarMedidas(novasMedidas);
+  }
+
   if (carregando) {
     return (
       <View style={styles.carregando}>
@@ -101,6 +120,17 @@ export default function App() {
     return <TelaHistorico historico={historico} aoVoltar={() => setTela('treino')} />;
   }
 
+  if (tela === 'medidas') {
+    return (
+      <TelaMedidas
+        medidas={medidas}
+        aoSalvarMedida={salvarMedida}
+        aoRemoverMedida={removerMedida}
+        aoVoltar={() => setTela('treino')}
+      />
+    );
+  }
+
   if (tela === 'treino') {
     return (
       <TelaTreino
@@ -108,6 +138,7 @@ export default function App() {
         aoSair={sair}
         aoSalvarTreino={salvarTreinoConcluido}
         aoVerHistorico={() => setTela('historico')}
+        aoVerMedidas={() => setTela('medidas')}
       />
     );
   }
