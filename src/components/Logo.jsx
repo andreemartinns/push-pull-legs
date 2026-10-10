@@ -1,25 +1,27 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet } from 'react-native';
 import { CORES } from '../utils/tema';
 
-export default function Logo({ tamanho = 140 }) {
+// Selo redondo da academia.
+// "tamanho" é o diâmetro. "style" permite ajustar posição em cada tela.
+export default function Logo({ tamanho = 140, style }) {
   return (
-    <View style={[styles.container, { width: tamanho, height: tamanho }]}>
-      <Text style={styles.texto}>PPL</Text>
-    </View>
+    <Image
+      source={require('../../assets/logo-ritmo.jpg')}
+      style={[
+        styles.imagem,
+        { width: tamanho, height: tamanho, borderRadius: tamanho / 2 },
+        style,
+      ]}
+      resizeMode="cover"
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  imagem: {
     alignSelf: 'center',
     marginBottom: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  texto: {
-    fontSize: 42,
-    fontWeight: 'bold',
-    color: CORES.destaque,
-    letterSpacing: 2,
+    borderWidth: 2,
+    borderColor: CORES.destaque,
   },
 });

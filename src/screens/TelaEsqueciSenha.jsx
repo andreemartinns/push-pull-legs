@@ -1,71 +1,104 @@
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Botao from '../components/Botao';
 import CampoTexto from '../components/CampoTexto';
+import FundoTela from '../components/FundoTela';
+import Logo from '../components/Logo';
+import { avisar } from '../utils/avisar';
 import { CORES } from '../utils/tema';
 
 export default function TelaEsqueciSenha({ aoIrParaLogin }) {
   const [email, setEmail] = useState('');
+  const [enviado, setEnviado] = useState(false);
+
+  const emailLimpo = email.trim().toLowerCase();
 
   function enviar() {
-    const emailLimpo = email.trim().toLowerCase();
-
     if (!emailLimpo.includes('@')) {
-      Alert.alert('E-mail inválido', 'Digite o e-mail da sua conta.');
+      avisar('E-mail inválido', 'Digite o e-mail da sua conta.');
       return;
     }
 
-    Alert.alert(
-      'Verifique seu e-mail',
-      `Se ${emailLimpo} estiver cadastrado, você vai receber as instruções para criar uma nova senha.`,
-      [{ text: 'Voltar ao login', onPress: aoIrParaLogin }]
-    );
+    setEnviado(true);
   }
 
   return (
-    <ScrollView
-      style={styles.fundo}
-      contentContainerStyle={styles.conteudo}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Text style={styles.titulo}>Esqueci a senha</Text>
-      <Text style={styles.subtitulo}>
-        Digite seu e-mail e enviaremos as instruções para criar uma nova senha.
-      </Text>
+    <FundoTela>
+      <ScrollView
+        style={styles.fundo}
+        contentContainerStyle={styles.conteudo}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.marca}>
+          <Logo tamanho={80} style={styles.logo} />
+          <Text style={styles.nomeAcademia}>Ritmo Brasil</Text>
+        </View>
 
-      <CampoTexto
-        rotulo="E-mail"
-        valor={email}
-        aoMudar={setEmail}
-        placeholder="voce@email.com"
-        teclado="email-address"
-      />
+        {enviado ? (
+          <>
+            <Text style={styles.titulo}>Verifique seu e-mail</Text>
+            <Text style={styles.subtitulo}>
+              Se {emailLimpo} estiver cadastrado, você vai receber as instruções para criar uma
+              nova senha.
+            </Text>
 
-      <Botao titulo="Enviar instruções" aoPressionar={enviar} />
+            <Botao titulo="Voltar ao login" aoPressionar={aoIrParaLogin} />
+          </>
+        ) : (
+          <>
+            <Text style={styles.titulo}>Esqueci a senha</Text>
+            <Text style={styles.subtitulo}>
+              Digite seu e-mail e enviaremos as instruções para criar uma nova senha.
+            </Text>
 
-      <TouchableOpacity style={styles.link} onPress={aoIrParaLogin}>
-        <Text style={styles.textoLink}>Voltar ao login</Text>
-      </TouchableOpacity>
-    </ScrollView>
+            <CampoTexto
+              rotulo="E-mail"
+              valor={email}
+              aoMudar={setEmail}
+              placeholder="voce@email.com"
+              teclado="email-address"
+            />
+
+            <Botao titulo="Enviar instruções" aoPressionar={enviar} />
+
+            <TouchableOpacity style={styles.link} onPress={aoIrParaLogin}>
+              <Text style={styles.textoLink}>Voltar ao login</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </ScrollView>
+    </FundoTela>
   );
 }
 
 const styles = StyleSheet.create({
   fundo: {
     flex: 1,
-    backgroundColor: CORES.fundo,
   },
   conteudo: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
   },
+  marca: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  logo: {
+    marginBottom: 8,
+  },
+  nomeAcademia: {
+    fontSize: 18,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    color: CORES.texto,
+  },
   titulo: {
     fontSize: 32,
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
-    color: CORES.destaque,
+    color: CORES.texto,
   },
   subtitulo: {
     fontSize: 16,
@@ -79,7 +112,7 @@ const styles = StyleSheet.create({
   },
   textoLink: {
     fontSize: 15,
-    color: CORES.destaque,
+    color: CORES.texto,
     fontWeight: 'bold',
   },
 });

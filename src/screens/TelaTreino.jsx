@@ -1,14 +1,111 @@
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import BarraProgresso from '../components/BarraProgresso';
 import Botao from '../components/Botao';
 import CartaoExercicio from '../components/CartaoExercicio';
+import Logo from '../components/Logo';
 import ModalEditarExercicio from '../components/ModalEditarExercicio';
 import ModalExercicios from '../components/ModalExercicios';
 import TemporizadorDescanso from '../components/TemporizadorDescanso';
 import { GRUPOS } from '../utils/grupos';
 import { CORES } from '../utils/tema';
-import { carregarExerciciosAndamento, salvarExerciciosAndamento } from '../utils/armazenamento';
+import {
+  carregarExerciciosAndamento,
+  carregarHistorico,
+  salvarExerciciosAndamento,
+} from '../utils/armazenamento';
+
+// Converte "12,5" ou "12.5" em número. Se não for número, devolve 0.
+function paraNumero(valor) {
+  const numero = Number(String(valor || '').replace(',', '.'));
+  return Number.isNaN(numero) ? 0 : numero;
+}
+
+// Lê o histórico e guarda, para cada exercício, a carga mais recente.
+// Considera que o registro mais recente é o primeiro da lista.
+function montarUltimasCargas(historico) {
+  const mapa = {};
+
+  for (const registro of historico) {
+    const lista = Array.isArray(registro) ? registro : registro.exercicios || [];
+
+    for (const ex of lista) {
+      if (ex.peso && mapa[ex.nome] === undefined) {
+        mapa[ex.nome] = {
+          peso: ex.peso,
+          series: ex.series,
+          repeticoes: ex.repeticoes,
+        };
+      }
+    }
+  }
+
+  return mapa;
+}
+
+// Lê o histórico e guarda, para cada exercício, a MAIOR carga já usada.
+function montarRecordes(historico) {
+  const mapa = {};
+
+  for (const registro of historico) {
+    const lista = Array.isArray(registro) ? registro : registro.exercicios || [];
+
+    for (const ex of lista) {
+      const peso = paraNumero(ex.peso);
+      if (peso > 0 && (mapa[ex.nome] === undefined || peso > mapa[ex.nome])) {
+        mapa[ex.nome] = peso;
+      }
+    }
+  }
+
+  return mapa;
+}
+
+// Pega as cargas de um treino que acabou de ser finalizado.
+function cargasDoTreino(lista) {
+  const mapa = {};
+
+  for (const ex of lista) {
+    if (ex.peso) {
+      mapa[ex.nome] = {
+        peso: ex.peso,
+        series: ex.series,
+        repeticoes: ex.repeticoes,
+      };
+    }
+  }
+
+  return mapa;
+}
+
+// Mesmo formato de data que o App.jsx usa ao salvar o treino (ex: "09/10/2026").
+function formatarData(data) {
+  return data.toLocaleDateString('pt-BR');
+}
+
+// Lista as datas em que houve treino concluído.
+function montarDatasTreino(historico) {
+  return historico.map((registro) => registro.data).filter(Boolean);
+}
+
+// Conta quantos dias seguidos você treinou.
+// Se hoje ainda não treinou, a sequência continua valendo a partir de ontem.
+function calcularSequencia(datas) {
+  const conjunto = new Set(datas);
+  const dia = new Date();
+
+  if (!conjunto.has(formatarData(dia))) {
+    dia.setDate(dia.getDate() - 1);
+  }
+
+  let total = 0;
+  while (conjunto.has(formatarData(dia))) {
+    total += 1;
+    dia.setDate(dia.getDate() - 1);
+  }
+
+  return total;
+}
 
 export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHistorico }) {
   const [exercicios, setExercicios] = useState([]);
@@ -16,15 +113,24 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
   const [grupoModal, setGrupoModal] = useState(null);
   const [exercicioEditando, setExercicioEditando] = useState(null);
   const [temporizadorVisivel, setTemporizadorVisivel] = useState(false);
+  const [ultimasCargas, setUltimasCargas] = useState({});
+  const [recordes, setRecordes] = useState({});
+  const [datasTreino, setDatasTreino] = useState([]);
   const carregouInicial = useRef(false);
 
   const concluidos = exercicios.filter((item) => item.concluido).length;
+  const sequencia = calcularSequencia(datasTreino);
 
   useEffect(() => {
     async function carregar() {
       const salvos = await carregarExerciciosAndamento();
       setExercicios(salvos);
       carregouInicial.current = true;
+
+      const historico = await carregarHistorico();
+      setUltimasCargas(montarUltimasCargas(historico));
+      setRecordes(montarRecordes(historico));
+      setDatasTreino(montarDatasTreino(historico));
     }
     carregar();
   }, []);
@@ -37,10 +143,29 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
 
   useEffect(() => {
     if (exercicios.length > 0 && concluidos === exercicios.length) {
+      setUltimasCargas((atual) => ({ ...atual, ...cargasDoTreino(exercicios) }));
+      setRecordes((atual) => {
+        const novo = { ...atual };
+        for (const ex of exercicios) {
+          const peso = paraNumero(ex.peso);
+          if (peso > (novo[ex.nome] || 0)) {
+            novo[ex.nome] = peso;
+          }
+        }
+        return novo;
+      });
+      setDatasTreino((atual) => [...atual, formatarData(new Date())]);
       aoSalvarTreino(exercicios);
       setExercicios([]);
     }
   }, [concluidos]);
+
+  // É recorde quando o exercício já tem histórico e a carga atual passa da maior de antes.
+  function ehNovoRecorde(exercicio) {
+    const recorde = recordes[exercicio.nome];
+    if (recorde === undefined) return false;
+    return paraNumero(exercicio.peso) > recorde;
+  }
 
   function abrirModal(nomeGrupo) {
     setGrupoModal(nomeGrupo);
@@ -110,11 +235,15 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
 
   return (
     <View style={styles.container}>
-      <View style={styles.cabecalho}>
-        <View>
-          <Text style={styles.saudacao}>Olá, {usuario.nome}</Text>
-          <Text style={styles.titulo}>Meu Treino</Text>
+      <View style={styles.topo}>
+        <View style={styles.marca}>
+          <Logo tamanho={56} style={styles.logo} />
+          <View style={styles.nomeMarca}>
+            <Text style={styles.academia}>Academia</Text>
+            <Text style={styles.nomeAcademia}>Ritmo Brasil</Text>
+          </View>
         </View>
+
         <View style={styles.acoesCabecalho}>
           <TouchableOpacity onPress={aoVerHistorico}>
             <Text style={styles.historico}>Histórico</Text>
@@ -125,18 +254,47 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
         </View>
       </View>
 
+      <View style={styles.linhaAmarela} />
+
+      <View style={styles.cabecalho}>
+        <Text style={styles.saudacao}>Olá, {usuario.nome}</Text>
+        <Text style={styles.titulo}>Meu Treino</Text>
+      </View>
+
+      <Text style={styles.sequencia}>
+        {sequencia > 0
+          ? `${sequencia} ${sequencia === 1 ? 'dia seguido' : 'dias seguidos'} de treino`
+          : 'Conclua um treino para começar sua sequência'}
+      </Text>
+
       <Text style={styles.instrucao}>Escolha um grupo muscular para ver os exercícios</Text>
 
       <View style={styles.grupos}>
-        {GRUPOS.map((item) => (
-          <TouchableOpacity
-            key={item.nome}
-            style={[styles.chip, { borderColor: item.cor }]}
-            onPress={() => abrirModal(item.nome)}
-          >
-            <Text style={[styles.textoChip, { color: item.cor }]}>{item.nome}</Text>
-          </TouchableOpacity>
-        ))}
+        {GRUPOS.map((item) => {
+          const aberto = modalVisivel && grupoModal === item.nome;
+
+          return (
+            <Pressable
+              key={item.nome}
+              onPress={() => abrirModal(item.nome)}
+              style={({ pressed }) => [
+                styles.chip,
+                (pressed || aberto) && styles.chipAtivo,
+              ]}
+            >
+              {({ pressed }) => (
+                <Text
+                  style={[
+                    styles.textoChip,
+                    (pressed || aberto) && styles.textoChipAtivo,
+                  ]}
+                >
+                  {item.nome}
+                </Text>
+              )}
+            </Pressable>
+          );
+        })}
       </View>
 
       {exercicios.length > 0 && (
@@ -159,6 +317,8 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
         renderItem={({ item }) => (
           <CartaoExercicio
             exercicio={item}
+            ultimaCarga={ultimasCargas[item.nome]}
+            novoRecorde={ehNovoRecorde(item)}
             aoAlternar={() => alternarConcluido(item.id)}
             aoRemover={() => removerExercicio(item.id)}
             aoEditar={() => abrirEdicao(item)}
@@ -194,15 +354,60 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
     paddingHorizontal: 20,
     backgroundColor: CORES.fundo,
   },
-  cabecalho: {
+  topo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 50,
+    paddingBottom: 14,
+  },
+  marca: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logo: {
+    alignSelf: 'auto',
+    marginBottom: 0,
+  },
+  nomeMarca: {
+    marginLeft: 12,
+  },
+  academia: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: CORES.textoSecundario,
+  },
+  nomeAcademia: {
+    fontSize: 20,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    color: CORES.texto,
+  },
+  acoesCabecalho: {
     alignItems: 'flex-end',
+  },
+  historico: {
+    fontSize: 14,
+    color: CORES.texto,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  sair: {
+    fontSize: 15,
+    color: CORES.textoSecundario,
+    fontWeight: 'bold',
+  },
+  linhaAmarela: {
+    height: 4,
+    backgroundColor: CORES.destaque,
+    marginHorizontal: -20,
     marginBottom: 20,
+  },
+  cabecalho: {
+    marginBottom: 8,
   },
   saudacao: {
     fontSize: 15,
@@ -213,21 +418,13 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
-    color: CORES.destaque,
+    color: CORES.texto,
   },
-  acoesCabecalho: {
-    alignItems: 'flex-end',
-  },
-  historico: {
-    fontSize: 14,
-    color: CORES.destaque,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  sair: {
+  sequencia: {
     fontSize: 15,
-    color: CORES.erro,
     fontWeight: 'bold',
+    color: CORES.destaque,
+    marginBottom: 16,
   },
   instrucao: {
     fontSize: 14,
@@ -241,6 +438,7 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderWidth: 1.5,
+    borderColor: CORES.borda,
     backgroundColor: CORES.cartao,
     borderRadius: 20,
     paddingHorizontal: 14,
@@ -248,9 +446,17 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 8,
   },
+  chipAtivo: {
+    backgroundColor: CORES.destaque,
+    borderColor: CORES.destaque,
+  },
   textoChip: {
     fontSize: 14,
     fontWeight: 'bold',
+    color: CORES.texto,
+  },
+  textoChipAtivo: {
+    color: CORES.textoSobreDestaque,
   },
   limpar: {
     marginBottom: 16,

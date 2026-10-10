@@ -1,15 +1,26 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { GRUPOS } from '../utils/grupos';
 import { CORES } from '../utils/tema';
 
-export default function CartaoExercicio({ exercicio, aoAlternar, aoRemover, aoEditar }) {
-  const grupo = GRUPOS.find((g) => g.nome === exercicio.grupo);
-  const cor = grupo ? grupo.cor : CORES.textoSecundario;
+export default function CartaoExercicio({
+  exercicio,
+  ultimaCarga,
+  novoRecorde,
+  aoAlternar,
+  aoRemover,
+  aoEditar,
+}) {
   const detalhe =
     exercicio.series && exercicio.repeticoes
       ? `${exercicio.series} x ${exercicio.repeticoes}`
       : '';
   const peso = exercicio.peso ? `${exercicio.peso} kg` : '';
+
+  const textoUltima = ultimaCarga
+    ? `Última vez: ${ultimaCarga.peso} kg` +
+      (ultimaCarga.series && ultimaCarga.repeticoes
+        ? ` (${ultimaCarga.series} x ${ultimaCarga.repeticoes})`
+        : '')
+    : '';
 
   return (
     <View style={[styles.cartao, exercicio.concluido && styles.cartaoConcluido]}>
@@ -23,12 +34,22 @@ export default function CartaoExercicio({ exercicio, aoAlternar, aoRemover, aoEd
             {exercicio.nome}
           </Text>
           <View style={styles.linhaDetalhes}>
-            <View style={[styles.etiqueta, { backgroundColor: cor }]}>
+            <View style={styles.etiqueta}>
               <Text style={styles.textoEtiqueta}>{exercicio.grupo}</Text>
             </View>
             {detalhe !== '' && <Text style={styles.detalhe}>{detalhe}</Text>}
             {peso !== '' && <Text style={styles.peso}>{peso}</Text>}
           </View>
+
+          {textoUltima !== '' && (
+            <Text style={styles.ultimaCarga}>{textoUltima}</Text>
+          )}
+
+          {novoRecorde && (
+            <View style={styles.selo}>
+              <Text style={styles.textoSelo}>Novo recorde</Text>
+            </View>
+          )}
         </View>
       </TouchableOpacity>
 
@@ -57,7 +78,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   cartaoConcluido: {
-    opacity: 0.6,
+    borderColor: CORES.destaque,
+    opacity: 0.7,
   },
   area: {
     flex: 1,
@@ -69,13 +91,14 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: CORES.destaque,
+    borderColor: CORES.textoSecundario,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   marcadorAtivo: {
     backgroundColor: CORES.destaque,
+    borderColor: CORES.destaque,
   },
   check: {
     color: CORES.textoSobreDestaque,
@@ -100,6 +123,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   etiqueta: {
+    backgroundColor: CORES.borda,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -107,7 +131,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   textoEtiqueta: {
-    color: '#fff',
+    color: CORES.texto,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -118,8 +142,27 @@ const styles = StyleSheet.create({
   },
   peso: {
     fontSize: 13,
-    color: CORES.destaque,
+    color: CORES.texto,
     fontWeight: 'bold',
+  },
+  ultimaCarga: {
+    fontSize: 12,
+    color: CORES.textoSecundario,
+    fontStyle: 'italic',
+  },
+  selo: {
+    alignSelf: 'flex-start',
+    backgroundColor: CORES.destaque,
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginTop: 6,
+  },
+  textoSelo: {
+    color: CORES.textoSobreDestaque,
+    fontSize: 12,
+    fontWeight: '900',
+    fontStyle: 'italic',
   },
   acoes: {
     flexDirection: 'row',
@@ -127,12 +170,12 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   editar: {
-    color: CORES.destaque,
+    color: CORES.texto,
     fontSize: 14,
     marginRight: 14,
   },
   remover: {
-    color: CORES.erro,
+    color: CORES.textoSecundario,
     fontSize: 14,
   },
 });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Botao from '../components/Botao';
 import CampoTexto from '../components/CampoTexto';
 import FundoTela from '../components/FundoTela';
@@ -29,7 +29,12 @@ export default function TelaLogin({ usuarios, aoEntrar, aoIrParaCadastro, aoIrPa
         contentContainerStyle={styles.conteudo}
         keyboardShouldPersistTaps="handled"
       >
-        <Logo />
+        <View style={styles.marca}>
+          <Logo tamanho={120} style={styles.logo} />
+          <Text style={styles.academia}>Academia</Text>
+          <Text style={styles.nomeAcademia}>Ritmo Brasil</Text>
+        </View>
+
         <Text style={styles.titulo}>Entrar</Text>
         <Text style={styles.subtitulo}>Bem-vindo de volta</Text>
 
@@ -51,7 +56,7 @@ export default function TelaLogin({ usuarios, aoEntrar, aoIrParaCadastro, aoIrPa
         <Botao titulo="Entrar" aoPressionar={entrar} />
 
         <TouchableOpacity style={styles.link} onPress={aoIrParaEsqueci}>
-          <Text style={styles.textoLink}>Esqueci a senha</Text>
+          <Text style={styles.textoLinkSecundario}>Esqueci a senha</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.link} onPress={aoIrParaCadastro}>
           <Text style={styles.textoLink}>Não tem conta? Cadastre-se</Text>
@@ -70,12 +75,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
+  marca: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  logo: {
+    marginBottom: 12,
+  },
+  academia: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    color: CORES.textoSecundario,
+  },
+  nomeAcademia: {
+    fontSize: 24,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    color: CORES.texto,
+  },
   titulo: {
     fontSize: 32,
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
-    color: CORES.destaque,
+    color: CORES.texto,
   },
   subtitulo: {
     fontSize: 16,
@@ -89,7 +112,11 @@ const styles = StyleSheet.create({
   },
   textoLink: {
     fontSize: 15,
-    color: CORES.destaque,
+    color: CORES.texto,
     fontWeight: 'bold',
+  },
+  textoLinkSecundario: {
+    fontSize: 15,
+    color: CORES.textoSecundario,
   },
 });
