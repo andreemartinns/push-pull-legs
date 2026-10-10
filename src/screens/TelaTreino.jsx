@@ -336,8 +336,10 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
     setExercicioEditando(null);
   }
 
-  return (
-    <View style={styles.container}>
+  // Tudo que fica acima da lista de exercícios.
+  // Está dentro da lista para a tela inteira rolar junto.
+  const cabecalhoDaLista = (
+    <View>
       <View style={styles.topo}>
         <View style={styles.marca}>
           <Logo tamanho={56} style={styles.logo} />
@@ -473,10 +475,17 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
           />
         </View>
       )}
+    </View>
+  );
 
+  return (
+    <View style={styles.container}>
       <FlatList
         data={exercicios}
         keyExtractor={(item) => item.id}
+        ListHeaderComponent={cabecalhoDaLista}
+        contentContainerStyle={styles.conteudoLista}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => (
           <CartaoExercicio
             exercicio={item}
@@ -527,8 +536,11 @@ export default function TelaTreino({ usuario, aoSair, aoSalvarTreino, aoVerHisto
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 20,
     backgroundColor: CORES.fundo,
+  },
+  conteudoLista: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   topo: {
     flexDirection: 'row',
