@@ -2,7 +2,8 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CORES } from '../utils/tema';
 
 const ALTURA_MAXIMA = 140;
-const ALTURA_MINIMA = 30;
+// Na escala relativa, a menor barra ocupa metade da altura máxima.
+const ALTURA_MINIMA = 70;
 
 // pontos: lista de { data, valor } (ou { data, peso }, formato antigo).
 // unidade: texto mostrado depois do número (kg, cm).

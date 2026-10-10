@@ -19,6 +19,7 @@ import TemporizadorDescanso from '../components/TemporizadorDescanso';
 import { DIVISOES } from '../utils/divisoes';
 import { GRUPOS } from '../utils/grupos';
 import { CORES } from '../utils/tema';
+import { DIVISAO_ABC, FULL_BODY } from '../utils/treinosProntos';
 import {
   carregarExerciciosAndamento,
   carregarHistorico,
@@ -360,6 +361,35 @@ export default function TelaTreino({
     setExercicioEditando(null);
   }
 
+  // Botão de um treino pronto (A, B, C ou Full Body).
+  // Fica neutro e só vira amarelo quando tocado ou aberto.
+  function renderTreinoPronto(item, estiloExtra) {
+    const aberta = divisaoAberta !== null && divisaoAberta.nome === item.nome;
+
+    return (
+      <Pressable
+        key={item.nome}
+        onPress={() => abrirDivisao(item)}
+        style={({ pressed }) => [
+          styles.divisao,
+          estiloExtra,
+          (pressed || aberta) && styles.divisaoAtiva,
+        ]}
+      >
+        {({ pressed }) => (
+          <>
+            <Text style={[styles.nomeDivisao, (pressed || aberta) && styles.textoAtivo]}>
+              {item.nome}
+            </Text>
+            <Text style={[styles.descricaoDivisao, (pressed || aberta) && styles.textoAtivo]}>
+              {item.descricao}
+            </Text>
+          </>
+        )}
+      </Pressable>
+    );
+  }
+
   // Tudo que fica acima da lista de exercícios.
   // Está dentro da lista para a tela inteira rolar junto.
   const cabecalhoDaLista = (
@@ -458,6 +488,16 @@ export default function TelaTreino({
           );
         })}
       </View>
+
+      <Text style={styles.instrucao}>Ou use um treino pronto</Text>
+
+      <View style={styles.divisoesCompacta}>
+        {DIVISAO_ABC.map((item, indice) =>
+          renderTreinoPronto(item, indice < DIVISAO_ABC.length - 1 && styles.divisaoEspaco)
+        )}
+      </View>
+
+      <View style={styles.divisoes}>{renderTreinoPronto(FULL_BODY, null)}</View>
 
       <Text style={styles.instrucao}>Ou escolha um grupo muscular</Text>
 
@@ -668,6 +708,10 @@ const styles = StyleSheet.create({
   divisoes: {
     flexDirection: 'row',
     marginBottom: 20,
+  },
+  divisoesCompacta: {
+    flexDirection: 'row',
+    marginBottom: 8,
   },
   divisao: {
     flex: 1,
