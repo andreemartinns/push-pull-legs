@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -8,7 +8,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { DEMONSTRACOES } from '../utils/demonstracoes';
 import { CORES } from '../utils/tema';
+import ModalDemonstracao from './ModalDemonstracao';
 
 // No navegador não existe driver nativo, então só usamos no celular.
 const USAR_DRIVER_NATIVO = Platform.OS !== 'web';
@@ -54,6 +56,10 @@ export default function CartaoExercicio({
         ? ` (${ultimaCarga.series} x ${ultimaCarga.repeticoes})`
         : '')
     : '';
+
+  // Nem todo exercício tem demonstração. Só mostra o botão quando existe.
+  const demonstracao = DEMONSTRACOES[exercicio.nome];
+  const [demonstracaoAberta, setDemonstracaoAberta] = useState(false);
 
   const entrada = useRef(new Animated.Value(0)).current;
   const saida = useRef(new Animated.Value(1)).current;
@@ -142,6 +148,16 @@ export default function CartaoExercicio({
             {textoUltima !== '' && <Text style={styles.ultimaCarga}>{textoUltima}</Text>}
 
             {novoRecorde && <SeloRecorde />}
+
+            {demonstracao && (
+              <TouchableOpacity
+                style={styles.comoFazer}
+                onPress={() => setDemonstracaoAberta(true)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 16 }}
+              >
+                <Text style={styles.textoComoFazer}>▶ Como fazer</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </TouchableOpacity>
 
@@ -154,6 +170,15 @@ export default function CartaoExercicio({
           </TouchableOpacity>
         </View>
       </View>
+
+      {demonstracao && (
+        <ModalDemonstracao
+          visivel={demonstracaoAberta}
+          nome={exercicio.nome}
+          demonstracao={demonstracao}
+          aoFechar={() => setDemonstracaoAberta(false)}
+        />
+      )}
     </Animated.View>
   );
 }
@@ -256,6 +281,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     fontStyle: 'italic',
+  },
+  comoFazer: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  textoComoFazer: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: CORES.destaque,
   },
   acoes: {
     flexDirection: 'row',
