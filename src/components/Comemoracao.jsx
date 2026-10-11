@@ -1,5 +1,6 @@
 import * as Haptics from 'expo-haptics';
-import { useEffect, useRef } from 'react';
+import * as Sharing from 'expo-sharing';
+import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -10,10 +11,34 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
 import { CORES } from '../utils/tema';
+import CartaoCompartilhar, { ALTURA_CARTAO, LARGURA_CARTAO } from './CartaoCompartilhar';
 
 // No navegador não existe driver nativo, então só usamos no celular.
 const USAR_DRIVER_NATIVO = Platform.OS !== 'web';
+
+// No navegador: abre o compartilhar do sistema se existir; senão, baixa a imagem.
+async function compartilharNaWeb(dataUri) {
+  const resposta = await fetch(dataUri);
+  const blob = await resposta.blob();
+  const arquivo = new File([blob], 'treino.png', { type: 'image/png' });
+
+  if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+    try {
+      await navigator.share({ files: [arquivo], title: 'Treino concluído' });
+    } catch (erro) {
+      // Se a pessoa fechou a janela de compartilhar, não é erro.
+      if (erro && erro.name !== 'AbortError') throw erro;
+    }
+    return;
+  }
+
+  const link = document.createElement('a');
+  link.href = dataUri;
+  link.download = 'treino.png';
+  link.click();
+}
 
 // Uma linha da lista: entra deslizando, uma depois da outra.
 function LinhaExercicio({ exercicio, indice, ultima }) {
@@ -64,12 +89,16 @@ export default function Comemoracao({
   recordes = 0,
   sequencia = 0,
   exercicios = [],
+  divisao = null,
+  nomesRecorde = [],
   aoTerminar,
 }) {
   const opacidade = useRef(new Animated.Value(0)).current;
   const subida = useRef(new Animated.Value(16)).current;
   const faixa = useRef(new Animated.Value(0)).current;
   const jaTerminou = useRef(false);
+  const cartaoRef = useRef(null);
+  const [compartilhando, setCompartilhando] = useState(false);
 
   useEffect(() => {
     if (!visivel) return;
@@ -115,12 +144,46 @@ export default function Comemoracao({
     aoTerminar();
   }
 
+  // Tira uma "foto" do cartão escondido e abre o compartilhamento.
+  async function compartilhar() {
+    if (compartilhando || !cartaoRef.current) return;
+    setCompartilhando(true);
+
+    try {
+      if (Platform.OS === 'web') {
+        const uri = await captureRef(cartaoRef, {
+          format: 'png',
+          quality: 1,
+          result: 'data-uri',
+        });
+        await compartilharNaWeb(uri);
+      } else {
+        const uri = await captureRef(cartaoRef, {
+          format: 'png',
+          quality: 1,
+          result: 'tmpfile',
+          width: 1080,
+          height: 1920,
+        });
+
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, {
+            mimeType: 'image/png',
+            dialogTitle: 'Compartilhar treino',
+          });
+        }
+      }
+    } catch (erro) {
+      console.log('Erro ao compartilhar treino', erro);
+    } finally {
+      setCompartilhando(false);
+    }
+  }
+
   if (!visivel) return null;
 
   // Só mostra os números que têm valor.
-  const numeros = [
-    { valor: total, rotulo: total === 1 ? 'exercício' : 'exercícios' },
-  ];
+  const numeros = [{ valor: total, rotulo: total === 1 ? 'exercício' : 'exercícios' }];
   if (sequencia > 0) {
     numeros.push({ valor: sequencia, rotulo: sequencia === 1 ? 'dia seguido' : 'dias seguidos' });
   }
@@ -131,6 +194,12 @@ export default function Comemoracao({
       destaque: true,
     });
   }
+
+  const dataFormatada = new Date().toLocaleDateString('pt-BR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 
   return (
     <View style={styles.fundo}>
@@ -176,10 +245,32 @@ export default function Comemoracao({
           </ScrollView>
         )}
 
+        <TouchableOpacity
+          style={[styles.botaoCompartilhar, compartilhando && styles.botaoCompartilharAtivo]}
+          onPress={compartilhar}
+          disabled={compartilhando}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.textoCompartilhar}>
+            {compartilhando ? 'Gerando imagem...' : 'Compartilhar'}
+          </Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.botao} onPress={continuar} activeOpacity={0.8}>
           <Text style={styles.textoBotao}>Continuar</Text>
         </TouchableOpacity>
       </Animated.View>
+
+      {/* A imagem para os stories: fica fora da tela e só é usada na captura. */}
+      <View ref={cartaoRef} collapsable={false} style={styles.foraDaTela} pointerEvents="none">
+        <CartaoCompartilhar
+          divisao={divisao}
+          data={dataFormatada}
+          numeros={numeros}
+          exercicios={exercicios}
+          nomesRecorde={nomesRecorde}
+        />
+      </View>
     </View>
   );
 }
@@ -197,6 +288,13 @@ const styles = StyleSheet.create({
     zIndex: 100,
     elevation: 100,
     padding: 20,
+  },
+  foraDaTela: {
+    position: 'absolute',
+    left: -5000,
+    top: 0,
+    width: LARGURA_CARTAO,
+    height: ALTURA_CARTAO,
   },
   cartao: {
     width: '100%',
@@ -297,12 +395,30 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: CORES.destaque,
   },
+  botaoCompartilhar: {
+    borderWidth: 1.5,
+    borderColor: CORES.destaque,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  botaoCompartilharAtivo: {
+    opacity: 0.6,
+  },
+  textoCompartilhar: {
+    fontSize: 14,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    textTransform: 'uppercase',
+    color: CORES.destaque,
+  },
   botao: {
     backgroundColor: CORES.destaque,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 10,
   },
   textoBotao: {
     fontSize: 15,

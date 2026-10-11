@@ -410,10 +410,13 @@ export default function TelaTreino({
   useEffect(() => {
     if (exercicios.length > 0 && concluidos === exercicios.length && !comemoracao) {
       setTemporizadorVisivel(false);
+      // MUDOU: agora guarda também os nomes dos recordes e a divisão do treino.
       setComemoracao({
         exercicios,
         anotacao,
         recordes: exercicios.filter((ex) => ehNovoRecorde(ex)).length,
+        nomesRecorde: exercicios.filter((ex) => ehNovoRecorde(ex)).map((ex) => ex.nome),
+        divisao: divisaoDoTreino(exercicios),
       });
     }
   }, [concluidos]);
@@ -886,12 +889,15 @@ export default function TelaTreino({
         aoFechar={() => setTemporizadorVisivel(false)}
       />
 
+      {/* MUDOU: agora passa a divisão e os nomes dos recordes para o cartão de compartilhar. */}
       <Comemoracao
         visivel={comemoracao !== null}
         total={comemoracao ? comemoracao.exercicios.length : 0}
         recordes={comemoracao ? comemoracao.recordes : 0}
         sequencia={sequenciaComHoje}
         exercicios={comemoracao ? comemoracao.exercicios : []}
+        divisao={comemoracao ? comemoracao.divisao : null}
+        nomesRecorde={comemoracao ? comemoracao.nomesRecorde : []}
         aoTerminar={terminarComemoracao}
       />
     </View>

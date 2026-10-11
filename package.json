@@ -8,11 +8,13 @@
     "@supabase/supabase-js": "^2.117.3",
     "expo": "~57.0.24",
     "expo-haptics": "~57.0.3",
+    "expo-sharing": "~57.0.22",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
     "react-native-url-polyfill": "^4.0.0",
+    "react-native-view-shot": "5.1.0",
     "react-native-web": "^0.21.2"
   },
   "scripts": {
