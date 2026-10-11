@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Calendario, { chaveDoTexto } from '../components/Calendario';
 import GraficoEvolucao from '../components/GraficoEvolucao';
 import { DIVISOES } from '../utils/divisoes';
 import { listarExerciciosComPeso, obterEvolucao } from '../utils/evolucao';
@@ -17,6 +18,15 @@ import { CORES } from '../utils/tema';
 // ---- ajudantes ----
 
 const DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+const DIAS_LONGOS = [
+  'Domingo',
+  'Segunda',
+  'Terça',
+  'Quarta',
+  'Quinta',
+  'Sexta',
+  'Sábado',
+];
 const MESES = [
   'Janeiro',
   'Fevereiro',
@@ -179,6 +189,7 @@ function CartaoTreino({ item, aberto, aoAlternar }) {
 export default function TelaHistorico({ historico, aoVoltar }) {
   const [aba, setAba] = useState('historico');
   const [exercicioSelecionado, setExercicioSelecionado] = useState(null);
+  const [diaSelecionado, setDiaSelecionado] = useState(null);
   // Guarda o que o aluno abriu ou fechou. Sem escolha, só o treino mais recente começa aberto.
   const [abertos, setAbertos] = useState({});
 
@@ -203,6 +214,12 @@ export default function TelaHistorico({ historico, aoVoltar }) {
   const pontosEvolucao = selecionado ? obterEvolucao(historico, selecionado) : [];
   const recorde = pontosEvolucao.length ? Math.max(...pontosEvolucao.map((p) => p.peso)) : 0;
   const ultimaCarga = pontosEvolucao.length ? pontosEvolucao[pontosEvolucao.length - 1].peso : 0;
+
+  // Aba Calendário: os treinos do dia que o aluno tocou.
+  const treinosDoDia = diaSelecionado
+    ? historico.filter((item) => chaveDoTexto(item.data) === diaSelecionado)
+    : [];
+  const dataDoDia = treinosDoDia[0] ? lerData(treinosDoDia[0].data) : null;
 
   const resumoTopo = (
     <View style={styles.resumoTopo}>
@@ -246,6 +263,14 @@ export default function TelaHistorico({ historico, aoVoltar }) {
         >
           <Text style={[styles.textoAba, aba === 'evolucao' && styles.textoAbaAtiva]}>
             Evolução
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.aba, aba === 'calendario' && styles.abaAtiva]}
+          onPress={() => setAba('calendario')}
+        >
+          <Text style={[styles.textoAba, aba === 'calendario' && styles.textoAbaAtiva]}>
+            Calendário
           </Text>
         </TouchableOpacity>
       </View>
@@ -336,6 +361,45 @@ export default function TelaHistorico({ historico, aoVoltar }) {
 
               <GraficoEvolucao pontos={pontosEvolucao} />
             </>
+          )}
+        </ScrollView>
+      )}
+
+      {aba === 'calendario' && (
+        <ScrollView style={styles.evolucaoContainer} contentContainerStyle={styles.conteudoLista}>
+          <Calendario
+            historico={historico}
+            selecionado={diaSelecionado}
+            aoSelecionar={setDiaSelecionado}
+          />
+
+          {treinosDoDia.length === 0 ? (
+            <Text style={styles.dicaCalendario}>
+              Toque num dia marcado em amarelo para ver o treino.
+            </Text>
+          ) : (
+            <View style={styles.treinosDoDia}>
+              {dataDoDia && (
+                <Text style={styles.tituloDia}>
+                  {DIAS_LONGOS[dataDoDia.diaSemana]}, {dataDoDia.dia} de{' '}
+                  {MESES[dataDoDia.mes - 1].toLowerCase()}
+                </Text>
+              )}
+
+              {treinosDoDia.map((item, indice) => {
+                const chaveAberto = item.id ?? String(indice);
+                const aberto = abertos[chaveAberto] ?? true;
+
+                return (
+                  <CartaoTreino
+                    key={chaveAberto}
+                    item={item}
+                    aberto={aberto}
+                    aoAlternar={() => alternar(chaveAberto, aberto)}
+                  />
+                );
+              })}
+            </View>
           )}
         </ScrollView>
       )}
@@ -599,5 +663,22 @@ const styles = StyleSheet.create({
   textoChipExercicioAtivo: {
     color: CORES.textoSobreDestaque,
     fontWeight: 'bold',
+  },
+
+  // Aba Calendário
+  dicaCalendario: {
+    fontSize: 13,
+    color: CORES.textoSecundario,
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  treinosDoDia: {
+    marginTop: 18,
+  },
+  tituloDia: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: CORES.texto,
+    marginBottom: 10,
   },
 });
