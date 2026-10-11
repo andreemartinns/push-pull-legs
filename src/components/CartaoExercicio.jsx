@@ -3,6 +3,7 @@ import {
   Animated,
   Easing,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -64,6 +65,7 @@ export default function CartaoExercicio({
   const entrada = useRef(new Animated.Value(0)).current;
   const saida = useRef(new Animated.Value(1)).current;
   const escalaMarcador = useRef(new Animated.Value(1)).current;
+  const brilho = useRef(new Animated.Value(0)).current;
   const primeiraVez = useRef(true);
 
   // Entrada: o cartão sobe e aparece. O atraso depende da posição, formando uma cascata.
@@ -78,7 +80,7 @@ export default function CartaoExercicio({
     }).start();
   }, []);
 
-  // Ao marcar como concluído, a bolinha dá um pulo de mola.
+  // Ao marcar como concluído, a bolinha dá um pulo de mola e o cartão acende um brilho.
   useEffect(() => {
     if (primeiraVez.current) {
       primeiraVez.current = false;
@@ -91,6 +93,15 @@ export default function CartaoExercicio({
       toValue: 1,
       friction: 3,
       tension: 140,
+      useNativeDriver: USAR_DRIVER_NATIVO,
+    }).start();
+
+    // O brilho usa a opacidade de uma camada por cima do cartão, que funciona no celular e no navegador.
+    brilho.setValue(1);
+    Animated.timing(brilho, {
+      toValue: 0,
+      duration: 700,
+      easing: Easing.out(Easing.quad),
       useNativeDriver: USAR_DRIVER_NATIVO,
     }).start();
   }, [exercicio.concluido]);
@@ -122,52 +133,78 @@ export default function CartaoExercicio({
       }}
     >
       <View style={[styles.cartao, exercicio.concluido && styles.cartaoConcluido]}>
-        <TouchableOpacity style={styles.area} onPress={aoAlternar}>
-          <Animated.View
-            style={[
-              styles.marcador,
-              exercicio.concluido && styles.marcadorAtivo,
-              { transform: [{ scale: escalaMarcador }] },
-            ]}
-          >
-            {exercicio.concluido && <Text style={styles.check}>✓</Text>}
-          </Animated.View>
+        {/* Camada do brilho: acende ao concluir e se apaga sozinha. */}
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.brilho, { opacity: brilho }]}
+        />
 
-          <View style={styles.textos}>
-            <Text style={[styles.nome, exercicio.concluido && styles.nomeConcluido]}>
-              {exercicio.nome}
-            </Text>
-            <View style={styles.linhaDetalhes}>
-              <View style={styles.etiqueta}>
-                <Text style={styles.textoEtiqueta}>{exercicio.grupo}</Text>
+        <View style={styles.linhaPrincipal}>
+          <TouchableOpacity style={styles.area} onPress={aoAlternar}>
+            <Animated.View
+              style={[
+                styles.marcador,
+                exercicio.concluido && styles.marcadorAtivo,
+                { transform: [{ scale: escalaMarcador }] },
+              ]}
+            >
+              {exercicio.concluido && <Text style={styles.check}>✓</Text>}
+            </Animated.View>
+
+            <View style={styles.textos}>
+              <Text style={[styles.nome, exercicio.concluido && styles.nomeConcluido]}>
+                {exercicio.nome}
+              </Text>
+              <View style={styles.linhaDetalhes}>
+                <View style={styles.etiqueta}>
+                  <Text style={styles.textoEtiqueta}>{exercicio.grupo}</Text>
+                </View>
+                {detalhe !== '' && <Text style={styles.detalhe}>{detalhe}</Text>}
+                {peso !== '' && <Text style={styles.peso}>{peso}</Text>}
               </View>
-              {detalhe !== '' && <Text style={styles.detalhe}>{detalhe}</Text>}
-              {peso !== '' && <Text style={styles.peso}>{peso}</Text>}
+
+              {textoUltima !== '' && <Text style={styles.ultimaCarga}>{textoUltima}</Text>}
+
+              {novoRecorde && <SeloRecorde />}
             </View>
+          </TouchableOpacity>
+        </View>
 
-            {textoUltima !== '' && <Text style={styles.ultimaCarga}>{textoUltima}</Text>}
+        {/* Linha de botões, embaixo: Como fazer à esquerda, Editar e Remover à direita. */}
+        <View style={styles.rodape}>
+          {demonstracao ? (
+            <Pressable
+              onPress={() => setDemonstracaoAberta(true)}
+              style={({ pressed }) => [styles.botaoComoFazer, pressed && styles.botaoPressionado]}
+            >
+              <Text style={styles.textoComoFazer}>▶ Como fazer</Text>
+            </Pressable>
+          ) : (
+            <View />
+          )}
 
-            {novoRecorde && <SeloRecorde />}
-
-            {demonstracao && (
-              <TouchableOpacity
-                style={styles.comoFazer}
-                onPress={() => setDemonstracaoAberta(true)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 16 }}
-              >
-                <Text style={styles.textoComoFazer}>▶ Como fazer</Text>
-              </TouchableOpacity>
-            )}
+          <View style={styles.acoes}>
+            <Pressable
+              onPress={aoEditar}
+              style={({ pressed }) => [
+                styles.botaoAcao,
+                styles.botaoAcaoEspaco,
+                pressed && styles.botaoPressionado,
+              ]}
+            >
+              <Text style={styles.editar}>Editar</Text>
+            </Pressable>
+            <Pressable
+              onPress={remover}
+              style={({ pressed }) => [
+                styles.botaoAcao,
+                styles.botaoRemover,
+                pressed && styles.botaoPressionado,
+              ]}
+            >
+              <Text style={styles.remover}>Remover</Text>
+            </Pressable>
           </View>
-        </TouchableOpacity>
-
-        <View style={styles.acoes}>
-          <TouchableOpacity onPress={aoEditar}>
-            <Text style={styles.editar}>Editar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={remover}>
-            <Text style={styles.remover}>Remover</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -185,19 +222,27 @@ export default function CartaoExercicio({
 
 const styles = StyleSheet.create({
   cartao: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: CORES.cartao,
     borderWidth: 1,
     borderColor: CORES.borda,
     borderRadius: 10,
     padding: 16,
     marginBottom: 10,
+    overflow: 'hidden',
   },
   cartaoConcluido: {
     borderColor: CORES.destaque,
     opacity: 0.7,
+  },
+  brilho: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: CORES.destaque,
+    opacity: 0,
+    borderRadius: 10,
+  },
+  linhaPrincipal: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   area: {
     flex: 1,
@@ -282,9 +327,23 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontStyle: 'italic',
   },
-  comoFazer: {
-    alignSelf: 'flex-start',
-    marginTop: 8,
+
+  // Linha de botões
+  rodape: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: CORES.borda,
+  },
+  botaoComoFazer: {
+    borderWidth: 1,
+    borderColor: CORES.destaque,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   textoComoFazer: {
     fontSize: 13,
@@ -294,15 +353,31 @@ const styles = StyleSheet.create({
   acoes: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 10,
+  },
+  botaoAcao: {
+    borderWidth: 1,
+    borderColor: CORES.borda,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  botaoAcaoEspaco: {
+    marginRight: 8,
+  },
+  botaoRemover: {
+    borderColor: '#6b2b2b',
+  },
+  botaoPressionado: {
+    opacity: 0.6,
   },
   editar: {
     color: CORES.texto,
-    fontSize: 14,
-    marginRight: 14,
+    fontSize: 13,
+    fontWeight: 'bold',
   },
   remover: {
-    color: CORES.textoSecundario,
-    fontSize: 14,
+    color: '#e57373',
+    fontSize: 13,
+    fontWeight: 'bold',
   },
 });

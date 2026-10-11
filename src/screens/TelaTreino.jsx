@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
   FlatList,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -21,6 +24,9 @@ import { DIVISOES } from '../utils/divisoes';
 import { GRUPOS } from '../utils/grupos';
 import { supabase } from '../utils/supabase';
 import { CORES } from '../utils/tema';
+
+// No celular a animação roda no motor nativo (mais fluida). No navegador, não existe.
+const USAR_NATIVO = Platform.OS !== 'web';
 
 // Converte "12,5" ou "12.5" em número. Se não for número, devolve 0.
 function paraNumero(valor) {
@@ -97,6 +103,14 @@ function calcularSequencia(datas) {
   return total;
 }
 
+// Bom dia, boa tarde ou boa noite, conforme a hora.
+function saudacaoDoDia() {
+  const hora = new Date().getHours();
+  if (hora < 12) return 'Bom dia';
+  if (hora < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
+
 // ----- Treino sugerido -----
 
 // Descobre a que divisão (Push, Pull ou Legs) cada exercício pertence.
@@ -157,6 +171,108 @@ function sugestaoDoHistorico(historico) {
   const treinouHoje = ultimo.data === formatarData(new Date());
 
   return sugerirProxima(divisaoDoTreino(lista), treinouHoje);
+}
+
+// ----- Animações e blocos visuais -----
+
+// Faz o conteúdo aparecer subindo suavemente. "atraso" escalona a entrada dos blocos.
+function Aparecer({ atraso = 0, children }) {
+  const valor = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(valor, {
+      toValue: 1,
+      duration: 450,
+      delay: atraso,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: USAR_NATIVO,
+    }).start();
+  }, []);
+
+  return (
+    <Animated.View
+      style={{
+        opacity: valor,
+        transform: [
+          {
+            translateY: valor.interpolate({
+              inputRange: [0, 1],
+              outputRange: [16, 0],
+            }),
+          },
+        ],
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
+// Cabeçalho de seção: barrinha amarela, título e uma linha de explicação.
+function TituloSecao({ titulo, descricao }) {
+  return (
+    <View style={styles.secao}>
+      <View style={styles.barraSecao} />
+      <View style={styles.textosSecao}>
+        <Text style={styles.tituloSecao}>{titulo}</Text>
+        <Text style={styles.descricaoSecao}>{descricao}</Text>
+      </View>
+    </View>
+  );
+}
+
+// Aviso de lista vazia: cartão tracejado com um ícone que flutua.
+function EstadoVazio() {
+  const flutuar = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animacao = Animated.loop(
+      Animated.sequence([
+        Animated.timing(flutuar, {
+          toValue: 1,
+          duration: 1200,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: USAR_NATIVO,
+        }),
+        Animated.timing(flutuar, {
+          toValue: 0,
+          duration: 1200,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: USAR_NATIVO,
+        }),
+      ])
+    );
+    animacao.start();
+    return () => animacao.stop();
+  }, []);
+
+  return (
+    <Aparecer atraso={450}>
+      <View style={styles.vazio}>
+        <Animated.Text
+          style={[
+            styles.iconeVazio,
+            {
+              transform: [
+                {
+                  translateY: flutuar.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -8],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          🏋️
+        </Animated.Text>
+        <Text style={styles.tituloVazio}>Seu treino está vazio</Text>
+        <Text style={styles.textoVazio}>
+          Escolha uma divisão ou um grupo muscular acima para começar.
+        </Text>
+      </View>
+    </Aparecer>
+  );
 }
 
 export default function TelaTreino({
@@ -412,132 +528,148 @@ export default function TelaTreino({
 
       <View style={styles.linhaAmarela} />
 
-      <View style={styles.barraAcoes}>
-        <Pressable
-          onPress={aoVerHistorico}
-          style={({ pressed }) => [
-            styles.botaoCabecalho,
-            styles.botaoCabecalhoEspaco,
-            pressed && styles.botaoCabecalhoAtivo,
-          ]}
-        >
-          {({ pressed }) => (
-            <Text style={[styles.textoBotaoCabecalho, pressed && styles.textoAtivo]}>
-              Histórico
-            </Text>
-          )}
-        </Pressable>
-        <Pressable
-          onPress={aoVerMedidas}
-          style={({ pressed }) => [
-            styles.botaoCabecalho,
-            pressed && styles.botaoCabecalhoAtivo,
-          ]}
-        >
-          {({ pressed }) => (
-            <Text style={[styles.textoBotaoCabecalho, pressed && styles.textoAtivo]}>
-              Medidas
-            </Text>
-          )}
-        </Pressable>
-      </View>
+      <Aparecer atraso={0}>
+        <View style={styles.barraAcoes}>
+          <Pressable
+            onPress={aoVerHistorico}
+            style={({ pressed }) => [
+              styles.botaoCabecalho,
+              styles.botaoCabecalhoEspaco,
+              pressed && styles.botaoCabecalhoAtivo,
+            ]}
+          >
+            {({ pressed }) => (
+              <Text style={[styles.textoBotaoCabecalho, pressed && styles.textoAtivo]}>
+                Histórico
+              </Text>
+            )}
+          </Pressable>
+          <Pressable
+            onPress={aoVerMedidas}
+            style={({ pressed }) => [
+              styles.botaoCabecalho,
+              pressed && styles.botaoCabecalhoAtivo,
+            ]}
+          >
+            {({ pressed }) => (
+              <Text style={[styles.textoBotaoCabecalho, pressed && styles.textoAtivo]}>
+                Medidas
+              </Text>
+            )}
+          </Pressable>
+        </View>
+      </Aparecer>
 
-      <View style={styles.cabecalho}>
-        <Text style={styles.saudacao}>Olá, {usuario.nome}</Text>
-        <Text style={styles.titulo}>Meu Treino</Text>
-      </View>
+      <Aparecer atraso={100}>
+        <View style={styles.cabecalho}>
+          <Text style={styles.saudacao}>
+            {saudacaoDoDia()}, {usuario.nome}
+          </Text>
+          <Text style={styles.titulo}>Meu Treino</Text>
+        </View>
 
-      <ContadorSequencia valor={sequencia} />
+        <ContadorSequencia valor={sequencia} />
+      </Aparecer>
 
-      <Text style={styles.instrucao}>Monte o treino do dia</Text>
+      <Aparecer atraso={200}>
+        <TituloSecao
+          titulo="Treino pronto"
+          descricao="Escolha uma divisão e adicione tudo de uma vez"
+        />
 
-      <View style={styles.divisoes}>
-        {DIVISOES.map((item, indice) => {
-          const aberta = divisaoAberta !== null && divisaoAberta.nome === item.nome;
-          const sugerida = sugestao !== null && sugestao.nome === item.nome;
+        <View style={styles.divisoes}>
+          {DIVISOES.map((item, indice) => {
+            const aberta = divisaoAberta !== null && divisaoAberta.nome === item.nome;
+            const sugerida = sugestao !== null && sugestao.nome === item.nome;
 
-          return (
-            <Pressable
-              key={item.nome}
-              onPress={() => abrirDivisao(item)}
-              style={({ pressed }) => [
-                styles.divisao,
-                indice < DIVISOES.length - 1 && styles.divisaoEspaco,
-                sugerida && styles.divisaoSugerida,
-                (pressed || aberta) && styles.divisaoAtiva,
-              ]}
-            >
-              {({ pressed }) => (
-                <>
+            return (
+              <Pressable
+                key={item.nome}
+                onPress={() => abrirDivisao(item)}
+                style={({ pressed }) => [
+                  styles.divisao,
+                  indice < DIVISOES.length - 1 && styles.divisaoEspaco,
+                  sugerida && styles.divisaoSugerida,
+                  (pressed || aberta) && styles.divisaoAtiva,
+                ]}
+              >
+                {({ pressed }) => (
+                  <>
+                    <Text
+                      style={[
+                        styles.nomeDivisao,
+                        (pressed || aberta) && styles.textoAtivo,
+                      ]}
+                    >
+                      {item.nome}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.descricaoDivisao,
+                        (pressed || aberta) && styles.textoAtivo,
+                      ]}
+                    >
+                      {item.descricao}
+                    </Text>
+                    {sugerida && (
+                      <View
+                        style={[
+                          styles.etiquetaSugestao,
+                          (pressed || aberta) && styles.etiquetaSugestaoAtiva,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.textoEtiquetaSugestao,
+                            (pressed || aberta) && styles.textoEtiquetaSugestaoAtiva,
+                          ]}
+                        >
+                          {sugestao.hoje ? 'Hoje' : 'Próximo'}
+                        </Text>
+                      </View>
+                    )}
+                  </>
+                )}
+              </Pressable>
+            );
+          })}
+        </View>
+      </Aparecer>
+
+      <Aparecer atraso={320}>
+        <TituloSecao
+          titulo="Por grupo muscular"
+          descricao="Ou monte o seu, exercício por exercício"
+        />
+
+        <View style={styles.grupos}>
+          {GRUPOS.map((item) => {
+            const aberto = modalVisivel && grupoModal === item.nome;
+
+            return (
+              <Pressable
+                key={item.nome}
+                onPress={() => abrirModal(item.nome)}
+                style={({ pressed }) => [
+                  styles.chip,
+                  (pressed || aberto) && styles.chipAtivo,
+                ]}
+              >
+                {({ pressed }) => (
                   <Text
                     style={[
-                      styles.nomeDivisao,
-                      (pressed || aberta) && styles.textoAtivo,
+                      styles.textoChip,
+                      (pressed || aberto) && styles.textoChipAtivo,
                     ]}
                   >
                     {item.nome}
                   </Text>
-                  <Text
-                    style={[
-                      styles.descricaoDivisao,
-                      (pressed || aberta) && styles.textoAtivo,
-                    ]}
-                  >
-                    {item.descricao}
-                  </Text>
-                  {sugerida && (
-                    <View
-                      style={[
-                        styles.etiquetaSugestao,
-                        (pressed || aberta) && styles.etiquetaSugestaoAtiva,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.textoEtiquetaSugestao,
-                          (pressed || aberta) && styles.textoEtiquetaSugestaoAtiva,
-                        ]}
-                      >
-                        {sugestao.hoje ? 'Hoje' : 'Próximo'}
-                      </Text>
-                    </View>
-                  )}
-                </>
-              )}
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <Text style={styles.instrucao}>Ou escolha um grupo muscular</Text>
-
-      <View style={styles.grupos}>
-        {GRUPOS.map((item) => {
-          const aberto = modalVisivel && grupoModal === item.nome;
-
-          return (
-            <Pressable
-              key={item.nome}
-              onPress={() => abrirModal(item.nome)}
-              style={({ pressed }) => [
-                styles.chip,
-                (pressed || aberto) && styles.chipAtivo,
-              ]}
-            >
-              {({ pressed }) => (
-                <Text
-                  style={[
-                    styles.textoChip,
-                    (pressed || aberto) && styles.textoChipAtivo,
-                  ]}
-                >
-                  {item.nome}
-                </Text>
-              )}
-            </Pressable>
-          );
-        })}
-      </View>
+                )}
+              </Pressable>
+            );
+          })}
+        </View>
+      </Aparecer>
 
       {exercicios.length > 0 && (
         <BarraProgresso total={exercicios.length} concluidos={concluidos} />
@@ -597,11 +729,7 @@ export default function TelaTreino({
             aoEditar={() => abrirEdicao(item)}
           />
         )}
-        ListEmptyComponent={
-          <Text style={styles.vazio}>
-            Nenhum exercício ainda. Escolha um treino ou um grupo acima para começar.
-          </Text>
-        }
+        ListEmptyComponent={<EstadoVazio />}
       />
 
       <ModalExercicios
@@ -743,11 +871,36 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: CORES.texto,
   },
-  instrucao: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
+
+  // Títulos de seção
+  secao: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginTop: 8,
     marginBottom: 12,
   },
+  barraSecao: {
+    width: 4,
+    borderRadius: 2,
+    backgroundColor: CORES.destaque,
+    marginRight: 10,
+  },
+  textosSecao: {
+    flex: 1,
+  },
+  tituloSecao: {
+    fontSize: 16,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    textTransform: 'uppercase',
+    color: CORES.texto,
+  },
+  descricaoSecao: {
+    fontSize: 12,
+    color: CORES.textoSecundario,
+    marginTop: 2,
+  },
+
   divisoes: {
     flexDirection: 'row',
     marginBottom: 20,
@@ -853,10 +1006,36 @@ const styles = StyleSheet.create({
     color: CORES.textoSecundario,
     fontWeight: 'bold',
   },
+
+  // Estado vazio
   vazio: {
-    fontSize: 16,
-    color: CORES.textoSecundario,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: CORES.borda,
+    borderRadius: 10,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    marginTop: 4,
   },
+  iconeVazio: {
+    fontSize: 36,
+    marginBottom: 10,
+  },
+  tituloVazio: {
+    fontSize: 16,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    textTransform: 'uppercase',
+    color: CORES.texto,
+    marginBottom: 6,
+  },
+  textoVazio: {
+    fontSize: 14,
+    color: CORES.textoSecundario,
+    textAlign: 'center',
+  },
+
   anotacao: {
     marginTop: 8,
   },
