@@ -318,6 +318,7 @@ export default function TelaTreino({
   aoVerMedidas,
 }) {
   const [exercicios, setExercicios] = useState([]);
+  const [personalizados, setPersonalizados] = useState([]);
   const [modalVisivel, setModalVisivel] = useState(false);
   const [grupoModal, setGrupoModal] = useState(null);
   const [divisaoAberta, setDivisaoAberta] = useState(null);
@@ -362,6 +363,24 @@ export default function TelaTreino({
       carregouInicial.current = true;
     }
     carregar();
+  }, []);
+
+  // Carrega da nuvem os exercícios que o aluno criou.
+  useEffect(() => {
+    async function carregarPersonalizados() {
+      const { data, error } = await supabase
+        .from('exercicios_personalizados')
+        .select('id, nome, grupo')
+        .order('criado_em', { ascending: true });
+
+      if (error) {
+        console.log('Erro ao carregar exercícios personalizados', error);
+        return;
+      }
+
+      setPersonalizados(data || []);
+    }
+    carregarPersonalizados();
   }, []);
 
   // Salva o treino em andamento na nuvem a cada mudança.
@@ -494,6 +513,42 @@ export default function TelaTreino({
 
     setExercicios([...exercicios, novoExercicio]);
     setModalVisivel(false);
+  }
+
+  // Cria um exercício novo: guarda na nuvem para as próximas vezes e já o adiciona ao treino.
+  async function criarPersonalizado(nome) {
+    const grupo = grupoModal;
+    const temporario = { id: `novo-${Date.now()}`, nome, grupo };
+
+    setPersonalizados((atual) => [...atual, temporario]);
+    adicionarExercicio(nome);
+
+    const { data, error } = await supabase
+      .from('exercicios_personalizados')
+      .insert({ nome, grupo })
+      .select('id, nome, grupo')
+      .single();
+
+    if (error) {
+      console.log('Erro ao salvar exercício personalizado', error);
+      setPersonalizados((atual) => atual.filter((item) => item.id !== temporario.id));
+      return;
+    }
+
+    setPersonalizados((atual) =>
+      atual.map((item) => (item.id === temporario.id ? data : item))
+    );
+  }
+
+  // Apaga o exercício da lista do aluno. Treinos já feitos continuam no histórico.
+  async function apagarPersonalizado(id) {
+    setPersonalizados((atual) => atual.filter((item) => item.id !== id));
+
+    if (String(id).startsWith('novo-')) return;
+
+    const { error } = await supabase.from('exercicios_personalizados').delete().eq('id', id);
+
+    if (error) console.log('Erro ao apagar exercício personalizado', error);
   }
 
   // Tocar no círculo: se vai concluir, abre a janelinha da carga.
@@ -796,8 +851,11 @@ export default function TelaTreino({
       <ModalExercicios
         visivel={modalVisivel}
         grupo={grupoModal}
+        personalizados={personalizados}
         aoFechar={fecharModal}
         aoSelecionar={adicionarExercicio}
+        aoCriar={criarPersonalizado}
+        aoApagar={apagarPersonalizado}
       />
 
       <ModalDivisao
