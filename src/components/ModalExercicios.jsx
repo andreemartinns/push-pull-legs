@@ -64,9 +64,15 @@ export default function ModalExercicios({
 
   return (
     <Modal visible={visivel} animationType="slide" transparent onRequestClose={aoFechar}>
-      <View style={styles.fundo}>
-        <View style={styles.cartao}>
-          <Text style={styles.titulo}>Exercícios de {grupo}</Text>
+      <Pressable style={styles.fundo} onPress={aoFechar}>
+        <Pressable style={styles.cartao} onPress={() => {}}>
+          <View style={styles.titulo}>
+            <View style={styles.barraTitulo} />
+            <View style={styles.textosTitulo}>
+              <Text style={styles.rotulo}>Exercícios</Text>
+              <Text style={styles.nomeGrupo}>{grupo}</Text>
+            </View>
+          </View>
 
           <View style={styles.novo}>
             <TextInput
@@ -83,13 +89,10 @@ export default function ModalExercicios({
             </TouchableOpacity>
           </View>
 
-          <ScrollView keyboardShouldPersistTaps="handled">
+          <ScrollView style={styles.lista} keyboardShouldPersistTaps="handled">
             {meus.map((item) => (
               <View key={item.id} style={styles.itemLinha}>
-                <TouchableOpacity
-                  style={styles.areaItem}
-                  onPress={() => selecionar(item.nome)}
-                >
+                <TouchableOpacity style={styles.areaItem} onPress={() => selecionar(item.nome)}>
                   <Text style={styles.textoItem}>{item.nome}</Text>
                   <View style={styles.etiqueta}>
                     <Text style={styles.textoEtiqueta}>Seu</Text>
@@ -116,8 +119,8 @@ export default function ModalExercicios({
           <TouchableOpacity style={styles.cancelar} onPress={aoFechar}>
             <Text style={styles.textoCancelar}>Cancelar</Text>
           </TouchableOpacity>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
@@ -125,21 +128,45 @@ export default function ModalExercicios({
 const styles = StyleSheet.create({
   fundo: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'flex-end',
   },
   cartao: {
     backgroundColor: CORES.cartao,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: CORES.borda,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
     padding: 20,
     maxHeight: '80%',
   },
   titulo: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: CORES.destaque,
-    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginBottom: 18,
+  },
+  barraTitulo: {
+    width: 4,
+    borderRadius: 2,
+    backgroundColor: CORES.destaque,
+    marginRight: 10,
+  },
+  textosTitulo: {
+    flex: 1,
+  },
+  rotulo: {
+    fontSize: 12,
+    color: CORES.textoSecundario,
+  },
+  nomeGrupo: {
+    fontSize: 20,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    textTransform: 'uppercase',
+    color: CORES.texto,
+    marginTop: 2,
   },
   novo: {
     flexDirection: 'row',
@@ -148,12 +175,12 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     backgroundColor: CORES.fundo,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: CORES.borda,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    fontSize: 16,
+    fontSize: 15,
     color: CORES.texto,
     marginRight: 10,
   },
@@ -168,6 +195,9 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: CORES.textoSobreDestaque,
+  },
+  lista: {
+    flexGrow: 0,
   },
   item: {
     paddingVertical: 14,
@@ -206,7 +236,7 @@ const styles = StyleSheet.create({
   botaoApagar: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#6b2b2b',
     alignItems: 'center',
@@ -224,10 +254,12 @@ const styles = StyleSheet.create({
   },
   cancelar: {
     alignItems: 'center',
-    marginTop: 16,
+    paddingVertical: 12,
+    marginTop: 8,
   },
   textoCancelar: {
-    fontSize: 15,
+    fontSize: 14,
+    fontWeight: 'bold',
     color: CORES.textoSecundario,
   },
 });
