@@ -3,11 +3,20 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CORES } from '../utils/tema';
 
-const OPCOES = [30, 60, 90, 120];
+const OPCOES = [60, 90, 120, 180];
+
+// Guarda a última duração escolhida enquanto o app está aberto.
+// Fica fora do componente para não se perder quando o modal fecha.
+let ultimaDuracao = 60;
+
+function formatarOpcao(segundos) {
+  if (segundos < 120) return `${segundos}s`;
+  return `${segundos / 60}min`;
+}
 
 export default function TemporizadorDescanso({ visivel, aoFechar }) {
-  const [duracao, setDuracao] = useState(60);
-  const [restante, setRestante] = useState(60);
+  const [duracao, setDuracao] = useState(ultimaDuracao);
+  const [restante, setRestante] = useState(ultimaDuracao);
   const [rodando, setRodando] = useState(false);
   const intervaloRef = useRef(null);
   const jaVibrouRef = useRef(false);
@@ -16,8 +25,8 @@ export default function TemporizadorDescanso({ visivel, aoFechar }) {
 
   useEffect(() => {
     if (visivel) {
-      setDuracao(60);
-      setRestante(60);
+      setDuracao(ultimaDuracao);
+      setRestante(ultimaDuracao);
       setRodando(true);
       jaVibrouRef.current = false;
       larguraBarra.setValue(100);
@@ -64,6 +73,7 @@ export default function TemporizadorDescanso({ visivel, aoFechar }) {
   }
 
   function escolherDuracao(segundos) {
+    ultimaDuracao = segundos;
     setDuracao(segundos);
     setRestante(segundos);
     setRodando(true);
@@ -117,7 +127,7 @@ export default function TemporizadorDescanso({ visivel, aoFechar }) {
                 onPress={() => escolherDuracao(opcao)}
               >
                 <Text style={[styles.textoOpcao, duracao === opcao && styles.textoOpcaoAtiva]}>
-                  {opcao}s
+                  {formatarOpcao(opcao)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -191,6 +201,8 @@ const styles = StyleSheet.create({
   },
   opcoes: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     marginBottom: 14,
   },
   opcao: {
@@ -200,6 +212,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     marginHorizontal: 4,
+    marginBottom: 6,
   },
   opcaoAtiva: {
     backgroundColor: CORES.destaque,
