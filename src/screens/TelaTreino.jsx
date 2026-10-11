@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import BarraProgresso from '../components/BarraProgresso';
@@ -402,20 +401,46 @@ export default function TelaTreino({
           </View>
         </View>
 
-        <View style={styles.acoesCabecalho}>
-          <TouchableOpacity onPress={aoVerHistorico}>
-            <Text style={styles.historico}>Histórico</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={aoVerMedidas}>
-            <Text style={styles.historico}>Medidas</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={aoSair}>
-            <Text style={styles.sair}>Sair</Text>
-          </TouchableOpacity>
-        </View>
+        <Pressable
+          onPress={aoSair}
+          hitSlop={10}
+          style={({ pressed }) => [styles.botaoSair, pressed && styles.limparPressionado]}
+        >
+          <Text style={styles.sair}>Sair</Text>
+        </Pressable>
       </View>
 
       <View style={styles.linhaAmarela} />
+
+      <View style={styles.barraAcoes}>
+        <Pressable
+          onPress={aoVerHistorico}
+          style={({ pressed }) => [
+            styles.botaoCabecalho,
+            styles.botaoCabecalhoEspaco,
+            pressed && styles.botaoCabecalhoAtivo,
+          ]}
+        >
+          {({ pressed }) => (
+            <Text style={[styles.textoBotaoCabecalho, pressed && styles.textoAtivo]}>
+              Histórico
+            </Text>
+          )}
+        </Pressable>
+        <Pressable
+          onPress={aoVerMedidas}
+          style={({ pressed }) => [
+            styles.botaoCabecalho,
+            pressed && styles.botaoCabecalhoAtivo,
+          ]}
+        >
+          {({ pressed }) => (
+            <Text style={[styles.textoBotaoCabecalho, pressed && styles.textoAtivo]}>
+              Medidas
+            </Text>
+          )}
+        </Pressable>
+      </View>
 
       <View style={styles.cabecalho}>
         <Text style={styles.saudacao}>Olá, {usuario.nome}</Text>
@@ -664,17 +689,12 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: CORES.texto,
   },
-  acoesCabecalho: {
-    alignItems: 'flex-end',
-  },
-  historico: {
-    fontSize: 14,
-    color: CORES.texto,
-    fontWeight: 'bold',
-    marginBottom: 8,
+  botaoSair: {
+    paddingVertical: 6,
+    paddingHorizontal: 4,
   },
   sair: {
-    fontSize: 15,
+    fontSize: 14,
     color: CORES.textoSecundario,
     fontWeight: 'bold',
   },
@@ -682,7 +702,32 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: CORES.destaque,
     marginHorizontal: -20,
+    marginBottom: 16,
+  },
+  barraAcoes: {
+    flexDirection: 'row',
     marginBottom: 20,
+  },
+  botaoCabecalho: {
+    flex: 1,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: CORES.borda,
+    backgroundColor: CORES.cartao,
+    borderRadius: 10,
+    paddingVertical: 10,
+  },
+  botaoCabecalhoEspaco: {
+    marginRight: 8,
+  },
+  botaoCabecalhoAtivo: {
+    backgroundColor: CORES.destaque,
+    borderColor: CORES.destaque,
+  },
+  textoBotaoCabecalho: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: CORES.texto,
   },
   cabecalho: {
     marginBottom: 8,
