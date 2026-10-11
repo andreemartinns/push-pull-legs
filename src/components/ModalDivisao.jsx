@@ -1,4 +1,4 @@
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CORES } from '../utils/tema';
 
 export default function ModalDivisao({ visivel, divisao, jaAdicionados, aoFechar, aoAdicionar }) {
@@ -20,12 +20,18 @@ export default function ModalDivisao({ visivel, divisao, jaAdicionados, aoFechar
 
   return (
     <Modal visible={visivel} animationType="slide" transparent onRequestClose={aoFechar}>
-      <View style={styles.fundo}>
-        <View style={styles.cartao}>
-          <Text style={styles.titulo}>Treino {divisao ? divisao.nome : ''}</Text>
-          <Text style={styles.descricao}>{divisao ? divisao.descricao : ''}</Text>
+      <Pressable style={styles.fundo} onPress={aoFechar}>
+        <Pressable style={styles.cartao} onPress={() => {}}>
+          <View style={styles.titulo}>
+            <View style={styles.barraTitulo} />
+            <View style={styles.textosTitulo}>
+              <Text style={styles.rotulo}>Treino</Text>
+              <Text style={styles.nomeDivisao}>{divisao ? divisao.nome : ''}</Text>
+              <Text style={styles.descricao}>{divisao ? divisao.descricao : ''}</Text>
+            </View>
+          </View>
 
-          <ScrollView>
+          <ScrollView style={styles.lista}>
             {exercicios.map((item) => {
               const adicionado = jaAdicionados.includes(item.nome);
 
@@ -42,9 +48,12 @@ export default function ModalDivisao({ visivel, divisao, jaAdicionados, aoFechar
                     </Text>
                     <Text style={styles.grupo}>{item.grupo}</Text>
                   </View>
-                  <Text style={adicionado ? styles.estadoAdicionado : styles.estadoAdicionar}>
-                    {adicionado ? 'Adicionado' : 'Adicionar'}
-                  </Text>
+
+                  <View style={[styles.marca, adicionado && styles.marcaAtiva]}>
+                    <Text style={[styles.textoMarca, adicionado && styles.textoMarcaAtiva]}>
+                      {adicionado ? '✓' : '+'}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -54,6 +63,7 @@ export default function ModalDivisao({ visivel, divisao, jaAdicionados, aoFechar
             style={[styles.botaoTodos, faltando.length === 0 && styles.botaoTodosInativo]}
             disabled={faltando.length === 0}
             onPress={adicionarTodos}
+            activeOpacity={0.8}
           >
             <Text
               style={[
@@ -68,8 +78,8 @@ export default function ModalDivisao({ visivel, divisao, jaAdicionados, aoFechar
           <TouchableOpacity style={styles.fechar} onPress={aoFechar}>
             <Text style={styles.textoFechar}>Fechar</Text>
           </TouchableOpacity>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
@@ -77,39 +87,66 @@ export default function ModalDivisao({ visivel, divisao, jaAdicionados, aoFechar
 const styles = StyleSheet.create({
   fundo: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'flex-end',
   },
   cartao: {
     backgroundColor: CORES.cartao,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: CORES.borda,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
     padding: 20,
     maxHeight: '85%',
   },
   titulo: {
-    fontSize: 22,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginBottom: 14,
+  },
+  barraTitulo: {
+    width: 4,
+    borderRadius: 2,
+    backgroundColor: CORES.destaque,
+    marginRight: 10,
+  },
+  textosTitulo: {
+    flex: 1,
+  },
+  rotulo: {
+    fontSize: 12,
+    color: CORES.textoSecundario,
+  },
+  nomeDivisao: {
+    fontSize: 26,
+    lineHeight: 30,
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
     color: CORES.texto,
+    marginTop: 2,
   },
   descricao: {
-    fontSize: 14,
+    fontSize: 13,
     color: CORES.textoSecundario,
     marginTop: 2,
-    marginBottom: 12,
+  },
+  lista: {
+    flexGrow: 0,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
+    paddingVertical: 13,
     borderBottomWidth: 1,
     borderBottomColor: CORES.borda,
   },
   textos: {
     flex: 1,
+    marginRight: 12,
   },
   textoItem: {
     fontSize: 16,
@@ -123,14 +160,28 @@ const styles = StyleSheet.create({
     color: CORES.textoSecundario,
     marginTop: 2,
   },
-  estadoAdicionar: {
-    fontSize: 14,
+  marca: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: CORES.borda,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  marcaAtiva: {
+    backgroundColor: CORES.destaque,
+    borderColor: CORES.destaque,
+  },
+  textoMarca: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: CORES.texto,
+    marginTop: -1,
   },
-  estadoAdicionado: {
+  textoMarcaAtiva: {
     fontSize: 14,
-    color: CORES.textoSecundario,
+    color: CORES.textoSobreDestaque,
   },
   botaoTodos: {
     backgroundColor: CORES.destaque,
@@ -154,10 +205,12 @@ const styles = StyleSheet.create({
   },
   fechar: {
     alignItems: 'center',
-    marginTop: 16,
+    paddingVertical: 12,
+    marginTop: 4,
   },
   textoFechar: {
-    fontSize: 15,
+    fontSize: 14,
+    fontWeight: 'bold',
     color: CORES.textoSecundario,
   },
 });
