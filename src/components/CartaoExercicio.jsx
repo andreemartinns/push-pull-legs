@@ -134,10 +134,7 @@ export default function CartaoExercicio({
     >
       <View style={[styles.cartao, exercicio.concluido && styles.cartaoConcluido]}>
         {/* Camada do brilho: acende ao concluir e se apaga sozinha. */}
-        <Animated.View
-          pointerEvents="none"
-          style={[styles.brilho, { opacity: brilho }]}
-        />
+        <Animated.View style={[styles.brilho, { opacity: brilho }]} />
 
         <View style={styles.linhaPrincipal}>
           <TouchableOpacity style={styles.area} onPress={aoAlternar}>
@@ -239,6 +236,7 @@ const styles = StyleSheet.create({
     backgroundColor: CORES.destaque,
     opacity: 0,
     borderRadius: 10,
+    pointerEvents: 'none',
   },
   linhaPrincipal: {
     flexDirection: 'row',

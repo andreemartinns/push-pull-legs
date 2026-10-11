@@ -690,23 +690,27 @@ export default function TelaTreino({
 
   // Campo de anotação, no fim da lista. Só aparece quando há exercícios.
   const rodapeDaLista = (
-    <View style={styles.anotacao}>
-      <Text style={styles.rotuloAnotacao}>Como foi o treino?</Text>
-      <TextInput
-        style={[styles.campoAnotacao, anotacaoFocada && styles.campoAnotacaoFocado]}
-        value={anotacao}
-        onChangeText={setAnotacao}
-        onFocus={() => setAnotacaoFocada(true)}
-        onBlur={() => setAnotacaoFocada(false)}
-        placeholder="Ex: dormi mal, ombro doendo, treino pesado"
-        placeholderTextColor={CORES.textoSecundario}
-        multiline
-        maxLength={200}
-      />
-      <Text style={styles.dicaAnotacao}>
-        Escreva antes de concluir o último exercício, porque o treino é salvo nesse momento.
-      </Text>
-    </View>
+    <Aparecer>
+      <View style={styles.anotacao}>
+        <TituloSecao
+          titulo="Como foi o treino?"
+          descricao="Opcional. Fica salva junto com o treino"
+        />
+
+        <TextInput
+          style={[styles.campoAnotacao, anotacaoFocada && styles.campoAnotacaoFocado]}
+          value={anotacao}
+          onChangeText={setAnotacao}
+          onFocus={() => setAnotacaoFocada(true)}
+          onBlur={() => setAnotacaoFocada(false)}
+          placeholder="Anote antes do último exercício. Ex: dormi mal, ombro doendo"
+          placeholderTextColor={CORES.textoSecundario}
+          multiline
+          maxLength={200}
+        />
+        <Text style={styles.contadorAnotacao}>{anotacao.length}/200</Text>
+      </View>
+    </Aparecer>
   );
 
   return (
@@ -1036,14 +1040,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
+  // Anotação do treino
   anotacao: {
-    marginTop: 8,
-  },
-  rotuloAnotacao: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.texto,
-    marginBottom: 8,
+    marginTop: 16,
   },
   campoAnotacao: {
     minHeight: 80,
@@ -1060,7 +1059,8 @@ const styles = StyleSheet.create({
   campoAnotacaoFocado: {
     borderColor: CORES.destaque,
   },
-  dicaAnotacao: {
+  contadorAnotacao: {
+    alignSelf: 'flex-end',
     fontSize: 12,
     color: CORES.textoSecundario,
     marginTop: 6,
