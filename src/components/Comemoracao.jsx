@@ -1,13 +1,12 @@
 import * as Haptics from 'expo-haptics';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   Animated,
-  Dimensions,
-  Easing,
   Platform,
-  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { CORES } from '../utils/tema';
@@ -15,45 +14,24 @@ import { CORES } from '../utils/tema';
 // No navegador não existe driver nativo, então só usamos no celular.
 const USAR_DRIVER_NATIVO = Platform.OS !== 'web';
 
-// Verde, amarelo e azul do Brasil, mais o amarelo do app e branco.
-const CORES_CONFETE = ['#009C3B', '#FFDF00', '#002776', '#FFFFFF', CORES.destaque];
-const QUANTIDADE_CONFETES = 32;
-const DURACAO_TOTAL = 3200;
-
-export default function Comemoracao({ visivel, total = 0, recordes = 0, aoTerminar }) {
-  const { width: larguraTela, height: alturaTela } = Dimensions.get('window');
-
-  const escala = useRef(new Animated.Value(0.5)).current;
+export default function Comemoracao({
+  visivel,
+  total = 0,
+  recordes = 0,
+  sequencia = 0,
+  exercicios = [],
+  aoTerminar,
+}) {
   const opacidade = useRef(new Animated.Value(0)).current;
+  const subida = useRef(new Animated.Value(16)).current;
   const jaTerminou = useRef(false);
-
-  // Guarda sempre a versão mais recente da função, para o temporizador não usar uma velha.
-  const aoTerminarRef = useRef(aoTerminar);
-  aoTerminarRef.current = aoTerminar;
-
-  // Sorteia os confetes uma vez a cada vez que a comemoração abre.
-  const confetes = useMemo(() => {
-    if (!visivel) return [];
-
-    return Array.from({ length: QUANTIDADE_CONFETES }, (_, i) => ({
-      id: i,
-      x: Math.random() * larguraTela,
-      tamanho: 8 + Math.random() * 8,
-      cor: CORES_CONFETE[i % CORES_CONFETE.length],
-      atraso: Math.random() * 500,
-      duracao: 1800 + Math.random() * 1400,
-      deriva: (Math.random() - 0.5) * 120,
-      giro: 360 + Math.random() * 720,
-      progresso: new Animated.Value(0),
-    }));
-  }, [visivel]);
 
   useEffect(() => {
     if (!visivel) return;
 
     jaTerminou.current = false;
-    escala.setValue(0.5);
     opacidade.setValue(0);
+    subida.setValue(16);
 
     // Vibração de sucesso, quando o aparelho tem.
     try {
@@ -62,104 +40,80 @@ export default function Comemoracao({ visivel, total = 0, recordes = 0, aoTermin
       // Haptics pode não existir no navegador; ignora.
     }
 
-    // O cartão cresce com efeito de mola.
     Animated.parallel([
-      Animated.spring(escala, {
-        toValue: 1,
-        friction: 4,
-        tension: 90,
-        useNativeDriver: USAR_DRIVER_NATIVO,
-      }),
       Animated.timing(opacidade, {
         toValue: 1,
         duration: 250,
         useNativeDriver: USAR_DRIVER_NATIVO,
       }),
-    ]).start();
-
-    // Os confetes caem.
-    confetes.forEach((confete) => {
-      Animated.timing(confete.progresso, {
-        toValue: 1,
-        duration: confete.duracao,
-        delay: confete.atraso,
-        easing: Easing.in(Easing.quad),
+      Animated.timing(subida, {
+        toValue: 0,
+        duration: 250,
         useNativeDriver: USAR_DRIVER_NATIVO,
-      }).start();
-    });
-
-    const temporizador = setTimeout(terminar, DURACAO_TOTAL);
-    return () => clearTimeout(temporizador);
+      }),
+    ]).start();
   }, [visivel]);
 
-  // Pode ser chamada pelo tempo ou por um toque; só vale a primeira vez.
-  function terminar() {
+  // Só vale a primeira vez, para um toque duplo não salvar o treino duas vezes.
+  function continuar() {
     if (jaTerminou.current) return;
     jaTerminou.current = true;
-    aoTerminarRef.current();
+    aoTerminar();
   }
 
   if (!visivel) return null;
 
-  const textoExercicios = `${total} ${total === 1 ? 'exercício concluído' : 'exercícios concluídos'}`;
-  const textoRecordes =
-    recordes > 0 ? `${recordes} ${recordes === 1 ? 'novo recorde' : 'novos recordes'}` : '';
-
   return (
-    <Pressable style={styles.fundo} onPress={terminar}>
-      <View style={styles.camadaConfete} pointerEvents="none">
-        {confetes.map((confete) => (
-          <Animated.View
-            key={confete.id}
-            style={{
-              position: 'absolute',
-              top: -30,
-              left: confete.x,
-              width: confete.tamanho,
-              height: confete.tamanho * 0.6,
-              backgroundColor: confete.cor,
-              borderRadius: 2,
-              opacity: confete.progresso.interpolate({
-                inputRange: [0, 0.8, 1],
-                outputRange: [1, 1, 0],
-              }),
-              transform: [
-                {
-                  translateY: confete.progresso.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, alturaTela + 60],
-                  }),
-                },
-                {
-                  translateX: confete.progresso.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, confete.deriva],
-                  }),
-                },
-                {
-                  rotate: confete.progresso.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0deg', `${confete.giro}deg`],
-                  }),
-                },
-              ],
-            }}
-          />
-        ))}
-      </View>
+    <View style={styles.fundo}>
+      <Animated.View
+        style={[styles.cartao, { opacity: opacidade, transform: [{ translateY: subida }] }]}
+      >
+        <Text style={styles.rotulo}>Treino concluído</Text>
 
-      <Animated.View style={[styles.cartao, { opacity: opacidade, transform: [{ scale: escala }] }]}>
-        <Text style={styles.emoji}>🏆</Text>
-        <Text style={styles.titulo}>Treino completo!</Text>
-        <Text style={styles.detalhe}>{textoExercicios}</Text>
-        {textoRecordes !== '' && (
-          <View style={styles.selo}>
-            <Text style={styles.textoSelo}>{textoRecordes}</Text>
+        <View style={styles.blocos}>
+          <View style={styles.bloco}>
+            <Text style={styles.numeroBloco}>{total}</Text>
+            <Text style={styles.rotuloBloco}>{total === 1 ? 'exercício' : 'exercícios'}</Text>
           </View>
+
+          {sequencia > 0 && (
+            <View style={[styles.bloco, styles.blocoEspaco]}>
+              <Text style={styles.numeroBloco}>{sequencia}</Text>
+              <Text style={styles.rotuloBloco}>{sequencia === 1 ? 'dia seguido' : 'dias seguidos'}</Text>
+            </View>
+          )}
+
+          {recordes > 0 && (
+            <View style={[styles.bloco, styles.blocoEspaco]}>
+              <Text style={styles.numeroBloco}>{recordes}</Text>
+              <Text style={styles.rotuloBloco}>{recordes === 1 ? 'recorde' : 'recordes'}</Text>
+            </View>
+          )}
+        </View>
+
+        {exercicios.length > 0 && (
+          <ScrollView style={styles.lista} showsVerticalScrollIndicator={false}>
+            {exercicios.map((exercicio, indice) => (
+              <View
+                key={exercicio.id ?? indice}
+                style={[styles.linha, indice === exercicios.length - 1 && styles.linhaUltima]}
+              >
+                <Text style={styles.nomeExercicio} numberOfLines={1}>
+                  {exercicio.nome}
+                </Text>
+                {exercicio.peso ? (
+                  <Text style={styles.pesoExercicio}>{exercicio.peso} kg</Text>
+                ) : null}
+              </View>
+            ))}
+          </ScrollView>
         )}
-        <Text style={styles.dica}>Toque para continuar</Text>
+
+        <TouchableOpacity style={styles.botao} onPress={continuar} activeOpacity={0.8}>
+          <Text style={styles.textoBotao}>Continuar</Text>
+        </TouchableOpacity>
       </Animated.View>
-    </Pressable>
+    </View>
   );
 }
 
@@ -170,63 +124,95 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.78)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 100,
     elevation: 100,
-  },
-  camadaConfete: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    overflow: 'hidden',
+    padding: 20,
   },
   cartao: {
+    width: '100%',
+    maxWidth: 340,
     backgroundColor: CORES.cartao,
-    borderWidth: 2,
-    borderColor: CORES.destaque,
-    borderRadius: 18,
-    paddingVertical: 28,
-    paddingHorizontal: 32,
-    alignItems: 'center',
-    marginHorizontal: 24,
+    borderWidth: 1,
+    borderColor: CORES.borda,
+    borderRadius: 16,
+    padding: 20,
   },
-  emoji: {
-    fontSize: 56,
-    marginBottom: 8,
+  rotulo: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    color: CORES.textoSecundario,
+    marginBottom: 14,
   },
-  titulo: {
+  blocos: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  bloco: {
+    flex: 1,
+    backgroundColor: CORES.fundo,
+    borderWidth: 1,
+    borderColor: CORES.borda,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+  },
+  blocoEspaco: {
+    marginLeft: 8,
+  },
+  numeroBloco: {
     fontSize: 28,
     fontWeight: '900',
     fontStyle: 'italic',
-    textTransform: 'uppercase',
     color: CORES.destaque,
-    textAlign: 'center',
   },
-  detalhe: {
-    fontSize: 16,
-    color: CORES.texto,
-    marginTop: 8,
-  },
-  selo: {
-    backgroundColor: CORES.destaque,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginTop: 12,
-  },
-  textoSelo: {
-    fontSize: 14,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.textoSobreDestaque,
-  },
-  dica: {
+  rotuloBloco: {
     fontSize: 12,
     color: CORES.textoSecundario,
+    marginTop: 2,
+  },
+  lista: {
+    maxHeight: 190,
+    borderTopWidth: 1,
+    borderTopColor: CORES.borda,
+  },
+  linha: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: CORES.borda,
+  },
+  linhaUltima: {
+    borderBottomWidth: 0,
+  },
+  nomeExercicio: {
+    flex: 1,
+    fontSize: 14,
+    color: CORES.texto,
+    marginRight: 12,
+  },
+  pesoExercicio: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: CORES.destaque,
+  },
+  botao: {
+    backgroundColor: CORES.destaque,
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
     marginTop: 16,
+  },
+  textoBotao: {
+    fontSize: 15,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    textTransform: 'uppercase',
+    color: CORES.textoSobreDestaque,
   },
 });

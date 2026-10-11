@@ -9,11 +9,11 @@ import {
   View,
 } from 'react-native';
 import BarraProgresso from '../components/BarraProgresso';
-import Botao from '../components/Botao';
 import CartaoExercicio from '../components/CartaoExercicio';
 import Comemoracao from '../components/Comemoracao';
 import ContadorSequencia from '../components/ContadorSequencia';
 import Logo from '../components/Logo';
+import ModalCarga from '../components/ModalCarga';
 import ModalDivisao from '../components/ModalDivisao';
 import ModalEditarExercicio from '../components/ModalEditarExercicio';
 import ModalExercicios from '../components/ModalExercicios';
@@ -22,7 +22,6 @@ import { DIVISOES } from '../utils/divisoes';
 import { GRUPOS } from '../utils/grupos';
 import { supabase } from '../utils/supabase';
 import { CORES } from '../utils/tema';
-import { DIVISAO_ABC, FULL_BODY } from '../utils/treinosProntos';
 
 // Converte "12,5" ou "12.5" em número. Se não for número, devolve 0.
 function paraNumero(valor) {
@@ -174,6 +173,7 @@ export default function TelaTreino({
   const [grupoModal, setGrupoModal] = useState(null);
   const [divisaoAberta, setDivisaoAberta] = useState(null);
   const [exercicioEditando, setExercicioEditando] = useState(null);
+  const [exercicioConcluindo, setExercicioConcluindo] = useState(null);
   const [temporizadorVisivel, setTemporizadorVisivel] = useState(false);
   const [anotacao, setAnotacao] = useState('');
   const [anotacaoFocada, setAnotacaoFocada] = useState(false);
@@ -190,6 +190,10 @@ export default function TelaTreino({
   const sugestao = useMemo(() => sugestaoDoHistorico(historico), [historico]);
 
   const concluidos = exercicios.filter((item) => item.concluido).length;
+
+  // Sequência contando o treino de hoje (que ainda não está no histórico).
+  const treinouHoje = historico[0] && historico[0].data === formatarData(new Date());
+  const sequenciaComHoje = treinouHoje ? sequencia : sequencia + 1;
 
   // Carrega o treino em andamento da nuvem.
   useEffect(() => {
@@ -262,6 +266,12 @@ export default function TelaTreino({
     return paraNumero(exercicio.peso) > recorde;
   }
 
+  // A carga da última vez que o aluno fez esse exercício (ou vazio, se nunca fez).
+  function cargaInicial(nome) {
+    const ultima = ultimasCargas[nome];
+    return ultima && ultima.peso ? String(ultima.peso) : '';
+  }
+
   function abrirModal(nomeGrupo) {
     setGrupoModal(nomeGrupo);
     setModalVisivel(true);
@@ -291,7 +301,7 @@ export default function TelaTreino({
         nome: item.nome,
         series: '3',
         repeticoes: '12',
-        peso: '',
+        peso: cargaInicial(item.nome),
         grupo: item.grupo,
         concluido: false,
       }));
@@ -307,7 +317,7 @@ export default function TelaTreino({
       nome: nomeExercicio,
       series: '3',
       repeticoes: '12',
-      peso: '',
+      peso: cargaInicial(nomeExercicio),
       grupo: grupoModal,
       concluido: false,
     };
@@ -316,17 +326,38 @@ export default function TelaTreino({
     setModalVisivel(false);
   }
 
+  // Tocar no círculo: se vai concluir, abre a janelinha da carga.
+  // Se já estava concluído, só desmarca.
   function alternarConcluido(id) {
     const exercicio = exercicios.find((item) => item.id === id);
-    const vaiConcluir = !exercicio.concluido;
+    if (!exercicio) return;
+
+    if (exercicio.concluido) {
+      setExercicios(
+        exercicios.map((item) => (item.id === id ? { ...item, concluido: false } : item))
+      );
+      return;
+    }
+
+    setExercicioConcluindo(exercicio);
+  }
+
+  // Confirmou a carga na janelinha: conclui o exercício com esse peso.
+  function confirmarConclusao(peso) {
+    const alvo = exercicioConcluindo;
+    if (!alvo) return;
+
+    const faltam = exercicios.filter((item) => !item.concluido).length;
 
     setExercicios(
       exercicios.map((item) =>
-        item.id === id ? { ...item, concluido: vaiConcluir } : item
+        item.id === alvo.id ? { ...item, peso, concluido: true } : item
       )
     );
+    setExercicioConcluindo(null);
 
-    if (vaiConcluir) {
+    // Só abre o descanso se ainda faltar exercício. No último, vem a comemoração.
+    if (faltam > 1) {
       setTemporizadorVisivel(true);
     }
   }
@@ -356,35 +387,6 @@ export default function TelaTreino({
       )
     );
     setExercicioEditando(null);
-  }
-
-  // Botão de um treino pronto (A, B, C ou Full Body).
-  // Fica neutro e só vira amarelo quando tocado ou aberto.
-  function renderTreinoPronto(item, estiloExtra) {
-    const aberta = divisaoAberta !== null && divisaoAberta.nome === item.nome;
-
-    return (
-      <Pressable
-        key={item.nome}
-        onPress={() => abrirDivisao(item)}
-        style={({ pressed }) => [
-          styles.divisao,
-          estiloExtra,
-          (pressed || aberta) && styles.divisaoAtiva,
-        ]}
-      >
-        {({ pressed }) => (
-          <>
-            <Text style={[styles.nomeDivisao, (pressed || aberta) && styles.textoAtivo]}>
-              {item.nome}
-            </Text>
-            <Text style={[styles.descricaoDivisao, (pressed || aberta) && styles.textoAtivo]}>
-              {item.descricao}
-            </Text>
-          </>
-        )}
-      </Pressable>
-    );
   }
 
   // Tudo que fica acima da lista de exercícios.
@@ -482,16 +484,6 @@ export default function TelaTreino({
         })}
       </View>
 
-      <Text style={styles.instrucao}>Ou use um treino pronto</Text>
-
-      <View style={styles.divisoesCompacta}>
-        {DIVISAO_ABC.map((item, indice) =>
-          renderTreinoPronto(item, indice < DIVISAO_ABC.length - 1 && styles.divisaoEspaco)
-        )}
-      </View>
-
-      <View style={styles.divisoes}>{renderTreinoPronto(FULL_BODY, null)}</View>
-
       <Text style={styles.instrucao}>Ou escolha um grupo muscular</Text>
 
       <View style={styles.grupos}>
@@ -527,13 +519,14 @@ export default function TelaTreino({
       )}
 
       {concluidos > 0 && (
-        <View style={styles.limpar}>
-          <Botao
-            titulo="Limpar concluídos"
-            aoPressionar={limparConcluidos}
-            cor={CORES.erro}
-          />
-        </View>
+        <Pressable
+          onPress={limparConcluidos}
+          style={({ pressed }) => [styles.limpar, pressed && styles.limparPressionado]}
+        >
+          <Text style={styles.textoLimpar}>
+            Limpar {concluidos} {concluidos === 1 ? 'concluído' : 'concluídos'}
+          </Text>
+        </Pressable>
       )}
     </View>
   );
@@ -608,6 +601,14 @@ export default function TelaTreino({
         aoSalvar={salvarEdicao}
       />
 
+      <ModalCarga
+        visivel={exercicioConcluindo !== null}
+        exercicio={exercicioConcluindo}
+        ultimaCarga={exercicioConcluindo ? ultimasCargas[exercicioConcluindo.nome] : null}
+        aoCancelar={() => setExercicioConcluindo(null)}
+        aoConfirmar={confirmarConclusao}
+      />
+
       <TemporizadorDescanso
         visivel={temporizadorVisivel}
         aoFechar={() => setTemporizadorVisivel(false)}
@@ -617,6 +618,8 @@ export default function TelaTreino({
         visivel={comemoracao !== null}
         total={comemoracao ? comemoracao.exercicios.length : 0}
         recordes={comemoracao ? comemoracao.recordes : 0}
+        sequencia={sequenciaComHoje}
+        exercicios={comemoracao ? comemoracao.exercicios : []}
         aoTerminar={terminarComemoracao}
       />
     </View>
@@ -704,10 +707,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 20,
   },
-  divisoesCompacta: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
   divisao: {
     flex: 1,
     alignItems: 'center',
@@ -791,7 +790,23 @@ const styles = StyleSheet.create({
     color: CORES.textoSobreDestaque,
   },
   limpar: {
+    alignSelf: 'flex-end',
+    borderWidth: 1,
+    borderColor: CORES.borda,
+    backgroundColor: CORES.cartao,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginTop: 10,
     marginBottom: 16,
+  },
+  limparPressionado: {
+    opacity: 0.6,
+  },
+  textoLimpar: {
+    fontSize: 13,
+    color: CORES.textoSecundario,
+    fontWeight: 'bold',
   },
   vazio: {
     fontSize: 16,

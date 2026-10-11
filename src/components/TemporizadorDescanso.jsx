@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CORES } from '../utils/tema';
 
 const OPCOES = [30, 60, 90, 120];
@@ -13,7 +13,6 @@ export default function TemporizadorDescanso({ visivel, aoFechar }) {
   const jaVibrouRef = useRef(false);
 
   const larguraBarra = useRef(new Animated.Value(100)).current;
-  const escalaPulso = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (visivel) {
@@ -36,7 +35,6 @@ export default function TemporizadorDescanso({ visivel, aoFechar }) {
       if (!jaVibrouRef.current) {
         jaVibrouRef.current = true;
         dispararVibracao();
-        animarPulso();
       }
       return;
     }
@@ -65,15 +63,6 @@ export default function TemporizadorDescanso({ visivel, aoFechar }) {
     }
   }
 
-  function animarPulso() {
-    Animated.sequence([
-      Animated.timing(escalaPulso, { toValue: 1.15, duration: 180, useNativeDriver: true }),
-      Animated.timing(escalaPulso, { toValue: 1, duration: 180, useNativeDriver: true }),
-      Animated.timing(escalaPulso, { toValue: 1.1, duration: 150, useNativeDriver: true }),
-      Animated.timing(escalaPulso, { toValue: 1, duration: 150, useNativeDriver: true }),
-    ]).start();
-  }
-
   function escolherDuracao(segundos) {
     setDuracao(segundos);
     setRestante(segundos);
@@ -91,128 +80,124 @@ export default function TemporizadorDescanso({ visivel, aoFechar }) {
     jaVibrouRef.current = false;
   }
 
-  if (!visivel) return null;
-
   const minutos = Math.floor(restante / 60);
   const segundos = restante % 60;
   const tempoFormatado = `${minutos}:${segundos.toString().padStart(2, '0')}`;
   const terminou = restante <= 0;
 
   return (
-    <View style={styles.container}>
-      <Animated.View style={[styles.cartao, { transform: [{ scale: escalaPulso }] }]}>
-        <View style={styles.cabecalho}>
-          <Text style={styles.titulo}>{terminou ? 'Descanso concluído! 💪' : 'Descansando...'}</Text>
-          <TouchableOpacity onPress={aoFechar}>
-            <Text style={styles.fechar}>✕</Text>
-          </TouchableOpacity>
-        </View>
+    <Modal visible={visivel} transparent animationType="fade" onRequestClose={aoFechar}>
+      <Pressable style={styles.fundo} onPress={aoFechar}>
+        <Pressable style={styles.cartao} onPress={() => {}}>
+          <Text style={styles.titulo}>{terminou ? 'Descanso terminou' : 'Descanso'}</Text>
 
-        <Text style={styles.tempo}>{tempoFormatado}</Text>
+          <Text style={[styles.tempo, terminou && styles.tempoPronto]}>
+            {terminou ? 'Pronto!' : tempoFormatado}
+          </Text>
 
-        <View style={styles.barraFundo}>
-          <Animated.View
-            style={[
-              styles.barraPreenchimento,
-              {
-                width: larguraBarra.interpolate({
-                  inputRange: [0, 100],
-                  outputRange: ['0%', '100%'],
-                }),
-              },
-            ]}
-          />
-        </View>
+          <View style={styles.barraFundo}>
+            <Animated.View
+              style={[
+                styles.barraPreenchimento,
+                {
+                  width: larguraBarra.interpolate({
+                    inputRange: [0, 100],
+                    outputRange: ['0%', '100%'],
+                  }),
+                },
+              ]}
+            />
+          </View>
 
-        <View style={styles.opcoes}>
-          {OPCOES.map((segundosOpcao) => (
-            <TouchableOpacity
-              key={segundosOpcao}
-              style={[styles.opcao, duracao === segundosOpcao && styles.opcaoAtiva]}
-              onPress={() => escolherDuracao(segundosOpcao)}
-            >
-              <Text style={[styles.textoOpcao, duracao === segundosOpcao && styles.textoOpcaoAtiva]}>
-                {segundosOpcao}s
-              </Text>
+          <View style={styles.opcoes}>
+            {OPCOES.map((opcao) => (
+              <TouchableOpacity
+                key={opcao}
+                style={[styles.opcao, duracao === opcao && styles.opcaoAtiva]}
+                onPress={() => escolherDuracao(opcao)}
+              >
+                <Text style={[styles.textoOpcao, duracao === opcao && styles.textoOpcaoAtiva]}>
+                  {opcao}s
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={styles.acoes}>
+            {!terminou && (
+              <TouchableOpacity style={styles.botaoSecundario} onPress={alternarPausa}>
+                <Text style={styles.textoSecundario}>{rodando ? 'Pausar' : 'Continuar'}</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.botaoSecundario} onPress={reiniciar}>
+              <Text style={styles.textoSecundario}>Reiniciar</Text>
             </TouchableOpacity>
-          ))}
-        </View>
+          </View>
 
-        <View style={styles.acoes}>
-          <TouchableOpacity style={styles.botaoAcao} onPress={alternarPausa}>
-            <Text style={styles.textoBotaoAcao}>{rodando ? 'Pausar' : 'Continuar'}</Text>
+          <TouchableOpacity style={styles.botaoPrincipal} onPress={aoFechar}>
+            <Text style={styles.textoPrincipal}>{terminou ? 'Voltar ao treino' : 'Fechar'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.botaoAcao} onPress={reiniciar}>
-            <Text style={styles.textoBotaoAcao}>Reiniciar</Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-    </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
+  fundo: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: 24,
   },
   cartao: {
+    width: '100%',
+    maxWidth: 320,
     backgroundColor: CORES.cartao,
     borderWidth: 1,
-    borderColor: CORES.destaque,
+    borderColor: CORES.borda,
     borderRadius: 16,
-    padding: 18,
-    width: '100%',
-    maxWidth: 360,
-  },
-  cabecalho: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    padding: 20,
     alignItems: 'center',
-    marginBottom: 8,
   },
   titulo: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: CORES.destaque,
-  },
-  fechar: {
-    fontSize: 16,
+    fontSize: 14,
     color: CORES.textoSecundario,
-    paddingHorizontal: 6,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
   },
   tempo: {
-    fontSize: 40,
+    fontSize: 56,
     fontWeight: '900',
+    fontStyle: 'italic',
     color: CORES.texto,
-    textAlign: 'center',
-    marginVertical: 8,
+    marginVertical: 10,
+  },
+  tempoPronto: {
+    color: CORES.destaque,
   },
   barraFundo: {
-    height: 8,
+    width: '100%',
+    height: 6,
     backgroundColor: CORES.borda,
-    borderRadius: 4,
+    borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: 14,
+    marginBottom: 18,
   },
   barraPreenchimento: {
-    height: 8,
+    height: 6,
     backgroundColor: CORES.destaque,
-    borderRadius: 4,
   },
   opcoes: {
     flexDirection: 'row',
-    justifyContent: 'center',
     marginBottom: 14,
   },
   opcao: {
     borderWidth: 1,
     borderColor: CORES.borda,
-    borderRadius: 20,
-    paddingHorizontal: 14,
+    borderRadius: 16,
+    paddingHorizontal: 12,
     paddingVertical: 6,
     marginHorizontal: 4,
   },
@@ -230,14 +215,29 @@ const styles = StyleSheet.create({
   },
   acoes: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    marginBottom: 14,
   },
-  botaoAcao: {
-    marginHorizontal: 10,
+  botaoSecundario: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
-  textoBotaoAcao: {
+  textoSecundario: {
     fontSize: 14,
-    color: CORES.destaque,
+    color: CORES.textoSecundario,
     fontWeight: 'bold',
+  },
+  botaoPrincipal: {
+    width: '100%',
+    backgroundColor: CORES.destaque,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  textoPrincipal: {
+    fontSize: 15,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    textTransform: 'uppercase',
+    color: CORES.textoSobreDestaque,
   },
 });
