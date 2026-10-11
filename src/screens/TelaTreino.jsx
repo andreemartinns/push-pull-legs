@@ -250,7 +250,7 @@ function EstadoVazio() {
 
   const levantar = subida.interpolate({ inputRange: [0, 1], outputRange: [0, -34] });
   const encolher = subida.interpolate({ inputRange: [0, 1], outputRange: [1, 0.6] });
-  const clarear = subida.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0.18] });
+  const clarear = subida.interpolate({ inputRange: [0, 1], outputRange: [1, 0.35] });
 
   return (
     <Aparecer atraso={450}>
@@ -1062,7 +1062,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#000000',
+    backgroundColor: CORES.borda,
   },
   tituloVazio: {
     fontSize: 18,
