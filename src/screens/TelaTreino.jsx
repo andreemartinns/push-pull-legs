@@ -221,54 +221,59 @@ function TituloSecao({ titulo, descricao }) {
   );
 }
 
-// Aviso de lista vazia: cartão tracejado com um ícone que flutua.
+// Estado vazio: uma barra que faz uma repetição (sobe, segura, desce, descansa).
 function EstadoVazio() {
-  const flutuar = useRef(new Animated.Value(0)).current;
+  const subida = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const animacao = Animated.loop(
+    const repeticao = Animated.loop(
       Animated.sequence([
-        Animated.timing(flutuar, {
+        Animated.delay(500),
+        Animated.timing(subida, {
           toValue: 1,
-          duration: 1200,
-          easing: Easing.inOut(Easing.sin),
+          duration: 650,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: USAR_NATIVO,
         }),
-        Animated.timing(flutuar, {
+        Animated.delay(280),
+        Animated.timing(subida, {
           toValue: 0,
-          duration: 1200,
-          easing: Easing.inOut(Easing.sin),
+          duration: 520,
+          easing: Easing.in(Easing.cubic),
           useNativeDriver: USAR_NATIVO,
         }),
       ])
     );
-    animacao.start();
-    return () => animacao.stop();
+    repeticao.start();
+    return () => repeticao.stop();
   }, []);
+
+  const levantar = subida.interpolate({ inputRange: [0, 1], outputRange: [0, -34] });
+  const encolher = subida.interpolate({ inputRange: [0, 1], outputRange: [1, 0.6] });
+  const clarear = subida.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0.18] });
 
   return (
     <Aparecer atraso={450}>
       <View style={styles.vazio}>
-        <Animated.Text
-          style={[
-            styles.iconeVazio,
-            {
-              transform: [
-                {
-                  translateY: flutuar.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -8],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          🏋️
-        </Animated.Text>
-        <Text style={styles.tituloVazio}>Seu treino está vazio</Text>
+        <View style={styles.palco}>
+          <Animated.View style={[styles.barraCompleta, { transform: [{ translateY: levantar }] }]}>
+            <View style={styles.anilhaGrande} />
+            <View style={styles.anilhaPequena} />
+            <View style={styles.manga} />
+            <View style={styles.barra} />
+            <View style={styles.manga} />
+            <View style={styles.anilhaPequena} />
+            <View style={styles.anilhaGrande} />
+          </Animated.View>
+
+          <Animated.View
+            style={[styles.sombra, { opacity: clarear, transform: [{ scaleX: encolher }] }]}
+          />
+        </View>
+
+        <Text style={styles.tituloVazio}>Nada na barra ainda</Text>
         <Text style={styles.textoVazio}>
-          Escolha uma divisão ou um grupo muscular acima para começar.
+          Escolha uma divisão ou um grupo acima e monte o treino de hoje.
         </Text>
       </View>
     </Aparecer>
@@ -1014,20 +1019,53 @@ const styles = StyleSheet.create({
   // Estado vazio
   vazio: {
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: CORES.borda,
-    borderRadius: 10,
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    marginTop: 4,
+    paddingTop: 28,
+    paddingBottom: 12,
   },
-  iconeVazio: {
-    fontSize: 36,
-    marginBottom: 10,
+  palco: {
+    height: 100,
+    width: 200,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginBottom: 20,
+  },
+  barraCompleta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  barra: {
+    width: 70,
+    height: 6,
+    backgroundColor: CORES.textoSecundario,
+  },
+  manga: {
+    width: 8,
+    height: 10,
+    backgroundColor: CORES.borda,
+  },
+  anilhaPequena: {
+    width: 8,
+    height: 30,
+    borderRadius: 2,
+    backgroundColor: CORES.texto,
+    marginHorizontal: 1,
+  },
+  anilhaGrande: {
+    width: 12,
+    height: 48,
+    borderRadius: 3,
+    backgroundColor: CORES.destaque,
+    marginHorizontal: 1,
+  },
+  sombra: {
+    width: 150,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#000000',
   },
   tituloVazio: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
@@ -1038,6 +1076,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: CORES.textoSecundario,
     textAlign: 'center',
+    maxWidth: 260,
   },
 
   // Anotação do treino
