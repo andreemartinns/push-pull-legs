@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Botao from '../components/Botao';
 import CampoTexto from '../components/CampoTexto';
 import FundoTela from '../components/FundoTela';
@@ -99,9 +99,25 @@ export default function TelaCadastro({ aoIrParaLogin }) {
 
         <Botao titulo="Cadastrar" aoPressionar={cadastrar} />
 
-        <TouchableOpacity style={styles.link} onPress={aoIrParaLogin}>
-          <Text style={styles.textoLink}>Já tem conta? Entrar</Text>
-        </TouchableOpacity>
+        <View style={styles.divisor}>
+          <View style={styles.linhaDivisor} />
+          <Text style={styles.textoDivisor}>ou</Text>
+          <View style={styles.linhaDivisor} />
+        </View>
+
+        <Pressable
+          onPress={aoIrParaLogin}
+          style={({ pressed }) => [
+            styles.botaoLogin,
+            pressed && styles.botaoLoginAtivo,
+          ]}
+        >
+          {({ pressed }) => (
+            <Text style={[styles.textoBotaoLogin, pressed && styles.textoBotaoLoginAtivo]}>
+              Já tenho conta
+            </Text>
+          )}
+        </Pressable>
       </ScrollView>
     </FundoTela>
   );
@@ -142,13 +158,42 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 28,
   },
-  link: {
+  divisor: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 18,
+    marginTop: 14,
+    marginBottom: 14,
   },
-  textoLink: {
+  linhaDivisor: {
+    flex: 1,
+    height: 1,
+    backgroundColor: CORES.borda,
+  },
+  textoDivisor: {
+    fontSize: 13,
+    color: CORES.textoSecundario,
+    marginHorizontal: 12,
+  },
+  botaoLogin: {
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: CORES.borda,
+    backgroundColor: CORES.cartao,
+    borderRadius: 10,
+    paddingVertical: 14,
+  },
+  botaoLoginAtivo: {
+    backgroundColor: CORES.destaque,
+    borderColor: CORES.destaque,
+  },
+  textoBotaoLogin: {
     fontSize: 15,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    textTransform: 'uppercase',
     color: CORES.texto,
-    fontWeight: 'bold',
+  },
+  textoBotaoLoginAtivo: {
+    color: CORES.textoSobreDestaque,
   },
 });
