@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -102,9 +103,14 @@ export default function TelaMedidas({ medidas, aoSalvarMedida, aoRemoverMedida, 
       contentContainerStyle={styles.conteudo}
       keyboardShouldPersistTaps="handled"
     >
-      <TouchableOpacity onPress={aoVoltar}>
-        <Text style={styles.voltar}>‹ Voltar</Text>
-      </TouchableOpacity>
+      <Pressable
+        onPress={aoVoltar}
+        style={({ pressed }) => [styles.botaoVoltar, pressed && styles.botaoVoltarAtivo]}
+      >
+        {({ pressed }) => (
+          <Text style={[styles.voltar, pressed && styles.textoVoltarAtivo]}>‹ Voltar</Text>
+        )}
+      </Pressable>
       <Text style={styles.titulo}>Medidas</Text>
 
       <Text style={styles.secao}>Registrar hoje</Text>
@@ -191,11 +197,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
+  botaoVoltar: {
+    alignSelf: 'flex-start',
+    borderWidth: 1.5,
+    borderColor: CORES.borda,
+    backgroundColor: CORES.cartao,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginBottom: 12,
+  },
+  botaoVoltarAtivo: {
+    backgroundColor: CORES.destaque,
+    borderColor: CORES.destaque,
+  },
   voltar: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 'bold',
     color: CORES.texto,
-    marginBottom: 8,
+  },
+  textoVoltarAtivo: {
+    color: CORES.textoSobreDestaque,
   },
   titulo: {
     fontSize: 28,

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   LayoutAnimation,
+  Pressable,
   ScrollView,
   SectionList,
   StyleSheet,
@@ -219,9 +220,14 @@ export default function TelaHistorico({ historico, aoVoltar }) {
   return (
     <View style={styles.container}>
       <View style={styles.cabecalho}>
-        <TouchableOpacity onPress={aoVoltar}>
-          <Text style={styles.voltar}>‹ Voltar</Text>
-        </TouchableOpacity>
+        <Pressable
+          onPress={aoVoltar}
+          style={({ pressed }) => [styles.botaoVoltar, pressed && styles.botaoVoltarAtivo]}
+        >
+          {({ pressed }) => (
+            <Text style={[styles.voltar, pressed && styles.textoVoltarAtivo]}>‹ Voltar</Text>
+          )}
+        </Pressable>
         <Text style={styles.titulo}>Histórico</Text>
       </View>
 
@@ -350,11 +356,27 @@ const styles = StyleSheet.create({
   cabecalho: {
     marginBottom: 16,
   },
+  botaoVoltar: {
+    alignSelf: 'flex-start',
+    borderWidth: 1.5,
+    borderColor: CORES.borda,
+    backgroundColor: CORES.cartao,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginBottom: 12,
+  },
+  botaoVoltarAtivo: {
+    backgroundColor: CORES.destaque,
+    borderColor: CORES.destaque,
+  },
   voltar: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 'bold',
     color: CORES.texto,
-    marginBottom: 8,
+  },
+  textoVoltarAtivo: {
+    color: CORES.textoSobreDestaque,
   },
   titulo: {
     fontSize: 28,
