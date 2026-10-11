@@ -4,6 +4,7 @@ import Transicao from './src/components/Transicao';
 import TelaCadastro from './src/screens/TelaCadastro';
 import TelaEsqueciSenha from './src/screens/TelaEsqueciSenha';
 import TelaHistorico from './src/screens/TelaHistorico';
+import TelaLembrete from './src/screens/TelaLembrete'; // MUDOU: import novo
 import TelaLogin from './src/screens/TelaLogin';
 import TelaMedidas from './src/screens/TelaMedidas';
 import TelaTreino from './src/screens/TelaTreino';
@@ -168,6 +169,15 @@ export default function App() {
     );
   }
 
+  // MUDOU: tela nova do lembrete
+  if (tela === 'lembrete') {
+    return (
+      <Transicao key="lembrete" de="direita">
+        <TelaLembrete aoVoltar={() => setTela('treino')} />
+      </Transicao>
+    );
+  }
+
   return (
     <Transicao key="treino">
       <TelaTreino
@@ -177,6 +187,7 @@ export default function App() {
         aoSalvarTreino={salvarTreinoConcluido}
         aoVerHistorico={() => setTela('historico')}
         aoVerMedidas={() => setTela('medidas')}
+        aoVerLembrete={() => setTela('lembrete')} // MUDOU: botão novo
       />
     </Transicao>
   );

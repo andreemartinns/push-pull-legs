@@ -316,6 +316,7 @@ export default function TelaTreino({
   aoSalvarTreino,
   aoVerHistorico,
   aoVerMedidas,
+  aoVerLembrete, // MUDOU: prop nova
 }) {
   const [exercicios, setExercicios] = useState([]);
   const [personalizados, setPersonalizados] = useState([]);
@@ -410,7 +411,6 @@ export default function TelaTreino({
   useEffect(() => {
     if (exercicios.length > 0 && concluidos === exercicios.length && !comemoracao) {
       setTemporizadorVisivel(false);
-      // MUDOU: agora guarda também os nomes dos recordes e a divisão do treino.
       setComemoracao({
         exercicios,
         anotacao,
@@ -661,12 +661,27 @@ export default function TelaTreino({
             onPress={aoVerMedidas}
             style={({ pressed }) => [
               styles.botaoCabecalho,
+              styles.botaoCabecalhoEspaco, // MUDOU: ganhou espaço do lado
               pressed && styles.botaoCabecalhoAtivo,
             ]}
           >
             {({ pressed }) => (
               <Text style={[styles.textoBotaoCabecalho, pressed && styles.textoAtivo]}>
                 Medidas
+              </Text>
+            )}
+          </Pressable>
+          {/* MUDOU: botão novo do lembrete */}
+          <Pressable
+            onPress={aoVerLembrete}
+            style={({ pressed }) => [
+              styles.botaoCabecalho,
+              pressed && styles.botaoCabecalhoAtivo,
+            ]}
+          >
+            {({ pressed }) => (
+              <Text style={[styles.textoBotaoCabecalho, pressed && styles.textoAtivo]}>
+                Lembrete
               </Text>
             )}
           </Pressable>
@@ -889,7 +904,6 @@ export default function TelaTreino({
         aoFechar={() => setTemporizadorVisivel(false)}
       />
 
-      {/* MUDOU: agora passa a divisão e os nomes dos recordes para o cartão de compartilhar. */}
       <Comemoracao
         visivel={comemoracao !== null}
         total={comemoracao ? comemoracao.exercicios.length : 0}
