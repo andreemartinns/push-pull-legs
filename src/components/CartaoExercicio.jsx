@@ -1,10 +1,43 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import {
+  Animated,
+  Easing,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { CORES } from '../utils/tema';
+
+// No navegador não existe driver nativo, então só usamos no celular.
+const USAR_DRIVER_NATIVO = Platform.OS !== 'web';
+
+// Selo "Novo recorde": aparece com um pulo de mola.
+function SeloRecorde() {
+  const escala = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(escala, {
+      toValue: 1,
+      friction: 3,
+      tension: 120,
+      useNativeDriver: USAR_DRIVER_NATIVO,
+    }).start();
+  }, []);
+
+  return (
+    <Animated.View style={[styles.selo, { transform: [{ scale: escala }] }]}>
+      <Text style={styles.textoSelo}>Novo recorde</Text>
+    </Animated.View>
+  );
+}
 
 export default function CartaoExercicio({
   exercicio,
   ultimaCarga,
   novoRecorde,
+  indice = 0,
   aoAlternar,
   aoRemover,
   aoEditar,
@@ -22,46 +55,106 @@ export default function CartaoExercicio({
         : '')
     : '';
 
+  const entrada = useRef(new Animated.Value(0)).current;
+  const saida = useRef(new Animated.Value(1)).current;
+  const escalaMarcador = useRef(new Animated.Value(1)).current;
+  const primeiraVez = useRef(true);
+
+  // Entrada: o cartão sobe e aparece. O atraso depende da posição, formando uma cascata.
+  // O "% 6" evita que cartões lá no fim da lista esperem demais.
+  useEffect(() => {
+    Animated.timing(entrada, {
+      toValue: 1,
+      duration: 380,
+      delay: (indice % 6) * 70,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: USAR_DRIVER_NATIVO,
+    }).start();
+  }, []);
+
+  // Ao marcar como concluído, a bolinha dá um pulo de mola.
+  useEffect(() => {
+    if (primeiraVez.current) {
+      primeiraVez.current = false;
+      return;
+    }
+    if (!exercicio.concluido) return;
+
+    escalaMarcador.setValue(0.5);
+    Animated.spring(escalaMarcador, {
+      toValue: 1,
+      friction: 3,
+      tension: 140,
+      useNativeDriver: USAR_DRIVER_NATIVO,
+    }).start();
+  }, [exercicio.concluido]);
+
+  // Ao remover, o cartão desliza para o lado e some, e só depois sai da lista.
+  function remover() {
+    Animated.timing(saida, {
+      toValue: 0,
+      duration: 220,
+      easing: Easing.in(Easing.quad),
+      useNativeDriver: USAR_DRIVER_NATIVO,
+    }).start(() => aoRemover());
+  }
+
+  const subida = entrada.interpolate({
+    inputRange: [0, 1],
+    outputRange: [24, 0],
+  });
+  const deslize = saida.interpolate({
+    inputRange: [0, 1],
+    outputRange: [60, 0],
+  });
+
   return (
-    <View style={[styles.cartao, exercicio.concluido && styles.cartaoConcluido]}>
-      <TouchableOpacity style={styles.area} onPress={aoAlternar}>
-        <View style={[styles.marcador, exercicio.concluido && styles.marcadorAtivo]}>
-          {exercicio.concluido && <Text style={styles.check}>✓</Text>}
-        </View>
+    <Animated.View
+      style={{
+        opacity: Animated.multiply(entrada, saida),
+        transform: [{ translateY: subida }, { translateX: deslize }],
+      }}
+    >
+      <View style={[styles.cartao, exercicio.concluido && styles.cartaoConcluido]}>
+        <TouchableOpacity style={styles.area} onPress={aoAlternar}>
+          <Animated.View
+            style={[
+              styles.marcador,
+              exercicio.concluido && styles.marcadorAtivo,
+              { transform: [{ scale: escalaMarcador }] },
+            ]}
+          >
+            {exercicio.concluido && <Text style={styles.check}>✓</Text>}
+          </Animated.View>
 
-        <View style={styles.textos}>
-          <Text style={[styles.nome, exercicio.concluido && styles.nomeConcluido]}>
-            {exercicio.nome}
-          </Text>
-          <View style={styles.linhaDetalhes}>
-            <View style={styles.etiqueta}>
-              <Text style={styles.textoEtiqueta}>{exercicio.grupo}</Text>
+          <View style={styles.textos}>
+            <Text style={[styles.nome, exercicio.concluido && styles.nomeConcluido]}>
+              {exercicio.nome}
+            </Text>
+            <View style={styles.linhaDetalhes}>
+              <View style={styles.etiqueta}>
+                <Text style={styles.textoEtiqueta}>{exercicio.grupo}</Text>
+              </View>
+              {detalhe !== '' && <Text style={styles.detalhe}>{detalhe}</Text>}
+              {peso !== '' && <Text style={styles.peso}>{peso}</Text>}
             </View>
-            {detalhe !== '' && <Text style={styles.detalhe}>{detalhe}</Text>}
-            {peso !== '' && <Text style={styles.peso}>{peso}</Text>}
+
+            {textoUltima !== '' && <Text style={styles.ultimaCarga}>{textoUltima}</Text>}
+
+            {novoRecorde && <SeloRecorde />}
           </View>
+        </TouchableOpacity>
 
-          {textoUltima !== '' && (
-            <Text style={styles.ultimaCarga}>{textoUltima}</Text>
-          )}
-
-          {novoRecorde && (
-            <View style={styles.selo}>
-              <Text style={styles.textoSelo}>Novo recorde</Text>
-            </View>
-          )}
+        <View style={styles.acoes}>
+          <TouchableOpacity onPress={aoEditar}>
+            <Text style={styles.editar}>Editar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={remover}>
+            <Text style={styles.remover}>Remover</Text>
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
-
-      <View style={styles.acoes}>
-        <TouchableOpacity onPress={aoEditar}>
-          <Text style={styles.editar}>Editar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={aoRemover}>
-          <Text style={styles.remover}>Remover</Text>
-        </TouchableOpacity>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

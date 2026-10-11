@@ -11,6 +11,8 @@ import {
 import BarraProgresso from '../components/BarraProgresso';
 import Botao from '../components/Botao';
 import CartaoExercicio from '../components/CartaoExercicio';
+import Comemoracao from '../components/Comemoracao';
+import ContadorSequencia from '../components/ContadorSequencia';
 import Logo from '../components/Logo';
 import ModalDivisao from '../components/ModalDivisao';
 import ModalEditarExercicio from '../components/ModalEditarExercicio';
@@ -175,6 +177,7 @@ export default function TelaTreino({
   const [temporizadorVisivel, setTemporizadorVisivel] = useState(false);
   const [anotacao, setAnotacao] = useState('');
   const [anotacaoFocada, setAnotacaoFocada] = useState(false);
+  const [comemoracao, setComemoracao] = useState(null);
   const carregouInicial = useRef(false);
 
   // Tudo isso vem do histórico (que o App carrega do Supabase) e se atualiza sozinho.
@@ -229,14 +232,28 @@ export default function TelaTreino({
     }
   }, [exercicios.length]);
 
-  // Quando todos os exercícios estão concluídos, o treino é salvo no histórico.
+  // Quando todos os exercícios estão concluídos, começa a comemoração.
+  // O treino só é salvo no histórico quando ela termina.
   useEffect(() => {
-    if (exercicios.length > 0 && concluidos === exercicios.length) {
-      aoSalvarTreino(exercicios, anotacao);
-      setAnotacao('');
-      setExercicios([]);
+    if (exercicios.length > 0 && concluidos === exercicios.length && !comemoracao) {
+      setTemporizadorVisivel(false);
+      setComemoracao({
+        exercicios,
+        anotacao,
+        recordes: exercicios.filter((ex) => ehNovoRecorde(ex)).length,
+      });
     }
   }, [concluidos]);
+
+  // Fim da comemoração: salva o treino no histórico e limpa a lista.
+  function terminarComemoracao() {
+    if (!comemoracao) return;
+
+    aoSalvarTreino(comemoracao.exercicios, comemoracao.anotacao);
+    setComemoracao(null);
+    setAnotacao('');
+    setExercicios([]);
+  }
 
   // É recorde quando o exercício já tem histórico e a carga atual passa da maior de antes.
   function ehNovoRecorde(exercicio) {
@@ -403,11 +420,7 @@ export default function TelaTreino({
         <Text style={styles.titulo}>Meu Treino</Text>
       </View>
 
-      <Text style={styles.sequencia}>
-        {sequencia > 0
-          ? `${sequencia} ${sequencia === 1 ? 'dia seguido' : 'dias seguidos'} de treino`
-          : 'Conclua um treino para começar sua sequência'}
-      </Text>
+      <ContadorSequencia valor={sequencia} />
 
       <Text style={styles.instrucao}>Monte o treino do dia</Text>
 
@@ -555,9 +568,10 @@ export default function TelaTreino({
         ListFooterComponent={exercicios.length > 0 ? rodapeDaLista : null}
         contentContainerStyle={styles.conteudoLista}
         keyboardShouldPersistTaps="handled"
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <CartaoExercicio
             exercicio={item}
+            indice={index}
             ultimaCarga={ultimasCargas[item.nome]}
             novoRecorde={ehNovoRecorde(item)}
             aoAlternar={() => alternarConcluido(item.id)}
@@ -597,6 +611,13 @@ export default function TelaTreino({
       <TemporizadorDescanso
         visivel={temporizadorVisivel}
         aoFechar={() => setTemporizadorVisivel(false)}
+      />
+
+      <Comemoracao
+        visivel={comemoracao !== null}
+        total={comemoracao ? comemoracao.exercicios.length : 0}
+        recordes={comemoracao ? comemoracao.recordes : 0}
+        aoTerminar={terminarComemoracao}
       />
     </View>
   );
@@ -673,12 +694,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textTransform: 'uppercase',
     color: CORES.texto,
-  },
-  sequencia: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: CORES.destaque,
-    marginBottom: 16,
   },
   instrucao: {
     fontSize: 14,

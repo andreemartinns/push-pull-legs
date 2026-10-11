@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import Transicao from './src/components/Transicao';
 import TelaCadastro from './src/screens/TelaCadastro';
 import TelaEsqueciSenha from './src/screens/TelaEsqueciSenha';
 import TelaHistorico from './src/screens/TelaHistorico';
@@ -119,46 +120,65 @@ export default function App() {
   }
 
   // Sem sessão, só pode aparecer login, cadastro ou esqueci a senha.
+  // A "key" faz a transição rodar de novo a cada troca de tela.
   if (!sessao) {
     if (tela === 'cadastro') {
-      return <TelaCadastro aoIrParaLogin={() => setTela('login')} />;
+      return (
+        <Transicao key="cadastro" de="direita">
+          <TelaCadastro aoIrParaLogin={() => setTela('login')} />
+        </Transicao>
+      );
     }
     if (tela === 'esqueci') {
-      return <TelaEsqueciSenha aoIrParaLogin={() => setTela('login')} />;
+      return (
+        <Transicao key="esqueci" de="direita">
+          <TelaEsqueciSenha aoIrParaLogin={() => setTela('login')} />
+        </Transicao>
+      );
     }
     return (
-      <TelaLogin
-        aoIrParaCadastro={() => setTela('cadastro')}
-        aoIrParaEsqueci={() => setTela('esqueci')}
-      />
+      <Transicao key="login">
+        <TelaLogin
+          aoIrParaCadastro={() => setTela('cadastro')}
+          aoIrParaEsqueci={() => setTela('esqueci')}
+        />
+      </Transicao>
     );
   }
 
   // Com sessão, as telas do aluno.
   if (tela === 'historico') {
-    return <TelaHistorico historico={historico} aoVoltar={() => setTela('treino')} />;
+    return (
+      <Transicao key="historico" de="direita">
+        <TelaHistorico historico={historico} aoVoltar={() => setTela('treino')} />
+      </Transicao>
+    );
   }
 
   if (tela === 'medidas') {
     return (
-      <TelaMedidas
-        medidas={medidas}
-        aoSalvarMedida={salvarMedida}
-        aoRemoverMedida={removerMedida}
-        aoVoltar={() => setTela('treino')}
-      />
+      <Transicao key="medidas" de="direita">
+        <TelaMedidas
+          medidas={medidas}
+          aoSalvarMedida={salvarMedida}
+          aoRemoverMedida={removerMedida}
+          aoVoltar={() => setTela('treino')}
+        />
+      </Transicao>
     );
   }
 
   return (
-    <TelaTreino
-      usuario={usuarioLogado}
-      historico={historico}
-      aoSair={sair}
-      aoSalvarTreino={salvarTreinoConcluido}
-      aoVerHistorico={() => setTela('historico')}
-      aoVerMedidas={() => setTela('medidas')}
-    />
+    <Transicao key="treino">
+      <TelaTreino
+        usuario={usuarioLogado}
+        historico={historico}
+        aoSair={sair}
+        aoSalvarTreino={salvarTreinoConcluido}
+        aoVerHistorico={() => setTela('historico')}
+        aoVerMedidas={() => setTela('medidas')}
+      />
+    </Transicao>
   );
 }
 
