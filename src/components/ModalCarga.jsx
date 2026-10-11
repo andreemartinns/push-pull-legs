@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { CORES } from '../utils/tema';
 
 // Quanto o botão − ou + muda a carga a cada toque.
@@ -33,12 +41,19 @@ export default function ModalCarga({ visivel, exercicio, ultimaCarga, aoCancelar
 
   if (!exercicio) return null;
 
+  const temUltima = Boolean(ultimaCarga && ultimaCarga.peso);
+
   return (
     <Modal visible={visivel} transparent animationType="fade" onRequestClose={aoCancelar}>
       <Pressable style={styles.fundo} onPress={aoCancelar}>
         <Pressable style={styles.cartao} onPress={() => {}}>
-          <Text style={styles.rotulo}>Quanto você levantou?</Text>
-          <Text style={styles.nome}>{exercicio.nome}</Text>
+          <View style={styles.titulo}>
+            <View style={styles.barraTitulo} />
+            <View style={styles.textosTitulo}>
+              <Text style={styles.rotulo}>Carga</Text>
+              <Text style={styles.nome}>{exercicio.nome}</Text>
+            </View>
+          </View>
 
           <View style={styles.linhaPeso}>
             <TouchableOpacity style={styles.botaoMudar} onPress={() => mudar(-PASSO)}>
@@ -64,8 +79,17 @@ export default function ModalCarga({ visivel, exercicio, ultimaCarga, aoCancelar
             </TouchableOpacity>
           </View>
 
-          {ultimaCarga && ultimaCarga.peso ? (
-            <Text style={styles.dica}>Última vez: {ultimaCarga.peso} kg</Text>
+          {temUltima ? (
+            <Pressable
+              onPress={() => setPeso(String(ultimaCarga.peso))}
+              style={({ pressed }) => [styles.botaoUltima, pressed && styles.botaoUltimaAtivo]}
+            >
+              {({ pressed }) => (
+                <Text style={[styles.textoUltima, pressed && styles.textoUltimaAtivo]}>
+                  Última vez: {ultimaCarga.peso} kg · usar
+                </Text>
+              )}
+            </Pressable>
           ) : (
             <Text style={styles.dica}>Sem carga? É só concluir.</Text>
           )}
@@ -101,34 +125,46 @@ const styles = StyleSheet.create({
     backgroundColor: CORES.cartao,
     borderWidth: 1,
     borderColor: CORES.borda,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 20,
-    alignItems: 'center',
+  },
+  titulo: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginBottom: 22,
+  },
+  barraTitulo: {
+    width: 4,
+    borderRadius: 2,
+    backgroundColor: CORES.destaque,
+    marginRight: 10,
+  },
+  textosTitulo: {
+    flex: 1,
   },
   rotulo: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
+    fontSize: 12,
     color: CORES.textoSecundario,
   },
   nome: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '900',
+    fontStyle: 'italic',
+    textTransform: 'uppercase',
     color: CORES.texto,
-    textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 18,
+    marginTop: 2,
   },
   linhaPeso: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   botaoMudar: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: 10,
     backgroundColor: CORES.fundo,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: CORES.borda,
     alignItems: 'center',
     justifyContent: 'center',
@@ -142,27 +178,49 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'center',
-    width: 130,
   },
   inputPeso: {
-    fontSize: 40,
+    fontSize: 44,
     fontWeight: '900',
     fontStyle: 'italic',
     color: CORES.destaque,
     textAlign: 'center',
-    width: 80,
+    width: 90,
     padding: 0,
   },
   unidade: {
     fontSize: 16,
     color: CORES.textoSecundario,
-    marginLeft: 4,
+    marginLeft: 2,
   },
   dica: {
     fontSize: 12,
     color: CORES.textoSecundario,
-    marginTop: 10,
+    textAlign: 'center',
+    marginTop: 14,
     marginBottom: 20,
+  },
+  botaoUltima: {
+    alignSelf: 'center',
+    borderWidth: 1.5,
+    borderColor: CORES.borda,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginTop: 14,
+    marginBottom: 20,
+  },
+  botaoUltimaAtivo: {
+    backgroundColor: CORES.destaque,
+    borderColor: CORES.destaque,
+  },
+  textoUltima: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: CORES.textoSecundario,
+  },
+  textoUltimaAtivo: {
+    color: CORES.textoSobreDestaque,
   },
   botaoPrincipal: {
     width: '100%',
@@ -179,6 +237,7 @@ const styles = StyleSheet.create({
     color: CORES.textoSobreDestaque,
   },
   botaoCancelar: {
+    alignItems: 'center',
     paddingVertical: 12,
     marginTop: 4,
   },
