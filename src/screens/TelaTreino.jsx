@@ -173,6 +173,17 @@ function sugestaoDoHistorico(historico) {
   return sugerirProxima(divisaoDoTreino(lista), treinouHoje);
 }
 
+// Pega o treino mais recente do histórico, para o botão "Repetir o último treino".
+function ultimoTreinoDoHistorico(historico) {
+  const ultimo = historico[0];
+  if (!ultimo) return null;
+
+  const lista = Array.isArray(ultimo) ? ultimo : ultimo.exercicios || [];
+  if (lista.length === 0) return null;
+
+  return { lista, divisao: divisaoDoTreino(lista) };
+}
+
 // ----- Animações e blocos visuais -----
 
 // Faz o conteúdo aparecer subindo suavemente. "atraso" escalona a entrada dos blocos.
@@ -222,7 +233,8 @@ function TituloSecao({ titulo, descricao }) {
 }
 
 // Estado vazio: uma barra que faz uma repetição (sobe, segura, desce, descansa).
-function EstadoVazio() {
+// Se já existe um treino no histórico, mostra o botão para repeti-lo.
+function EstadoVazio({ ultimoTreino, aoRepetir }) {
   const subida = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -252,6 +264,12 @@ function EstadoVazio() {
   const encolher = subida.interpolate({ inputRange: [0, 1], outputRange: [1, 0.6] });
   const clarear = subida.interpolate({ inputRange: [0, 1], outputRange: [1, 0.35] });
 
+  const textoBotao = ultimoTreino
+    ? ultimoTreino.divisao
+      ? `Repetir o último treino (${ultimoTreino.divisao})`
+      : 'Repetir o último treino'
+    : '';
+
   return (
     <Aparecer atraso={450}>
       <View style={styles.vazio}>
@@ -275,6 +293,17 @@ function EstadoVazio() {
         <Text style={styles.textoVazio}>
           Escolha uma divisão ou um grupo acima e monte o treino de hoje.
         </Text>
+
+        {ultimoTreino && (
+          <Pressable
+            onPress={aoRepetir}
+            style={({ pressed }) => [styles.botaoRepetir, pressed && styles.botaoRepetirAtivo]}
+          >
+            {({ pressed }) => (
+              <Text style={[styles.textoRepetir, pressed && styles.textoAtivo]}>{textoBotao}</Text>
+            )}
+          </Pressable>
+        )}
       </View>
     </Aparecer>
   );
@@ -308,6 +337,7 @@ export default function TelaTreino({
     [historico]
   );
   const sugestao = useMemo(() => sugestaoDoHistorico(historico), [historico]);
+  const ultimoTreino = useMemo(() => ultimoTreinoDoHistorico(historico), [historico]);
 
   const concluidos = exercicios.filter((item) => item.concluido).length;
 
@@ -407,6 +437,26 @@ export default function TelaTreino({
 
   function fecharDivisao() {
     setDivisaoAberta(null);
+  }
+
+  // Copia o treino mais recente do histórico para a lista de hoje.
+  // Mantém séries, repetições e cargas, e deixa tudo como não concluído.
+  function repetirUltimoTreino() {
+    if (!ultimoTreino) return;
+
+    const base = Date.now();
+
+    const copia = ultimoTreino.lista.map((ex, indice) => ({
+      id: (base + indice).toString(),
+      nome: ex.nome,
+      series: ex.series || '3',
+      repeticoes: ex.repeticoes || '12',
+      peso: ex.peso ? String(ex.peso) : '',
+      grupo: ex.grupo,
+      concluido: false,
+    }));
+
+    setExercicios(copia);
   }
 
   // Adiciona vários exercícios de uma vez, sem repetir os que já estão na lista.
@@ -738,7 +788,9 @@ export default function TelaTreino({
             aoEditar={() => abrirEdicao(item)}
           />
         )}
-        ListEmptyComponent={<EstadoVazio />}
+        ListEmptyComponent={
+          <EstadoVazio ultimoTreino={ultimoTreino} aoRepetir={repetirUltimoTreino} />
+        }
       />
 
       <ModalExercicios
@@ -1077,6 +1129,24 @@ const styles = StyleSheet.create({
     color: CORES.textoSecundario,
     textAlign: 'center',
     maxWidth: 260,
+  },
+  botaoRepetir: {
+    borderWidth: 1.5,
+    borderColor: CORES.destaque,
+    borderRadius: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    marginTop: 20,
+  },
+  botaoRepetirAtivo: {
+    backgroundColor: CORES.destaque,
+  },
+  textoRepetir: {
+    fontSize: 14,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    textTransform: 'uppercase',
+    color: CORES.destaque,
   },
 
   // Anotação do treino
