@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import Transicao from './src/components/Transicao';
+import Tutorial from './src/components/Tutorial';
+import TelaAdmin from './src/screens/TelaAdmin';
+import TelaAgua from './src/screens/TelaAgua';
+import TelaAnamnese from './src/screens/TelaAnamnese';
+import TelaAssistente from './src/screens/TelaAssistente';
 import TelaCadastro from './src/screens/TelaCadastro';
 import TelaEsqueciSenha from './src/screens/TelaEsqueciSenha';
 import TelaHistorico from './src/screens/TelaHistorico';
-import TelaLembrete from './src/screens/TelaLembrete'; // MUDOU: import novo
+import TelaLembrete from './src/screens/TelaLembrete';
 import TelaLogin from './src/screens/TelaLogin';
 import TelaMedidas from './src/screens/TelaMedidas';
+import TelaProfessor from './src/screens/TelaProfessor';
 import TelaTreino from './src/screens/TelaTreino';
 import { avisar } from './src/utils/avisar';
 import { supabase } from './src/utils/supabase';
@@ -16,8 +22,10 @@ export default function App() {
   const [carregando, setCarregando] = useState(true);
   const [tela, setTela] = useState('login');
   const [sessao, setSessao] = useState(null);
+  const [perfil, setPerfil] = useState(null);
   const [historico, setHistorico] = useState([]);
   const [medidas, setMedidas] = useState([]);
+  const [tutorialAberto, setTutorialAberto] = useState(false);
 
   const usuarioId = sessao?.user?.id ?? null;
 
@@ -43,22 +51,61 @@ export default function App() {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  // Quando entra ou sai alguém, troca a tela e carrega os dados do aluno.
+  // Quando entra ou sai alguém, carrega o perfil e, se for aluno, os dados dele.
   useEffect(() => {
     if (!usuarioId) {
       setTela('login');
+      setPerfil(null);
       setHistorico([]);
       setMedidas([]);
+      setTutorialAberto(false);
       return;
     }
 
-    setTela('treino');
+    let cancelado = false;
 
-    async function carregarDados() {
+    async function carregarTudo() {
+      const { data: dadosPerfil, error } = await supabase
+        .from('perfis')
+        .select('nome, tipo, tutorial_visto')
+        .eq('id', usuarioId)
+        .single();
+
+      if (cancelado) return;
+
+      if (error) console.log('Erro ao carregar perfil', error);
+
+      // Se falhar, cai para "aluno" (acesso mais restrito) e não mostra o tutorial.
+      const perfilAtual = dadosPerfil || { nome: null, tipo: 'aluno', tutorial_visto: true };
+
+      // Aluno que ainda não preencheu a ficha de saúde começa por ela.
+      if (perfilAtual.tipo === 'aluno') {
+        const { data: ficha, error: erroFicha } = await supabase
+          .from('anamneses')
+          .select('consentimento')
+          .eq('aluno_id', usuarioId)
+          .maybeSingle();
+
+        if (cancelado) return;
+
+        if (erroFicha) console.log('Erro ao verificar ficha de saúde', erroFicha);
+
+        // Se der erro ao verificar, não trava o aluno: segue para o treino.
+        setTela(!erroFicha && !ficha?.consentimento ? 'anamnese' : 'treino');
+      }
+
+      // Primeiro acesso: mostra o tutorial antes de tudo.
+      setTutorialAberto(!perfilAtual.tutorial_visto);
+      setPerfil(perfilAtual);
+
+      if (perfilAtual.tipo !== 'aluno') return;
+
       const [respHistorico, respMedidas] = await Promise.all([
         supabase.from('historico').select('dados').order('criado_em', { ascending: false }),
         supabase.from('medidas').select('dados').order('criado_em', { ascending: false }),
       ]);
+
+      if (cancelado) return;
 
       if (respHistorico.error) console.log('Erro ao carregar histórico', respHistorico.error);
       if (respMedidas.error) console.log('Erro ao carregar medidas', respMedidas.error);
@@ -67,11 +114,28 @@ export default function App() {
       setMedidas((respMedidas.data || []).map((linha) => linha.dados));
     }
 
-    carregarDados();
+    carregarTudo();
+
+    return () => {
+      cancelado = true;
+    };
   }, [usuarioId]);
 
   async function sair() {
     await supabase.auth.signOut();
+  }
+
+  // Fecha o tutorial e marca como visto, para não aparecer de novo.
+  async function concluirTutorial() {
+    setTutorialAberto(false);
+    setPerfil((atual) => (atual ? { ...atual, tutorial_visto: true } : atual));
+
+    const { error } = await supabase
+      .from('perfis')
+      .update({ tutorial_visto: true })
+      .eq('id', usuarioId);
+
+    if (error) console.log('Erro ao salvar tutorial visto', error);
   }
 
   // A anotação é opcional: se não vier, o treino é salvo com o campo vazio.
@@ -112,7 +176,8 @@ export default function App() {
     }
   }
 
-  if (carregando) {
+  // Espera o login e o perfil chegarem antes de mostrar qualquer tela.
+  if (carregando || (sessao && !perfil)) {
     return (
       <View style={styles.carregando}>
         <ActivityIndicator size="large" color={CORES.destaque} />
@@ -121,7 +186,6 @@ export default function App() {
   }
 
   // Sem sessão, só pode aparecer login, cadastro ou esqueci a senha.
-  // A "key" faz a transição rodar de novo a cada troca de tela.
   if (!sessao) {
     if (tela === 'cadastro') {
       return (
@@ -147,7 +211,43 @@ export default function App() {
     );
   }
 
-  // Com sessão, as telas do aluno.
+  // Tutorial (primeiro acesso ou quando o aluno pede para rever).
+  if (tutorialAberto) {
+    return (
+      <Transicao key="tutorial">
+        <Tutorial tipo={perfil.tipo} aoConcluir={concluirTutorial} />
+      </Transicao>
+    );
+  }
+
+  // Professor e admin têm as próprias telas.
+  if (perfil.tipo === 'professor') {
+    return (
+      <Transicao key="professor">
+        <TelaProfessor usuario={usuarioLogado} aoSair={sair} />
+      </Transicao>
+    );
+  }
+
+  if (perfil.tipo === 'admin') {
+    return (
+      <Transicao key="admin">
+        <TelaAdmin usuario={usuarioLogado} aoSair={sair} />
+      </Transicao>
+    );
+  }
+
+  // Daqui para baixo: telas do aluno.
+
+  // Ficha de saúde no primeiro acesso.
+  if (tela === 'anamnese') {
+    return (
+      <Transicao key="anamnese">
+        <TelaAnamnese usuario={usuarioLogado} aoConcluir={() => setTela('treino')} />
+      </Transicao>
+    );
+  }
+
   if (tela === 'historico') {
     return (
       <Transicao key="historico" de="direita">
@@ -169,11 +269,27 @@ export default function App() {
     );
   }
 
-  // MUDOU: tela nova do lembrete
   if (tela === 'lembrete') {
     return (
       <Transicao key="lembrete" de="direita">
         <TelaLembrete aoVoltar={() => setTela('treino')} />
+      </Transicao>
+    );
+  }
+
+  if (tela === 'agua') {
+    return (
+      <Transicao key="agua" de="direita">
+        <TelaAgua usuario={usuarioLogado} medidas={medidas} aoVoltar={() => setTela('treino')} />
+      </Transicao>
+    );
+  }
+
+  // Assistente de dúvidas (IA supervisionada).
+  if (tela === 'assistente') {
+    return (
+      <Transicao key="assistente" de="direita">
+        <TelaAssistente aoVoltar={() => setTela('treino')} />
       </Transicao>
     );
   }
@@ -187,7 +303,10 @@ export default function App() {
         aoSalvarTreino={salvarTreinoConcluido}
         aoVerHistorico={() => setTela('historico')}
         aoVerMedidas={() => setTela('medidas')}
-        aoVerLembrete={() => setTela('lembrete')} // MUDOU: botão novo
+        aoVerLembrete={() => setTela('lembrete')}
+        aoVerAgua={() => setTela('agua')}
+        aoVerAssistente={() => setTela('assistente')}
+        aoReverTutorial={() => setTutorialAberto(true)}
       />
     </Transicao>
   );

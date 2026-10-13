@@ -316,7 +316,9 @@ export default function TelaTreino({
   aoSalvarTreino,
   aoVerHistorico,
   aoVerMedidas,
-  aoVerLembrete, // MUDOU: prop nova
+  aoVerLembrete,
+  aoVerAgua,
+  aoVerAssistente,
 }) {
   const [exercicios, setExercicios] = useState([]);
   const [personalizados, setPersonalizados] = useState([]);
@@ -329,6 +331,7 @@ export default function TelaTreino({
   const [anotacao, setAnotacao] = useState('');
   const [anotacaoFocada, setAnotacaoFocada] = useState(false);
   const [comemoracao, setComemoracao] = useState(null);
+  const [prescrito, setPrescrito] = useState(null); // treino montado pelo professor
   const carregouInicial = useRef(false);
 
   // Tudo isso vem do histórico (que o App carrega do Supabase) e se atualiza sozinho.
@@ -382,6 +385,24 @@ export default function TelaTreino({
       setPersonalizados(data || []);
     }
     carregarPersonalizados();
+  }, []);
+
+  // Carrega o treino que o professor montou para este aluno (se houver).
+  useEffect(() => {
+    async function carregarPrescrito() {
+      const { data, error } = await supabase
+        .from('treinos_prescritos')
+        .select('exercicios')
+        .maybeSingle();
+
+      if (error) {
+        console.log('Erro ao carregar treino do professor', error);
+        return;
+      }
+
+      setPrescrito(data?.exercicios?.length ? data.exercicios : null);
+    }
+    carregarPrescrito();
   }, []);
 
   // Salva o treino em andamento na nuvem a cada mudança.
@@ -474,6 +495,25 @@ export default function TelaTreino({
       series: ex.series || '3',
       repeticoes: ex.repeticoes || '12',
       peso: ex.peso ? String(ex.peso) : '',
+      grupo: ex.grupo,
+      concluido: false,
+    }));
+
+    setExercicios(copia);
+  }
+
+  // Copia o treino do professor para a lista de hoje.
+  function carregarTreinoDoProfessor() {
+    if (!prescrito) return;
+
+    const base = Date.now();
+
+    const copia = prescrito.map((ex, indice) => ({
+      id: (base + indice).toString(),
+      nome: ex.nome,
+      series: ex.series || '3',
+      repeticoes: ex.repeticoes || '12',
+      peso: ex.peso ? String(ex.peso) : cargaInicial(ex.nome),
       grupo: ex.grupo,
       concluido: false,
     }));
@@ -661,7 +701,7 @@ export default function TelaTreino({
             onPress={aoVerMedidas}
             style={({ pressed }) => [
               styles.botaoCabecalho,
-              styles.botaoCabecalhoEspaco, // MUDOU: ganhou espaço do lado
+              styles.botaoCabecalhoEspaco,
               pressed && styles.botaoCabecalhoAtivo,
             ]}
           >
@@ -671,11 +711,11 @@ export default function TelaTreino({
               </Text>
             )}
           </Pressable>
-          {/* MUDOU: botão novo do lembrete */}
           <Pressable
             onPress={aoVerLembrete}
             style={({ pressed }) => [
               styles.botaoCabecalho,
+              styles.botaoCabecalhoEspaco,
               pressed && styles.botaoCabecalhoAtivo,
             ]}
           >
@@ -685,7 +725,34 @@ export default function TelaTreino({
               </Text>
             )}
           </Pressable>
+          <Pressable
+            onPress={aoVerAgua}
+            style={({ pressed }) => [
+              styles.botaoCabecalho,
+              pressed && styles.botaoCabecalhoAtivo,
+            ]}
+          >
+            {({ pressed }) => (
+              <Text style={[styles.textoBotaoCabecalho, pressed && styles.textoAtivo]}>
+                Água
+              </Text>
+            )}
+          </Pressable>
         </View>
+
+        <Pressable
+          onPress={aoVerAssistente}
+          style={({ pressed }) => [
+            styles.botaoAssistente,
+            pressed && styles.botaoCabecalhoAtivo,
+          ]}
+        >
+          {({ pressed }) => (
+            <Text style={[styles.textoBotaoAssistente, pressed && styles.textoAtivo]}>
+              Assistente: tire suas dúvidas
+            </Text>
+          )}
+        </Pressable>
       </Aparecer>
 
       <Aparecer atraso={100}>
@@ -699,105 +766,126 @@ export default function TelaTreino({
         <ContadorSequencia valor={sequencia} />
       </Aparecer>
 
-      <Aparecer atraso={200}>
-        <TituloSecao
-          titulo="Treino pronto"
-          descricao="Escolha uma divisão e adicione tudo de uma vez"
-        />
+      {/* Se o professor montou um treino, o aluno só começa esse treino. */}
+      {prescrito && exercicios.length === 0 && (
+        <Aparecer atraso={200}>
+          <TituloSecao
+            titulo="Treino do professor"
+            descricao={`${prescrito.length} exercícios montados para você`}
+          />
+          <Pressable
+            onPress={carregarTreinoDoProfessor}
+            style={({ pressed }) => [styles.botaoProfessor, pressed && styles.limparPressionado]}
+          >
+            <Text style={styles.textoBotaoProfessor}>Começar treino</Text>
+          </Pressable>
+        </Aparecer>
+      )}
 
-        <View style={styles.divisoes}>
-          {DIVISOES.map((item, indice) => {
-            const aberta = divisaoAberta !== null && divisaoAberta.nome === item.nome;
-            const sugerida = sugestao !== null && sugestao.nome === item.nome;
+      {/* Sem treino do professor, tudo continua como antes. */}
+      {!prescrito && (
+        <>
+          <Aparecer atraso={200}>
+            <TituloSecao
+              titulo="Treino pronto"
+              descricao="Escolha uma divisão e adicione tudo de uma vez"
+            />
 
-            return (
-              <Pressable
-                key={item.nome}
-                onPress={() => abrirDivisao(item)}
-                style={({ pressed }) => [
-                  styles.divisao,
-                  indice < DIVISOES.length - 1 && styles.divisaoEspaco,
-                  sugerida && styles.divisaoSugerida,
-                  (pressed || aberta) && styles.divisaoAtiva,
-                ]}
-              >
-                {({ pressed }) => (
-                  <>
-                    <Text
-                      style={[
-                        styles.nomeDivisao,
-                        (pressed || aberta) && styles.textoAtivo,
-                      ]}
-                    >
-                      {item.nome}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.descricaoDivisao,
-                        (pressed || aberta) && styles.textoAtivo,
-                      ]}
-                    >
-                      {item.descricao}
-                    </Text>
-                    {sugerida && (
-                      <View
-                        style={[
-                          styles.etiquetaSugestao,
-                          (pressed || aberta) && styles.etiquetaSugestaoAtiva,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.textoEtiquetaSugestao,
-                            (pressed || aberta) && styles.textoEtiquetaSugestaoAtiva,
-                          ]}
-                        >
-                          {sugestao.hoje ? 'Hoje' : 'Próximo'}
-                        </Text>
-                      </View>
-                    )}
-                  </>
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
-      </Aparecer>
+            <View style={styles.divisoes}>
+              {DIVISOES.map((item, indice) => {
+                const aberta = divisaoAberta !== null && divisaoAberta.nome === item.nome;
+                const sugerida = sugestao !== null && sugestao.nome === item.nome;
 
-      <Aparecer atraso={320}>
-        <TituloSecao
-          titulo="Por grupo muscular"
-          descricao="Ou monte o seu, exercício por exercício"
-        />
-
-        <View style={styles.grupos}>
-          {GRUPOS.map((item) => {
-            const aberto = modalVisivel && grupoModal === item.nome;
-
-            return (
-              <Pressable
-                key={item.nome}
-                onPress={() => abrirModal(item.nome)}
-                style={({ pressed }) => [
-                  styles.chip,
-                  (pressed || aberto) && styles.chipAtivo,
-                ]}
-              >
-                {({ pressed }) => (
-                  <Text
-                    style={[
-                      styles.textoChip,
-                      (pressed || aberto) && styles.textoChipAtivo,
+                return (
+                  <Pressable
+                    key={item.nome}
+                    onPress={() => abrirDivisao(item)}
+                    style={({ pressed }) => [
+                      styles.divisao,
+                      indice < DIVISOES.length - 1 && styles.divisaoEspaco,
+                      sugerida && styles.divisaoSugerida,
+                      (pressed || aberta) && styles.divisaoAtiva,
                     ]}
                   >
-                    {item.nome}
-                  </Text>
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
-      </Aparecer>
+                    {({ pressed }) => (
+                      <>
+                        <Text
+                          style={[
+                            styles.nomeDivisao,
+                            (pressed || aberta) && styles.textoAtivo,
+                          ]}
+                        >
+                          {item.nome}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.descricaoDivisao,
+                            (pressed || aberta) && styles.textoAtivo,
+                          ]}
+                        >
+                          {item.descricao}
+                        </Text>
+                        {sugerida && (
+                          <View
+                            style={[
+                              styles.etiquetaSugestao,
+                              (pressed || aberta) && styles.etiquetaSugestaoAtiva,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.textoEtiquetaSugestao,
+                                (pressed || aberta) && styles.textoEtiquetaSugestaoAtiva,
+                              ]}
+                            >
+                              {sugestao.hoje ? 'Hoje' : 'Próximo'}
+                            </Text>
+                          </View>
+                        )}
+                      </>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Aparecer>
+
+          <Aparecer atraso={320}>
+            <TituloSecao
+              titulo="Por grupo muscular"
+              descricao="Ou monte o seu, exercício por exercício"
+            />
+
+            <View style={styles.grupos}>
+              {GRUPOS.map((item) => {
+                const aberto = modalVisivel && grupoModal === item.nome;
+
+                return (
+                  <Pressable
+                    key={item.nome}
+                    onPress={() => abrirModal(item.nome)}
+                    style={({ pressed }) => [
+                      styles.chip,
+                      (pressed || aberto) && styles.chipAtivo,
+                    ]}
+                  >
+                    {({ pressed }) => (
+                      <Text
+                        style={[
+                          styles.textoChip,
+                          (pressed || aberto) && styles.textoChipAtivo,
+                        ]}
+                      >
+                        {item.nome}
+                      </Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Aparecer>
+        </>
+      )}
 
       {exercicios.length > 0 && (
         <BarraProgresso total={exercicios.length} concluidos={concluidos} />
@@ -862,7 +950,9 @@ export default function TelaTreino({
           />
         )}
         ListEmptyComponent={
-          <EstadoVazio ultimoTreino={ultimoTreino} aoRepetir={repetirUltimoTreino} />
+          prescrito ? null : (
+            <EstadoVazio ultimoTreino={ultimoTreino} aoRepetir={repetirUltimoTreino} />
+          )
         }
       />
 
@@ -973,7 +1063,7 @@ const styles = StyleSheet.create({
   },
   barraAcoes: {
     flexDirection: 'row',
-    marginBottom: 20,
+    marginBottom: 8,
   },
   botaoCabecalho: {
     flex: 1,
@@ -992,9 +1082,23 @@ const styles = StyleSheet.create({
     borderColor: CORES.destaque,
   },
   textoBotaoCabecalho: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
     color: CORES.texto,
+  },
+  botaoAssistente: {
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: CORES.destaque,
+    backgroundColor: CORES.cartao,
+    borderRadius: 10,
+    paddingVertical: 10,
+    marginBottom: 20,
+  },
+  textoBotaoAssistente: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: CORES.destaque,
   },
   cabecalho: {
     marginBottom: 8,
@@ -1038,6 +1142,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: CORES.textoSecundario,
     marginTop: 2,
+  },
+
+  // Treino do professor
+  botaoProfessor: {
+    backgroundColor: CORES.destaque,
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  textoBotaoProfessor: {
+    fontSize: 15,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    textTransform: 'uppercase',
+    color: CORES.textoSobreDestaque,
   },
 
   divisoes: {

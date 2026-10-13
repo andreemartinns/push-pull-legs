@@ -32,6 +32,17 @@ function pegarNotificacoes() {
   }
 }
 
+// Cancela só os lembretes de treino. Os de água (ids "agua-...") ficam intactos.
+async function cancelarLembretesTreino(Notifications) {
+  if (!Notifications) return;
+  const agendadas = await Notifications.getAllScheduledNotificationsAsync();
+  for (const item of agendadas) {
+    if (!String(item.identifier).startsWith('agua-')) {
+      await Notifications.cancelScheduledNotificationAsync(item.identifier);
+    }
+  }
+}
+
 // weekday: 1 = domingo ... 7 = sábado
 const DIAS = [
   { letra: 'D', weekday: 1 },
@@ -110,10 +121,11 @@ export default function TelaLembrete({ aoVoltar }) {
         });
       }
 
-      await Notifications.cancelAllScheduledNotificationsAsync();
+      await cancelarLembretesTreino(Notifications);
 
       for (const weekday of dias) {
         await Notifications.scheduleNotificationAsync({
+          identifier: `treino-${weekday}`,
           content: { title: 'Ritmo Brasil', body: 'Hora de treinar! 💪' },
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
@@ -137,7 +149,7 @@ export default function TelaLembrete({ aoVoltar }) {
   async function desativar() {
     const Notifications = pegarNotificacoes();
     try {
-      if (Notifications) await Notifications.cancelAllScheduledNotificationsAsync();
+      await cancelarLembretesTreino(Notifications);
     } catch (erro) {
       console.log('Erro ao desativar lembrete', erro);
     }
