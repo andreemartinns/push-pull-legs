@@ -17,7 +17,6 @@ import ContadorSequencia from '../components/ContadorSequencia';
 import Logo from '../components/Logo';
 import ModalCarga from '../components/ModalCarga';
 import ModalDivisao from '../components/ModalDivisao';
-import ModalEditarExercicio from '../components/ModalEditarExercicio';
 import ModalExercicios from '../components/ModalExercicios';
 import TemporizadorDescanso from '../components/TemporizadorDescanso';
 import { DIVISOES } from '../utils/divisoes';
@@ -325,7 +324,6 @@ export default function TelaTreino({
   const [modalVisivel, setModalVisivel] = useState(false);
   const [grupoModal, setGrupoModal] = useState(null);
   const [divisaoAberta, setDivisaoAberta] = useState(null);
-  const [exercicioEditando, setExercicioEditando] = useState(null);
   const [exercicioConcluindo, setExercicioConcluindo] = useState(null);
   const [temporizadorVisivel, setTemporizadorVisivel] = useState(false);
   const [anotacao, setAnotacao] = useState('');
@@ -630,31 +628,8 @@ export default function TelaTreino({
     }
   }
 
-  function removerExercicio(id) {
-    setExercicios(exercicios.filter((item) => item.id !== id));
-  }
-
   function limparConcluidos() {
     setExercicios(exercicios.filter((item) => !item.concluido));
-  }
-
-  function abrirEdicao(exercicio) {
-    setExercicioEditando(exercicio);
-  }
-
-  function fecharEdicao() {
-    setExercicioEditando(null);
-  }
-
-  function salvarEdicao(novasSeries, novasRepeticoes, novoPeso) {
-    setExercicios(
-      exercicios.map((item) =>
-        item.id === exercicioEditando.id
-          ? { ...item, series: novasSeries, repeticoes: novasRepeticoes, peso: novoPeso }
-          : item
-      )
-    );
-    setExercicioEditando(null);
   }
 
   // Tudo que fica acima da lista de exercícios.
@@ -944,9 +919,8 @@ export default function TelaTreino({
             indice={index}
             ultimaCarga={ultimasCargas[item.nome]}
             novoRecorde={ehNovoRecorde(item)}
+            somenteLeitura
             aoAlternar={() => alternarConcluido(item.id)}
-            aoRemover={() => removerExercicio(item.id)}
-            aoEditar={() => abrirEdicao(item)}
           />
         )}
         ListEmptyComponent={
@@ -972,13 +946,6 @@ export default function TelaTreino({
         jaAdicionados={exercicios.map((item) => item.nome)}
         aoFechar={fecharDivisao}
         aoAdicionar={adicionarDaDivisao}
-      />
-
-      <ModalEditarExercicio
-        visivel={exercicioEditando !== null}
-        exercicio={exercicioEditando}
-        aoFechar={fecharEdicao}
-        aoSalvar={salvarEdicao}
       />
 
       <ModalCarga

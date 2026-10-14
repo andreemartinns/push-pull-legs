@@ -41,6 +41,7 @@ export default function CartaoExercicio({
   ultimaCarga,
   novoRecorde,
   indice = 0,
+  somenteLeitura = false,
   aoAlternar,
   aoRemover,
   aoEditar,
@@ -125,6 +126,9 @@ export default function CartaoExercicio({
     outputRange: [60, 0],
   });
 
+  // Treino do professor: o aluno não edita nem remove. Só mostra a linha de botões se houver algo nela.
+  const mostrarRodape = !!demonstracao || !somenteLeitura;
+
   return (
     <Animated.View
       style={{
@@ -168,41 +172,48 @@ export default function CartaoExercicio({
         </View>
 
         {/* Linha de botões, embaixo: Como fazer à esquerda, Editar e Remover à direita. */}
-        <View style={styles.rodape}>
-          {demonstracao ? (
-            <Pressable
-              onPress={() => setDemonstracaoAberta(true)}
-              style={({ pressed }) => [styles.botaoComoFazer, pressed && styles.botaoPressionado]}
-            >
-              <Text style={styles.textoComoFazer}>▶ Como fazer</Text>
-            </Pressable>
-          ) : (
-            <View />
-          )}
+        {mostrarRodape && (
+          <View style={styles.rodape}>
+            {demonstracao ? (
+              <Pressable
+                onPress={() => setDemonstracaoAberta(true)}
+                style={({ pressed }) => [
+                  styles.botaoComoFazer,
+                  pressed && styles.botaoPressionado,
+                ]}
+              >
+                <Text style={styles.textoComoFazer}>▶ Como fazer</Text>
+              </Pressable>
+            ) : (
+              <View />
+            )}
 
-          <View style={styles.acoes}>
-            <Pressable
-              onPress={aoEditar}
-              style={({ pressed }) => [
-                styles.botaoAcao,
-                styles.botaoAcaoEspaco,
-                pressed && styles.botaoPressionado,
-              ]}
-            >
-              <Text style={styles.editar}>Editar</Text>
-            </Pressable>
-            <Pressable
-              onPress={remover}
-              style={({ pressed }) => [
-                styles.botaoAcao,
-                styles.botaoRemover,
-                pressed && styles.botaoPressionado,
-              ]}
-            >
-              <Text style={styles.remover}>Remover</Text>
-            </Pressable>
+            {!somenteLeitura && (
+              <View style={styles.acoes}>
+                <Pressable
+                  onPress={aoEditar}
+                  style={({ pressed }) => [
+                    styles.botaoAcao,
+                    styles.botaoAcaoEspaco,
+                    pressed && styles.botaoPressionado,
+                  ]}
+                >
+                  <Text style={styles.editar}>Editar</Text>
+                </Pressable>
+                <Pressable
+                  onPress={remover}
+                  style={({ pressed }) => [
+                    styles.botaoAcao,
+                    styles.botaoRemover,
+                    pressed && styles.botaoPressionado,
+                  ]}
+                >
+                  <Text style={styles.remover}>Remover</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
-        </View>
+        )}
       </View>
 
       {demonstracao && (

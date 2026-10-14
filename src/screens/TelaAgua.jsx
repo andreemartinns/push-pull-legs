@@ -136,11 +136,16 @@ export default function TelaAgua({ usuario, medidas = [], aoVoltar }) {
     carregar();
   }, [carregar]);
 
-  // Se o professor desligou (ou não há meta), garante que nenhum lembrete fique agendado.
+  // Se o professor desligou (ou não há meta), garante que nenhum lembrete fique agendado
+  // e que a tela não continue mostrando os lembretes como ativos.
   useEffect(() => {
     if (carregando) return;
     if (desligado || meta === null) {
       cancelarLembretesAgua(pegarNotificacoes());
+      if (lembreteAtivo) {
+        setLembreteAtivo(false);
+        salvarPreferencia(false, intervalo);
+      }
     }
   }, [carregando, desligado, meta]);
 
