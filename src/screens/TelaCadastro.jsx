@@ -4,6 +4,7 @@ import Botao from '../components/Botao';
 import CampoTexto from '../components/CampoTexto';
 import FundoTela from '../components/FundoTela';
 import Logo from '../components/Logo';
+import TituloAnimado from '../components/TituloAnimado';
 import { avisar } from '../utils/avisar';
 import { supabase } from '../utils/supabase';
 import { CORES } from '../utils/tema';
@@ -61,11 +62,10 @@ export default function TelaCadastro({ aoIrParaLogin }) {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.marca}>
-          <Logo tamanho={80} style={styles.logo} />
-          <Text style={styles.nomeAcademia}>Ritmo Brasil</Text>
+          <Logo tamanho={70} />
         </View>
 
-        <Text style={styles.titulo}>Criar conta</Text>
+        <TituloAnimado texto="Criar conta" style={styles.titulo} />
         <Text style={styles.subtitulo}>Leva menos de um minuto</Text>
 
         <CampoTexto
@@ -134,16 +134,7 @@ const styles = StyleSheet.create({
   },
   marca: {
     alignItems: 'center',
-    marginBottom: 24,
-  },
-  logo: {
-    marginBottom: 8,
-  },
-  nomeAcademia: {
-    fontSize: 18,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
+    marginBottom: 20,
   },
   titulo: {
     fontSize: 32,

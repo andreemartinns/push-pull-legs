@@ -1,7 +1,9 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Botao from '../components/Botao';
 import FundoTela from '../components/FundoTela';
-import Logo from '../components/Logo';
+import LinhaBatimento from '../components/LinhaBatimento';
+import LogoAnimada from '../components/LogoAnimada';
+import TituloAnimado from '../components/TituloAnimado';
 import { CORES } from '../utils/tema';
 
 export default function TelaEsqueciSenha({ aoIrParaLogin }) {
@@ -13,11 +15,12 @@ export default function TelaEsqueciSenha({ aoIrParaLogin }) {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.marca}>
-          <Logo tamanho={80} style={styles.logo} />
-          <Text style={styles.nomeAcademia}>Ritmo Brasil</Text>
+          <LogoAnimada tamanho={90} />
         </View>
 
-        <Text style={styles.titulo}>Esqueci a senha</Text>
+        <LinhaBatimento style={styles.batimento} />
+
+        <TituloAnimado texto="Esqueci a senha" style={styles.titulo} />
         <Text style={styles.subtitulo}>
           Fale com a recepção da academia. Eles vão criar uma nova senha para você e é só entrar
           de novo.
@@ -40,16 +43,10 @@ const styles = StyleSheet.create({
   },
   marca: {
     alignItems: 'center',
-    marginBottom: 24,
-  },
-  logo: {
     marginBottom: 8,
   },
-  nomeAcademia: {
-    fontSize: 18,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
+  batimento: {
+    marginBottom: 16,
   },
   titulo: {
     fontSize: 32,

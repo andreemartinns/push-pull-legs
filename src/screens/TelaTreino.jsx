@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import BotaoAssistente from '../components/BotaoAssistente';
 import BarraProgresso from '../components/BarraProgresso';
 import CartaoExercicio from '../components/CartaoExercicio';
 import Comemoracao from '../components/Comemoracao';
@@ -714,20 +715,6 @@ export default function TelaTreino({
             )}
           </Pressable>
         </View>
-
-        <Pressable
-          onPress={aoVerAssistente}
-          style={({ pressed }) => [
-            styles.botaoAssistente,
-            pressed && styles.botaoCabecalhoAtivo,
-          ]}
-        >
-          {({ pressed }) => (
-            <Text style={[styles.textoBotaoAssistente, pressed && styles.textoAtivo]}>
-              Assistente: tire suas dúvidas
-            </Text>
-          )}
-        </Pressable>
       </Aparecer>
 
       <Aparecer atraso={100}>
@@ -930,6 +917,8 @@ export default function TelaTreino({
         }
       />
 
+      <BotaoAssistente aoPressionar={aoVerAssistente} />
+
       <ModalExercicios
         visivel={modalVisivel}
         grupo={grupoModal}
@@ -982,7 +971,7 @@ const styles = StyleSheet.create({
   },
   conteudoLista: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
   topo: {
     flexDirection: 'row',
@@ -1030,7 +1019,7 @@ const styles = StyleSheet.create({
   },
   barraAcoes: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: 20,
   },
   botaoCabecalho: {
     flex: 1,
@@ -1052,20 +1041,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: 'bold',
     color: CORES.texto,
-  },
-  botaoAssistente: {
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: CORES.destaque,
-    backgroundColor: CORES.cartao,
-    borderRadius: 10,
-    paddingVertical: 10,
-    marginBottom: 20,
-  },
-  textoBotaoAssistente: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: CORES.destaque,
   },
   cabecalho: {
     marginBottom: 8,
