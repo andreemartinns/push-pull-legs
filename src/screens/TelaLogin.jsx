@@ -3,7 +3,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Botao from '../components/Botao';
 import CampoTexto from '../components/CampoTexto';
 import FundoTela from '../components/FundoTela';
-import Logo from '../components/Logo';
+import LinhaBatimento from '../components/LinhaBatimento';
+import LogoAnimada from '../components/LogoAnimada';
+import TituloAnimado from '../components/TituloAnimado';
 import { avisar } from '../utils/avisar';
 import { supabase } from '../utils/supabase';
 import { CORES } from '../utils/tema';
@@ -43,12 +45,12 @@ export default function TelaLogin({ aoIrParaCadastro, aoIrParaEsqueci }) {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.marca}>
-          <Logo tamanho={120} style={styles.logo} />
-          <Text style={styles.academia}>Academia</Text>
-          <Text style={styles.nomeAcademia}>Ritmo Brasil</Text>
+          <LogoAnimada tamanho={110} />
         </View>
 
-        <Text style={styles.titulo}>Entrar</Text>
+        <LinhaBatimento style={styles.batimento} />
+
+        <TituloAnimado texto="Entrar" style={styles.titulo} />
         <Text style={styles.subtitulo}>Bem-vindo de volta</Text>
 
         <CampoTexto
@@ -111,21 +113,10 @@ const styles = StyleSheet.create({
   },
   marca: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 8,
   },
-  logo: {
-    marginBottom: 12,
-  },
-  academia: {
-    fontSize: 13,
-    fontStyle: 'italic',
-    color: CORES.textoSecundario,
-  },
-  nomeAcademia: {
-    fontSize: 24,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
+  batimento: {
+    marginBottom: 16,
   },
   titulo: {
     fontSize: 32,
