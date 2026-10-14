@@ -184,6 +184,30 @@ function ultimoTreinoDoHistorico(historico) {
   return { lista, divisao: divisaoDoTreino(lista) };
 }
 
+// ----- Fila de treinos do professor -----
+
+// Descobre qual é o treino da vez.
+// Olha o histórico: acha o último treino da fila que o aluno concluiu e libera o seguinte.
+// Se nunca fez nenhum, usa o que o professor marcou como próximo (ou o primeiro).
+function treinoDaVez(prescrito, historico) {
+  if (!prescrito || prescrito.treinos.length === 0) return null;
+
+  const { treinos, proximoId } = prescrito;
+
+  for (const registro of historico) {
+    const lista = Array.isArray(registro) ? registro : registro.exercicios || [];
+    const idFeito = lista.find((ex) => ex.treinoId)?.treinoId;
+    if (!idFeito) continue;
+
+    const indice = treinos.findIndex((t) => t.id === idFeito);
+    if (indice >= 0) {
+      return treinos[(indice + 1) % treinos.length];
+    }
+  }
+
+  return treinos.find((t) => t.id === proximoId) || treinos[0];
+}
+
 // ----- Animações e blocos visuais -----
 
 // Faz o conteúdo aparecer subindo suavemente. "atraso" escalona a entrada dos blocos.
@@ -330,7 +354,7 @@ export default function TelaTreino({
   const [anotacao, setAnotacao] = useState('');
   const [anotacaoFocada, setAnotacaoFocada] = useState(false);
   const [comemoracao, setComemoracao] = useState(null);
-  const [prescrito, setPrescrito] = useState(null); // treino montado pelo professor
+  const [prescrito, setPrescrito] = useState(null); // { treinos, proximoId } montado pelo professor
   const carregouInicial = useRef(false);
 
   // Tudo isso vem do histórico (que o App carrega do Supabase) e se atualiza sozinho.
@@ -342,6 +366,7 @@ export default function TelaTreino({
   );
   const sugestao = useMemo(() => sugestaoDoHistorico(historico), [historico]);
   const ultimoTreino = useMemo(() => ultimoTreinoDoHistorico(historico), [historico]);
+  const treinoAtual = useMemo(() => treinoDaVez(prescrito, historico), [prescrito, historico]);
 
   const concluidos = exercicios.filter((item) => item.concluido).length;
 
@@ -386,7 +411,8 @@ export default function TelaTreino({
     carregarPersonalizados();
   }, []);
 
-  // Carrega o treino que o professor montou para este aluno (se houver).
+  // Carrega os treinos que o professor montou para este aluno (se houver).
+  // Aceita o formato novo ({ treinos, proximoId }) e o antigo (lista única).
   useEffect(() => {
     async function carregarPrescrito() {
       const { data, error } = await supabase
@@ -399,7 +425,19 @@ export default function TelaTreino({
         return;
       }
 
-      setPrescrito(data?.exercicios?.length ? data.exercicios : null);
+      const bruto = data?.exercicios;
+
+      if (Array.isArray(bruto)) {
+        setPrescrito(
+          bruto.length > 0
+            ? { treinos: [{ id: 't1', nome: 'Treino 1', exercicios: bruto }], proximoId: 't1' }
+            : null
+        );
+      } else if (bruto?.treinos?.length) {
+        setPrescrito({ treinos: bruto.treinos, proximoId: bruto.proximoId || null });
+      } else {
+        setPrescrito(null);
+      }
     }
     carregarPrescrito();
   }, []);
@@ -501,13 +539,14 @@ export default function TelaTreino({
     setExercicios(copia);
   }
 
-  // Copia o treino do professor para a lista de hoje.
+  // Copia o treino da vez (definido pelo professor) para a lista de hoje.
+  // Cada exercício leva o id e o nome do treino, para o histórico saber qual foi feito.
   function carregarTreinoDoProfessor() {
-    if (!prescrito) return;
+    if (!treinoAtual) return;
 
     const base = Date.now();
 
-    const copia = prescrito.map((ex, indice) => ({
+    const copia = treinoAtual.exercicios.map((ex, indice) => ({
       id: (base + indice).toString(),
       nome: ex.nome,
       series: ex.series || '3',
@@ -515,6 +554,8 @@ export default function TelaTreino({
       peso: ex.peso ? String(ex.peso) : cargaInicial(ex.nome),
       grupo: ex.grupo,
       concluido: false,
+      treinoId: treinoAtual.id,
+      treinoNome: treinoAtual.nome,
     }));
 
     setExercicios(copia);
@@ -728,12 +769,12 @@ export default function TelaTreino({
         <ContadorSequencia valor={sequencia} />
       </Aparecer>
 
-      {/* Se o professor montou um treino, o aluno só começa esse treino. */}
-      {prescrito && exercicios.length === 0 && (
+      {/* Se o professor montou treinos, o aluno só faz o treino da vez. */}
+      {treinoAtual && exercicios.length === 0 && (
         <Aparecer atraso={200}>
           <TituloSecao
-            titulo="Treino do professor"
-            descricao={`${prescrito.length} exercícios montados para você`}
+            titulo={`Treino do professor · ${treinoAtual.nome}`}
+            descricao={`${treinoAtual.exercicios.length} exercícios montados para você`}
           />
           <Pressable
             onPress={carregarTreinoDoProfessor}
