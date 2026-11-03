@@ -1,57 +1,91 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import Botao from '../components/Botao';
 import CampoTexto from '../components/CampoTexto';
 import FundoTela from '../components/FundoTela';
-import LinhaBatimento from '../components/LinhaBatimento';
-import LogoAnimada from '../components/LogoAnimada';
 import TituloAnimado from '../components/TituloAnimado';
 import { avisar } from '../utils/avisar';
 import { supabase } from '../utils/supabase';
 import { CORES } from '../utils/tema';
 
-export default function TelaLogin({ aoIrParaCadastro, aoIrParaEsqueci }) {
+export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword }) {
   const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
-  const [enviando, setEnviando] = useState(false);
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  async function entrar() {
-    if (enviando) return;
-    const emailLimpo = email.trim().toLowerCase();
+  // Goes from 0 to 1 when the screen opens. Drives the logo entrance.
+  const intro = useRef(new Animated.Value(0)).current;
 
-    if (emailLimpo === '' || senha === '') {
+  useEffect(() => {
+    Animated.timing(intro, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+  }, [intro]);
+
+  async function handleLogin() {
+    if (submitting) return;
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (cleanEmail === '' || password === '') {
       avisar('Campos vazios', 'Preencha e-mail e senha.');
       return;
     }
 
-    setEnviando(true);
+    setSubmitting(true);
     const { error } = await supabase.auth.signInWithPassword({
-      email: emailLimpo,
-      password: senha,
+      email: cleanEmail,
+      password,
     });
-    setEnviando(false);
+    setSubmitting(false);
 
     if (error) {
       avisar('Não foi possível entrar', 'E-mail ou senha incorretos.');
     }
-    // Se deu certo, o App.jsx percebe a sessão e abre o app sozinho.
+    // If login works, App.jsx sees the session and opens the app.
   }
 
   return (
     <FundoTela>
       <ScrollView
-        style={styles.fundo}
-        contentContainerStyle={styles.conteudo}
+        contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.marca}>
-          <LogoAnimada tamanho={110} />
-        </View>
+        <Animated.View
+          style={[
+            styles.brand,
+            {
+              opacity: intro,
+              transform: [
+                {
+                  translateY: intro.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [24, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Image
+            source={require('../../assets/mascot.png')}
+            style={styles.mascot}
+            resizeMode="contain"
+          />
+          <Text style={styles.gymLabel}>Academia</Text>
+          <Text style={styles.gymName}>Ritmo Brasil</Text>
+        </Animated.View>
 
-        <LinhaBatimento style={styles.batimento} />
-
-        <TituloAnimado texto="Entrar" style={styles.titulo} />
-        <Text style={styles.subtitulo}>Bem-vindo de volta</Text>
+        <Text style={styles.title}>Entrar</Text>
 
         <CampoTexto
           rotulo="E-mail"
@@ -62,40 +96,29 @@ export default function TelaLogin({ aoIrParaCadastro, aoIrParaEsqueci }) {
         />
         <CampoTexto
           rotulo="Senha"
-          valor={senha}
-          aoMudar={setSenha}
+          valor={password}
+          aoMudar={setPassword}
           placeholder="Sua senha"
           senha
         />
 
-        <Botao titulo="Entrar" aoPressionar={entrar} />
+        <Botao titulo="Entrar" aoPressionar={handleLogin} />
 
-        <Pressable
-          onPress={aoIrParaEsqueci}
-          hitSlop={8}
-          style={({ pressed }) => [styles.linkEsqueci, pressed && styles.pressionado]}
-        >
-          <Text style={styles.textoLinkSecundario}>Esqueci a senha</Text>
-        </Pressable>
+        <Text style={styles.forgot} onPress={onGoToForgotPassword}>
+          Esqueci a senha
+        </Text>
 
-        <View style={styles.divisor}>
-          <View style={styles.linhaDivisor} />
-          <Text style={styles.textoDivisor}>ou</Text>
-          <View style={styles.linhaDivisor} />
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>ou</Text>
+          <View style={styles.dividerLine} />
         </View>
 
         <Pressable
-          onPress={aoIrParaCadastro}
-          style={({ pressed }) => [
-            styles.botaoCadastro,
-            pressed && styles.botaoCadastroAtivo,
-          ]}
+          onPress={onGoToSignUp}
+          style={({ pressed }) => [styles.signUp, pressed && styles.signUpPressed]}
         >
-          {({ pressed }) => (
-            <Text style={[styles.textoCadastro, pressed && styles.textoCadastroAtivo]}>
-              Criar conta
-            </Text>
-          )}
+          <Text style={styles.signUpText}>Criar conta</Text>
         </Pressable>
       </ScrollView>
     </FundoTela>
@@ -103,64 +126,69 @@ export default function TelaLogin({ aoIrParaCadastro, aoIrParaEsqueci }) {
 }
 
 const styles = StyleSheet.create({
-  fundo: {
-    flex: 1,
-  },
-  conteudo: {
+  content: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
   },
-  marca: {
+  brand: {
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 28,
   },
-  batimento: {
-    marginBottom: 16,
+  mascot: {
+    width: 90,
+    height: 117,
   },
-  titulo: {
-    fontSize: 32,
+  gymLabel: {
+    marginTop: 12,
+    fontSize: 12,
+    letterSpacing: 6,
+    textTransform: 'uppercase',
+    color: CORES.destaque,
+  },
+  gymName: {
+    fontSize: 24,
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
     color: CORES.texto,
   },
-  subtitulo: {
-    fontSize: 16,
+  title: {
+  fontSize: 24,
+  fontWeight: '800',
+  textAlign: 'center',
+  color: CORES.texto,
+  marginBottom: 24,
+},
+  subtitle: {
+    fontSize: 15,
+    textAlign: 'center',
     color: CORES.textoSecundario,
     marginTop: 4,
-    marginBottom: 28,
+    marginBottom: 24,
   },
-  linkEsqueci: {
+  forgot: {
     alignSelf: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginTop: 8,
-  },
-  textoLinkSecundario: {
+    paddingVertical: 12,
     fontSize: 15,
     color: CORES.textoSecundario,
   },
-  pressionado: {
-    opacity: 0.6,
-  },
-  divisor: {
+  divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 20,
+    marginVertical: 12,
   },
-  linhaDivisor: {
+  dividerLine: {
     flex: 1,
     height: 1,
     backgroundColor: CORES.borda,
   },
-  textoDivisor: {
+  dividerText: {
+    marginHorizontal: 12,
     fontSize: 13,
     color: CORES.textoSecundario,
-    marginHorizontal: 12,
   },
-  botaoCadastro: {
+  signUp: {
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: CORES.borda,
@@ -168,18 +196,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 14,
   },
-  botaoCadastroAtivo: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
+  signUpPressed: {
+    opacity: 0.6,
   },
-  textoCadastro: {
+  signUpText: {
     fontSize: 15,
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
     color: CORES.texto,
-  },
-  textoCadastroAtivo: {
-    color: CORES.textoSobreDestaque,
   },
 });

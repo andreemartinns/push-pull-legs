@@ -1,49 +1,66 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import Botao from '../components/Botao';
 import CampoTexto from '../components/CampoTexto';
 import FundoTela from '../components/FundoTela';
-import Logo from '../components/Logo';
-import TituloAnimado from '../components/TituloAnimado';
 import { avisar } from '../utils/avisar';
 import { supabase } from '../utils/supabase';
 import { CORES } from '../utils/tema';
 
-export default function TelaCadastro({ aoIrParaLogin }) {
-  const [nome, setNome] = useState('');
+export default function SignUpScreen({ onGoToLogin }) {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
-  const [confirmacao, setConfirmacao] = useState('');
-  const [enviando, setEnviando] = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  async function cadastrar() {
-    if (enviando) return;
-    const emailLimpo = email.trim().toLowerCase();
+  // Goes from 0 to 1 when the screen opens. Drives the logo entrance.
+  const intro = useRef(new Animated.Value(0)).current;
 
-    if (nome.trim() === '' || emailLimpo === '' || senha === '') {
+  useEffect(() => {
+    Animated.timing(intro, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+  }, [intro]);
+
+  async function handleSignUp() {
+    if (submitting) return;
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (name.trim() === '' || cleanEmail === '' || password === '') {
       avisar('Campos vazios', 'Preencha todos os campos.');
       return;
     }
-    if (!emailLimpo.includes('@')) {
+    if (!cleanEmail.includes('@')) {
       avisar('E-mail inválido', 'Digite um e-mail válido.');
       return;
     }
-    if (senha.length < 6) {
+    if (password.length < 6) {
       avisar('Senha curta', 'A senha precisa ter pelo menos 6 caracteres.');
       return;
     }
-    if (senha !== confirmacao) {
+    if (password !== confirmPassword) {
       avisar('Senhas diferentes', 'A confirmação não é igual à senha.');
       return;
     }
 
-    setEnviando(true);
+    setSubmitting(true);
     const { error } = await supabase.auth.signUp({
-      email: emailLimpo,
-      password: senha,
-      options: { data: { nome: nome.trim() } },
+      email: cleanEmail,
+      password,
+      options: { data: { nome: name.trim() } },
     });
-    setEnviando(false);
+    setSubmitting(false);
 
     if (error) {
       avisar('Não foi possível cadastrar', error.message);
@@ -51,27 +68,46 @@ export default function TelaCadastro({ aoIrParaLogin }) {
     }
 
     avisar('Conta criada', 'Agora é só entrar.');
-    aoIrParaLogin();
+    onGoToLogin();
   }
 
   return (
     <FundoTela>
       <ScrollView
-        style={styles.fundo}
-        contentContainerStyle={styles.conteudo}
+        contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.marca}>
-          <Logo tamanho={70} />
-        </View>
+        <Animated.View
+          style={[
+            styles.brand,
+            {
+              opacity: intro,
+              transform: [
+                {
+                  translateY: intro.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [24, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Image
+            source={require('../../assets/mascot.png')}
+            style={styles.mascot}
+            resizeMode="contain"
+          />
+          <Text style={styles.gymLabel}>Academia</Text>
+          <Text style={styles.gymName}>Ritmo Brasil</Text>
+        </Animated.View>
 
-        <TituloAnimado texto="Criar conta" style={styles.titulo} />
-        <Text style={styles.subtitulo}>Leva menos de um minuto</Text>
+        <Text style={styles.title}>Criar conta</Text>
 
         <CampoTexto
           rotulo="Nome"
-          valor={nome}
-          aoMudar={setNome}
+          valor={name}
+          aoMudar={setName}
           placeholder="Como quer ser chamado"
           capitalizar="words"
         />
@@ -84,39 +120,32 @@ export default function TelaCadastro({ aoIrParaLogin }) {
         />
         <CampoTexto
           rotulo="Senha"
-          valor={senha}
-          aoMudar={setSenha}
+          valor={password}
+          aoMudar={setPassword}
           placeholder="Mínimo de 6 caracteres"
           senha
         />
         <CampoTexto
           rotulo="Confirmar senha"
-          valor={confirmacao}
-          aoMudar={setConfirmacao}
+          valor={confirmPassword}
+          aoMudar={setConfirmPassword}
           placeholder="Repita a senha"
           senha
         />
 
-        <Botao titulo="Cadastrar" aoPressionar={cadastrar} />
+        <Botao titulo="Cadastrar" aoPressionar={handleSignUp} />
 
-        <View style={styles.divisor}>
-          <View style={styles.linhaDivisor} />
-          <Text style={styles.textoDivisor}>ou</Text>
-          <View style={styles.linhaDivisor} />
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>ou</Text>
+          <View style={styles.dividerLine} />
         </View>
 
         <Pressable
-          onPress={aoIrParaLogin}
-          style={({ pressed }) => [
-            styles.botaoLogin,
-            pressed && styles.botaoLoginAtivo,
-          ]}
+          onPress={onGoToLogin}
+          style={({ pressed }) => [styles.loginButton, pressed && styles.loginButtonPressed]}
         >
-          {({ pressed }) => (
-            <Text style={[styles.textoBotaoLogin, pressed && styles.textoBotaoLoginAtivo]}>
-              Já tenho conta
-            </Text>
-          )}
+          <Text style={styles.loginButtonText}>Já tenho conta</Text>
         </Pressable>
       </ScrollView>
     </FundoTela>
@@ -124,48 +153,56 @@ export default function TelaCadastro({ aoIrParaLogin }) {
 }
 
 const styles = StyleSheet.create({
-  fundo: {
-    flex: 1,
-  },
-  conteudo: {
+  content: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
   },
-  marca: {
+  brand: {
     alignItems: 'center',
     marginBottom: 20,
   },
-  titulo: {
-    fontSize: 32,
+  mascot: {
+    width: 70,
+    height: 91,
+  },
+  gymLabel: {
+    marginTop: 10,
+    fontSize: 11,
+    letterSpacing: 6,
+    textTransform: 'uppercase',
+    color: CORES.destaque,
+  },
+  gymName: {
+    fontSize: 20,
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
     color: CORES.texto,
   },
-  subtitulo: {
-    fontSize: 16,
-    color: CORES.textoSecundario,
-    marginTop: 4,
-    marginBottom: 28,
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    textAlign: 'center',
+    color: CORES.texto,
+    marginBottom: 24,
   },
-  divisor: {
+  divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 14,
-    marginBottom: 14,
+    marginVertical: 14,
   },
-  linhaDivisor: {
+  dividerLine: {
     flex: 1,
     height: 1,
     backgroundColor: CORES.borda,
   },
-  textoDivisor: {
+  dividerText: {
+    marginHorizontal: 12,
     fontSize: 13,
     color: CORES.textoSecundario,
-    marginHorizontal: 12,
   },
-  botaoLogin: {
+  loginButton: {
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: CORES.borda,
@@ -173,18 +210,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 14,
   },
-  botaoLoginAtivo: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
+  loginButtonPressed: {
+    opacity: 0.6,
   },
-  textoBotaoLogin: {
+  loginButtonText: {
     fontSize: 15,
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
     color: CORES.texto,
-  },
-  textoBotaoLoginAtivo: {
-    color: CORES.textoSobreDestaque,
   },
 });

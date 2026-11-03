@@ -1,64 +1,103 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Image, ScrollView, StyleSheet, Text } from 'react-native';
 import Botao from '../components/Botao';
 import FundoTela from '../components/FundoTela';
-import LinhaBatimento from '../components/LinhaBatimento';
-import LogoAnimada from '../components/LogoAnimada';
-import TituloAnimado from '../components/TituloAnimado';
 import { CORES } from '../utils/tema';
 
-export default function TelaEsqueciSenha({ aoIrParaLogin }) {
+export default function ForgotPasswordScreen({ onGoToLogin }) {
+  // Goes from 0 to 1 when the screen opens. Drives the logo entrance.
+  const intro = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(intro, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+  }, [intro]);
+
   return (
     <FundoTela>
       <ScrollView
-        style={styles.fundo}
-        contentContainerStyle={styles.conteudo}
+        contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.marca}>
-          <LogoAnimada tamanho={90} />
-        </View>
+        <Animated.View
+          style={[
+            styles.brand,
+            {
+              opacity: intro,
+              transform: [
+                {
+                  translateY: intro.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [24, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Image
+            source={require('../../assets/mascot.png')}
+            style={styles.mascot}
+            resizeMode="contain"
+          />
+          <Text style={styles.gymLabel}>Academia</Text>
+          <Text style={styles.gymName}>Ritmo Brasil</Text>
+        </Animated.View>
 
-        <LinhaBatimento style={styles.batimento} />
-
-        <TituloAnimado texto="Esqueci a senha" style={styles.titulo} />
-        <Text style={styles.subtitulo}>
+        <Text style={styles.title}>Esqueci a senha</Text>
+        <Text style={styles.subtitle}>
           Fale com a recepção da academia. Eles vão criar uma nova senha para você e é só entrar
           de novo.
         </Text>
 
-        <Botao titulo="Voltar ao login" aoPressionar={aoIrParaLogin} />
+        <Botao titulo="Voltar ao login" aoPressionar={onGoToLogin} />
       </ScrollView>
     </FundoTela>
   );
 }
 
 const styles = StyleSheet.create({
-  fundo: {
-    flex: 1,
-  },
-  conteudo: {
+  content: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
   },
-  marca: {
+  brand: {
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 28,
   },
-  batimento: {
-    marginBottom: 16,
+  mascot: {
+    width: 90,
+    height: 117,
   },
-  titulo: {
-    fontSize: 32,
+  gymLabel: {
+    marginTop: 12,
+    fontSize: 12,
+    letterSpacing: 6,
+    textTransform: 'uppercase',
+    color: CORES.destaque,
+  },
+  gymName: {
+    fontSize: 24,
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
     color: CORES.texto,
   },
-  subtitulo: {
-    fontSize: 16,
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    textAlign: 'center',
+    color: CORES.texto,
+    marginBottom: 12,
+  },
+  subtitle: {
+    fontSize: 15,
+    textAlign: 'center',
     color: CORES.textoSecundario,
-    marginTop: 4,
     marginBottom: 28,
   },
 });

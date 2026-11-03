@@ -6,11 +6,11 @@ import TelaAdmin from './src/screens/TelaAdmin';
 import TelaAgua from './src/screens/TelaAgua';
 import TelaAnamnese from './src/screens/TelaAnamnese';
 import TelaAssistente from './src/screens/TelaAssistente';
-import TelaCadastro from './src/screens/TelaCadastro';
-import TelaEsqueciSenha from './src/screens/TelaEsqueciSenha';
+import SignUpScreen from './src/screens/TelaCadastro';
+import ForgotPasswordScreen from './src/screens/TelaEsqueciSenha';
 import TelaHistorico from './src/screens/TelaHistorico';
 import TelaLembrete from './src/screens/TelaLembrete';
-import TelaLogin from './src/screens/TelaLogin';
+import LoginScreen from './src/screens/TelaLogin';
 import TelaMedidas from './src/screens/TelaMedidas';
 import TelaProfessor from './src/screens/TelaProfessor';
 import TelaTreino from './src/screens/TelaTreino';
@@ -19,301 +19,232 @@ import { supabase } from './src/utils/supabase';
 import { CORES } from './src/utils/tema';
 
 export default function App() {
-  const [carregando, setCarregando] = useState(true);
-  const [tela, setTela] = useState('login');
-  const [sessao, setSessao] = useState(null);
-  const [perfil, setPerfil] = useState(null);
-  const [historico, setHistorico] = useState([]);
-  const [medidas, setMedidas] = useState([]);
-  const [tutorialAberto, setTutorialAberto] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [screen, setScreen] = useState('login');
+  const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [measurements, setMeasurements] = useState([]);
+  const [showTutorial, setShowTutorial] = useState(false);
 
-  const usuarioId = sessao?.user?.id ?? null;
+  const userId = session?.user?.id ?? null;
 
-  const usuarioLogado = sessao
-    ? {
-        id: sessao.user.id,
-        email: sessao.user.email,
-        nome: sessao.user.user_metadata?.nome || sessao.user.email,
-      }
-    : null;
+  const user = session && {
+    id: session.user.id,
+    email: session.user.email,
+    nome: session.user.user_metadata?.nome || session.user.email,
+  };
 
-  // Acompanha o login: pega a sessão salva e escuta entradas e saídas.
+  // Keeps track of the login: loads the saved session and listens for sign in/out.
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      setSessao(data.session);
-      setCarregando(false);
+      setSession(data.session);
+      setLoading(false);
     });
 
-    const { data } = supabase.auth.onAuthStateChange((_evento, novaSessao) => {
-      setSessao(novaSessao);
+    const { data } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
     });
 
     return () => data.subscription.unsubscribe();
   }, []);
 
-  // Quando entra ou sai alguém, carrega o perfil e, se for aluno, os dados dele.
+  // When someone signs in or out, loads (or clears) their profile and data.
   useEffect(() => {
-    if (!usuarioId) {
-      setTela('login');
-      setPerfil(null);
-      setHistorico([]);
-      setMedidas([]);
-      setTutorialAberto(false);
+    if (!userId) {
+      setScreen('login');
+      setProfile(null);
+      setHistory([]);
+      setMeasurements([]);
+      setShowTutorial(false);
       return;
     }
 
-    let cancelado = false;
+    let cancelled = false;
 
-    async function carregarTudo() {
-      const { data: dadosPerfil, error } = await supabase
+    async function loadData() {
+      const { data, error } = await supabase
         .from('perfis')
         .select('nome, tipo, tutorial_visto')
-        .eq('id', usuarioId)
+        .eq('id', userId)
         .single();
 
-      if (cancelado) return;
+      if (cancelled) return;
+      if (error) console.log('Error loading profile', error);
 
-      if (error) console.log('Erro ao carregar perfil', error);
+      // If it fails, falls back to a student (most restricted) with no tutorial.
+      const loadedProfile = data || { nome: null, tipo: 'aluno', tutorial_visto: true };
+      const isStudent = loadedProfile.tipo === 'aluno';
 
-      // Se falhar, cai para "aluno" (acesso mais restrito) e não mostra o tutorial.
-      const perfilAtual = dadosPerfil || { nome: null, tipo: 'aluno', tutorial_visto: true };
-
-      // Aluno que ainda não preencheu a ficha de saúde começa por ela.
-      if (perfilAtual.tipo === 'aluno') {
-        const { data: ficha, error: erroFicha } = await supabase
+      // Students who haven't filled the health form start with it.
+      if (isStudent) {
+        const { data: form, error: formError } = await supabase
           .from('anamneses')
           .select('consentimento')
-          .eq('aluno_id', usuarioId)
+          .eq('aluno_id', userId)
           .maybeSingle();
 
-        if (cancelado) return;
-
-        if (erroFicha) console.log('Erro ao verificar ficha de saúde', erroFicha);
-
-        // Se der erro ao verificar, não trava o aluno: segue para o treino.
-        setTela(!erroFicha && !ficha?.consentimento ? 'anamnese' : 'treino');
+        if (cancelled) return;
+        setScreen(!formError && !form?.consentimento ? 'anamnesis' : 'workout');
       }
 
-      // Primeiro acesso: mostra o tutorial antes de tudo.
-      setTutorialAberto(!perfilAtual.tutorial_visto);
-      setPerfil(perfilAtual);
+      setShowTutorial(!loadedProfile.tutorial_visto);
+      setProfile(loadedProfile);
 
-      if (perfilAtual.tipo !== 'aluno') return;
+      if (!isStudent) return;
 
-      const [respHistorico, respMedidas] = await Promise.all([
+      const [historyResult, measurementsResult] = await Promise.all([
         supabase.from('historico').select('dados').order('criado_em', { ascending: false }),
         supabase.from('medidas').select('dados').order('criado_em', { ascending: false }),
       ]);
 
-      if (cancelado) return;
-
-      if (respHistorico.error) console.log('Erro ao carregar histórico', respHistorico.error);
-      if (respMedidas.error) console.log('Erro ao carregar medidas', respMedidas.error);
-
-      setHistorico((respHistorico.data || []).map((linha) => linha.dados));
-      setMedidas((respMedidas.data || []).map((linha) => linha.dados));
+      if (cancelled) return;
+      setHistory((historyResult.data || []).map((row) => row.dados));
+      setMeasurements((measurementsResult.data || []).map((row) => row.dados));
     }
 
-    carregarTudo();
-
+    loadData();
     return () => {
-      cancelado = true;
+      cancelled = true;
     };
-  }, [usuarioId]);
+  }, [userId]);
 
-  async function sair() {
-    await supabase.auth.signOut();
+  function signOut() {
+    supabase.auth.signOut();
   }
 
-  // Fecha o tutorial e marca como visto, para não aparecer de novo.
-  async function concluirTutorial() {
-    setTutorialAberto(false);
-    setPerfil((atual) => (atual ? { ...atual, tutorial_visto: true } : atual));
-
-    const { error } = await supabase
-      .from('perfis')
-      .update({ tutorial_visto: true })
-      .eq('id', usuarioId);
-
-    if (error) console.log('Erro ao salvar tutorial visto', error);
+  // Closes the tutorial and saves that it was seen.
+  async function finishTutorial() {
+    setShowTutorial(false);
+    setProfile((current) => ({ ...current, tutorial_visto: true }));
+    await supabase.from('perfis').update({ tutorial_visto: true }).eq('id', userId);
   }
 
-  // A anotação é opcional: se não vier, o treino é salvo com o campo vazio.
-  async function salvarTreinoConcluido(exerciciosConcluidos, anotacao = '') {
-    const novoRegistro = {
+  // Inserts a row in the cloud and warns the user if it fails.
+  async function saveToCloud(table, row, what) {
+    const { error } = await supabase.from(table).insert({ dados: row });
+    if (error) {
+      console.log(`Error saving ${what}`, error);
+      avisar('Erro ao salvar', `Não foi possível salvar ${what} na nuvem.`);
+    }
+  }
+
+  // The note is optional. Newest workouts come first.
+  function saveWorkout(exercises, note = '') {
+    const record = {
       id: Date.now().toString(),
       data: new Date().toLocaleDateString('pt-BR'),
-      exercicios: exerciciosConcluidos,
-      anotacao: String(anotacao || '').trim(),
+      exercicios: exercises,
+      anotacao: String(note || '').trim(),
     };
-    setHistorico((atual) => [novoRegistro, ...atual]);
-
-    const { error } = await supabase.from('historico').insert({ dados: novoRegistro });
-    if (error) {
-      console.log('Erro ao salvar treino', error);
-      avisar('Erro ao salvar', 'Não foi possível salvar o treino na nuvem.');
-    }
+    setHistory((current) => [record, ...current]);
+    saveToCloud('historico', record, 'o treino');
   }
 
-  // Medidas ficam da mais nova para a mais antiga, como o histórico.
-  async function salvarMedida(registro) {
-    setMedidas((atual) => [registro, ...atual]);
-
-    const { error } = await supabase.from('medidas').insert({ dados: registro });
-    if (error) {
-      console.log('Erro ao salvar medida', error);
-      avisar('Erro ao salvar', 'Não foi possível salvar a medida na nuvem.');
-    }
+  function saveMeasurement(record) {
+    setMeasurements((current) => [record, ...current]);
+    saveToCloud('medidas', record, 'a medida');
   }
 
-  async function removerMedida(id) {
-    setMedidas((atual) => atual.filter((item) => item.id !== id));
+  async function removeMeasurement(id) {
+    setMeasurements((current) => current.filter((item) => item.id !== id));
 
     const { error } = await supabase.from('medidas').delete().eq('dados->>id', String(id));
-    if (error) {
-      console.log('Erro ao remover medida', error);
-      avisar('Erro ao remover', 'Não foi possível remover a medida na nuvem.');
-    }
+    if (error) avisar('Erro ao remover', 'Não foi possível remover a medida na nuvem.');
   }
 
-  // Espera o login e o perfil chegarem antes de mostrar qualquer tela.
-  if (carregando || (sessao && !perfil)) {
+  // Wraps a screen in the transition animation.
+  function show(name, content, from) {
     return (
-      <View style={styles.carregando}>
+      <Transicao key={name} de={from}>
+        {content}
+      </Transicao>
+    );
+  }
+
+  // Waits for the login and profile before showing anything.
+  if (loading || (session && !profile)) {
+    return (
+      <View style={styles.loading}>
         <ActivityIndicator size="large" color={CORES.destaque} />
       </View>
     );
   }
 
-  // Sem sessão, só pode aparecer login, cadastro ou esqueci a senha.
-  if (!sessao) {
-    if (tela === 'cadastro') {
-      return (
-        <Transicao key="cadastro" de="direita">
-          <TelaCadastro aoIrParaLogin={() => setTela('login')} />
-        </Transicao>
-      );
+  // Logged out: only login, sign up and forgot password.
+  if (!session) {
+    const goToLogin = () => setScreen('login');
+
+    if (screen === 'signup') {
+      return show('signup', <SignUpScreen onGoToLogin={goToLogin} />, 'direita');
     }
-    if (tela === 'esqueci') {
-      return (
-        <Transicao key="esqueci" de="direita">
-          <TelaEsqueciSenha aoIrParaLogin={() => setTela('login')} />
-        </Transicao>
-      );
+    if (screen === 'forgot') {
+      return show('forgot', <ForgotPasswordScreen onGoToLogin={goToLogin} />, 'direita');
     }
-    return (
-      <Transicao key="login">
-        <TelaLogin
-          aoIrParaCadastro={() => setTela('cadastro')}
-          aoIrParaEsqueci={() => setTela('esqueci')}
-        />
-      </Transicao>
-    );
-  }
-
-  // Tutorial (primeiro acesso ou quando o aluno pede para rever).
-  if (tutorialAberto) {
-    return (
-      <Transicao key="tutorial">
-        <Tutorial tipo={perfil.tipo} aoConcluir={concluirTutorial} />
-      </Transicao>
-    );
-  }
-
-  // Professor e admin têm as próprias telas.
-  if (perfil.tipo === 'professor') {
-    return (
-      <Transicao key="professor">
-        <TelaProfessor usuario={usuarioLogado} aoSair={sair} />
-      </Transicao>
-    );
-  }
-
-  if (perfil.tipo === 'admin') {
-    return (
-      <Transicao key="admin">
-        <TelaAdmin usuario={usuarioLogado} aoSair={sair} />
-      </Transicao>
-    );
-  }
-
-  // Daqui para baixo: telas do aluno.
-
-  // Ficha de saúde no primeiro acesso.
-  if (tela === 'anamnese') {
-    return (
-      <Transicao key="anamnese">
-        <TelaAnamnese usuario={usuarioLogado} aoConcluir={() => setTela('treino')} />
-      </Transicao>
-    );
-  }
-
-  if (tela === 'historico') {
-    return (
-      <Transicao key="historico" de="direita">
-        <TelaHistorico historico={historico} aoVoltar={() => setTela('treino')} />
-      </Transicao>
-    );
-  }
-
-  if (tela === 'medidas') {
-    return (
-      <Transicao key="medidas" de="direita">
-        <TelaMedidas
-          medidas={medidas}
-          aoSalvarMedida={salvarMedida}
-          aoRemoverMedida={removerMedida}
-          aoVoltar={() => setTela('treino')}
-        />
-      </Transicao>
-    );
-  }
-
-  if (tela === 'lembrete') {
-    return (
-      <Transicao key="lembrete" de="direita">
-        <TelaLembrete aoVoltar={() => setTela('treino')} />
-      </Transicao>
-    );
-  }
-
-  if (tela === 'agua') {
-    return (
-      <Transicao key="agua" de="direita">
-        <TelaAgua usuario={usuarioLogado} medidas={medidas} aoVoltar={() => setTela('treino')} />
-      </Transicao>
-    );
-  }
-
-  // Assistente de dúvidas (IA supervisionada).
-  if (tela === 'assistente') {
-    return (
-      <Transicao key="assistente" de="direita">
-        <TelaAssistente aoVoltar={() => setTela('treino')} />
-      </Transicao>
-    );
-  }
-
-  return (
-    <Transicao key="treino">
-      <TelaTreino
-        usuario={usuarioLogado}
-        historico={historico}
-        aoSair={sair}
-        aoSalvarTreino={salvarTreinoConcluido}
-        aoVerHistorico={() => setTela('historico')}
-        aoVerMedidas={() => setTela('medidas')}
-        aoVerLembrete={() => setTela('lembrete')}
-        aoVerAgua={() => setTela('agua')}
-        aoVerAssistente={() => setTela('assistente')}
-        aoReverTutorial={() => setTutorialAberto(true)}
+    return show(
+      'login',
+      <LoginScreen
+        onGoToSignUp={() => setScreen('signup')}
+        onGoToForgotPassword={() => setScreen('forgot')}
       />
-    </Transicao>
+    );
+  }
+
+  if (showTutorial) {
+    return show('tutorial', <Tutorial tipo={profile.tipo} aoConcluir={finishTutorial} />);
+  }
+
+  // Teacher and admin have their own screens.
+  if (profile.tipo === 'professor') {
+    return show('teacher', <TelaProfessor usuario={user} aoSair={signOut} />);
+  }
+  if (profile.tipo === 'admin') {
+    return show('admin', <TelaAdmin usuario={user} aoSair={signOut} />);
+  }
+
+  // From here on: student screens.
+  const goToWorkout = () => setScreen('workout');
+
+  const studentScreens = {
+    anamnesis: <TelaAnamnese usuario={user} aoConcluir={goToWorkout} />,
+    history: <TelaHistorico historico={history} aoVoltar={goToWorkout} />,
+    measurements: (
+      <TelaMedidas
+        medidas={measurements}
+        aoSalvarMedida={saveMeasurement}
+        aoRemoverMedida={removeMeasurement}
+        aoVoltar={goToWorkout}
+      />
+    ),
+    reminder: <TelaLembrete aoVoltar={goToWorkout} />,
+    water: <TelaAgua usuario={user} medidas={measurements} aoVoltar={goToWorkout} />,
+    assistant: <TelaAssistente aoVoltar={goToWorkout} />,
+  };
+
+  if (studentScreens[screen]) {
+    const from = screen === 'anamnesis' ? undefined : 'direita';
+    return show(screen, studentScreens[screen], from);
+  }
+
+  return show(
+    'workout',
+    <TelaTreino
+      usuario={user}
+      historico={history}
+      aoSair={signOut}
+      aoSalvarTreino={saveWorkout}
+      aoVerHistorico={() => setScreen('history')}
+      aoVerMedidas={() => setScreen('measurements')}
+      aoVerLembrete={() => setScreen('reminder')}
+      aoVerAgua={() => setScreen('water')}
+      aoVerAssistente={() => setScreen('assistant')}
+      aoReverTutorial={() => setShowTutorial(true)}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  carregando: {
+  loading: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
