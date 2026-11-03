@@ -3,6 +3,7 @@ import {
   Animated,
   Easing,
   FlatList,
+  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -15,7 +16,6 @@ import BarraProgresso from '../components/BarraProgresso';
 import CartaoExercicio from '../components/CartaoExercicio';
 import Comemoracao from '../components/Comemoracao';
 import ContadorSequencia from '../components/ContadorSequencia';
-import Logo from '../components/Logo';
 import ModalCarga from '../components/ModalCarga';
 import ModalDivisao from '../components/ModalDivisao';
 import ModalExercicios from '../components/ModalExercicios';
@@ -680,7 +680,11 @@ export default function TelaTreino({
     <View>
       <View style={styles.topo}>
         <View style={styles.marca}>
-          <Logo tamanho={56} style={styles.logo} />
+          <Image
+            source={require('../../assets/mascot.png')}
+            style={styles.mascot}
+            resizeMode="contain"
+          />
           <View style={styles.nomeMarca}>
             <Text style={styles.academia}>Academia</Text>
             <Text style={styles.nomeAcademia}>Ritmo Brasil</Text>
@@ -1024,25 +1028,29 @@ const styles = StyleSheet.create({
   marca: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 1,
   },
-  logo: {
-    alignSelf: 'auto',
-    marginBottom: 0,
+  mascot: {
+    width: 43,
+    height: 56,
   },
   nomeMarca: {
     marginLeft: 12,
-  },
+    flexShrink: 1,
+},
   academia: {
-    fontSize: 12,
-    fontStyle: 'italic',
-    color: CORES.textoSecundario,
+    fontSize: 10,
+    letterSpacing: 5,
+    textTransform: 'uppercase',
+    color: CORES.destaque,
   },
   nomeAcademia: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '900',
     fontStyle: 'italic',
+    textTransform: 'uppercase',
     color: CORES.texto,
-  },
+},
   botaoSair: {
     paddingVertical: 6,
     paddingHorizontal: 4,
