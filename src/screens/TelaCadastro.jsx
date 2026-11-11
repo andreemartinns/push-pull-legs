@@ -12,10 +12,10 @@ import Botao from '../components/Botao';
 import CampoTexto from '../components/CampoTexto';
 import FundoTela from '../components/FundoTela';
 import { avisar } from '../utils/avisar';
-import { supabase } from '../utils/supabase';
+import { cadastrar } from '../utils/api';
 import { CORES } from '../utils/tema';
 
-export default function SignUpScreen({ onGoToLogin }) {
+export default function SignUpScreen({ onGoToLogin, onSignUpSuccess }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -55,20 +55,19 @@ export default function SignUpScreen({ onGoToLogin }) {
     }
 
     setSubmitting(true);
-    const { error } = await supabase.auth.signUp({
-      email: cleanEmail,
-      password,
-      options: { data: { nome: name.trim() } },
-    });
-    setSubmitting(false);
-
-    if (error) {
-      avisar('Não foi possível cadastrar', error.message);
-      return;
+    try {
+      const perfil = await cadastrar(cleanEmail, password, name.trim(), 'aluno');
+      setSubmitting(false);
+      if (onSignUpSuccess) {
+        onSignUpSuccess(perfil);
+      } else {
+        avisar('Conta criada', 'Agora é só entrar.');
+        onGoToLogin();
+      }
+    } catch (e) {
+      setSubmitting(false);
+      avisar('Não foi possível cadastrar', e.message);
     }
-
-    avisar('Conta criada', 'Agora é só entrar.');
-    onGoToLogin();
   }
 
   return (

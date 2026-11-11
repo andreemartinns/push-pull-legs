@@ -13,10 +13,14 @@ import CampoTexto from '../components/CampoTexto';
 import FundoTela from '../components/FundoTela';
 import TituloAnimado from '../components/TituloAnimado';
 import { avisar } from '../utils/avisar';
-import { supabase } from '../utils/supabase';
+import { entrar } from '../utils/api';
 import { CORES } from '../utils/tema';
 
-export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword }) {
+export default function LoginScreen({
+  onGoToSignUp,
+  onGoToForgotPassword,
+  onLoginSuccess,
+}) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -42,16 +46,13 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword }) {
     }
 
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: cleanEmail,
-      password,
-    });
-    setSubmitting(false);
-
-    if (error) {
-      avisar('Não foi possível entrar', 'E-mail ou senha incorretos.');
+    try {
+      const perfil = await entrar(cleanEmail, password);
+      onLoginSuccess?.(perfil);
+    } catch (e) {
+      avisar('Não foi possível entrar', e.message);
     }
-    // If login works, App.jsx sees the session and opens the app.
+    setSubmitting(false);
   }
 
   return (
@@ -154,12 +155,12 @@ const styles = StyleSheet.create({
     color: CORES.texto,
   },
   title: {
-  fontSize: 24,
-  fontWeight: '800',
-  textAlign: 'center',
-  color: CORES.texto,
-  marginBottom: 24,
-},
+    fontSize: 24,
+    fontWeight: '800',
+    textAlign: 'center',
+    color: CORES.texto,
+    marginBottom: 24,
+  },
   subtitle: {
     fontSize: 15,
     textAlign: 'center',

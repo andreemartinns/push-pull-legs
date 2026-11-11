@@ -11,8 +11,8 @@ import {
   Text,
   View,
 } from 'react-native';
+import { api } from '../utils/api';
 import { avisar } from '../utils/avisar';
-import { supabase } from '../utils/supabase';
 import { CORES } from '../utils/tema';
 
 const NA_WEB = Platform.OS === 'web';
@@ -135,21 +135,20 @@ export default function TelaAgua({ usuario, medidas = [], aoVoltar }) {
 
   const carregar = useCallback(async () => {
     const [respConfig, respFicha, textoConsumo, textoLembrete] = await Promise.all([
-      supabase.from('agua_config').select('modo, meta_ml').eq('aluno_id', usuario.id).maybeSingle(),
-      supabase
-        .from('anamneses')
-        .select('condicoes, restricao_medica')
-        .eq('aluno_id', usuario.id)
-        .maybeSingle(),
+      api('GET', '/agua').catch((e) => {
+        console.log('Erro ao carregar config de água', e);
+        return null;
+      }),
+      api('GET', '/anamnese').catch((e) => {
+        console.log('Erro ao carregar ficha', e);
+        return null;
+      }),
       AsyncStorage.getItem(chaveConsumo),
       AsyncStorage.getItem(chaveLembrete),
     ]);
 
-    if (respConfig.error) console.log('Erro ao carregar config de água', respConfig.error);
-    if (respFicha.error) console.log('Erro ao carregar ficha', respFicha.error);
-
-    if (respConfig.data) setConfig(respConfig.data);
-    setFicha(respFicha.data || null);
+    if (respConfig) setConfig({ modo: respConfig.modo, meta_ml: respConfig.meta_ml });
+    setFicha(respFicha || null);
 
     const hoje = new Date().toLocaleDateString('pt-BR');
     if (textoConsumo) {

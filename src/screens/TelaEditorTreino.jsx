@@ -11,10 +11,10 @@ import {
 import ModalDivisao from '../components/ModalDivisao';
 import ModalEditarExercicio from '../components/ModalEditarExercicio';
 import ModalExercicios from '../components/ModalExercicios';
+import { api } from '../utils/api';
 import { avisar } from '../utils/avisar';
 import { DIVISOES } from '../utils/divisoes';
 import { GRUPOS } from '../utils/grupos';
-import { supabase } from '../utils/supabase';
 import { CORES } from '../utils/tema';
 
 export default function TelaEditorTreino({ aluno, professorId, aoVoltar }) {
@@ -35,21 +35,19 @@ export default function TelaEditorTreino({ aluno, professorId, aoVoltar }) {
 
   useEffect(() => {
     async function carregar() {
-      const [respTreino, respFicha] = await Promise.all([
-        supabase
-          .from('treinos_prescritos')
-          .select('exercicios')
-          .eq('aluno_id', aluno.id)
-          .maybeSingle(),
-        supabase.from('anamneses').select('*').eq('aluno_id', aluno.id).maybeSingle(),
-      ]);
-
-      if (respTreino.error || respFicha.error) {
-        console.log('Erro ao carregar', respTreino.error, respFicha.error);
+      let respTreino = null;
+      let respFicha = null;
+      try {
+        [respTreino, respFicha] = await Promise.all([
+          api('GET', '/treinos-prescritos?aluno_id=' + aluno.id),
+          api('GET', '/anamnese?aluno_id=' + aluno.id),
+        ]);
+      } catch (e) {
+        console.log('Erro ao carregar', e);
         avisar('Erro', 'Não foi possível carregar os dados do aluno.');
       }
 
-      const bruto = respTreino.data?.exercicios;
+      const bruto = respTreino?.exercicios;
       let lista = [];
       let prox = null;
       if (Array.isArray(bruto)) {
@@ -63,7 +61,7 @@ export default function TelaEditorTreino({ aluno, professorId, aoVoltar }) {
       setTreinos(lista);
       setSelId(lista[0]?.id || null);
       setProximoId(prox);
-      setFicha(respFicha.data || null);
+      setFicha(respFicha || null);
       setCarregando(false);
     }
     carregar();
@@ -160,19 +158,19 @@ export default function TelaEditorTreino({ aluno, professorId, aoVoltar }) {
     setEditando(null);
   }
 
+  // Devolve null se deu certo, ou o erro se falhou.
   async function gravar(lista) {
     const prox = lista.some((t) => t.id === proximoId) ? proximoId : lista[0].id;
-    const { error } = await supabase.from('treinos_prescritos').upsert(
-      {
+    try {
+      await api('PUT', '/treinos-prescritos', {
         aluno_id: aluno.id,
-        professor_id: professorId,
         exercicios: { treinos: lista, proximoId: prox },
-        atualizado_em: new Date().toISOString(),
-      },
-      { onConflict: 'aluno_id' }
-    );
-    if (!error) setProximoId(prox);
-    return error;
+      });
+      setProximoId(prox);
+      return null;
+    } catch (e) {
+      return e;
+    }
   }
 
   async function salvar() {
@@ -194,9 +192,13 @@ export default function TelaEditorTreino({ aluno, professorId, aoVoltar }) {
 
   async function removerEsteTreino() {
     const resto = treinos.filter((t) => t.id !== selId);
-    let error;
+    let error = null;
     if (resto.length === 0) {
-      ({ error } = await supabase.from('treinos_prescritos').delete().eq('aluno_id', aluno.id));
+      try {
+        await api('DELETE', '/treinos-prescritos?aluno_id=' + aluno.id);
+      } catch (e) {
+        error = e;
+      }
     } else {
       error = await gravar(resto);
     }

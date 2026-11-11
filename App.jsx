@@ -14,117 +14,97 @@ import LoginScreen from './src/screens/TelaLogin';
 import TelaMedidas from './src/screens/TelaMedidas';
 import TelaProfessor from './src/screens/TelaProfessor';
 import TelaTreino from './src/screens/TelaTreino';
+import { api, carregarPerfil, sair } from './src/utils/api';
 import { avisar } from './src/utils/avisar';
-import { supabase } from './src/utils/supabase';
 import { CORES } from './src/utils/tema';
 
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [screen, setScreen] = useState('login');
-  const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [history, setHistory] = useState([]);
   const [measurements, setMeasurements] = useState([]);
   const [showTutorial, setShowTutorial] = useState(false);
 
-  const userId = session?.user?.id ?? null;
-
-  const user = session && {
-    id: session.user.id,
-    email: session.user.email,
-    nome: session.user.user_metadata?.nome || session.user.email,
+  const user = profile && {
+    id: profile.id,
+    email: profile.email || null,
+    nome: profile.nome || 'Aluno',
   };
 
-  // Keeps track of the login: loads the saved session and listens for sign in/out.
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
+  // Loads the data of a logged in person and opens the right screen.
+  async function openSession(p) {
+    const isStudent = p.tipo === 'aluno';
+    let firstScreen = 'workout';
 
-    const { data } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-    });
-
-    return () => data.subscription.unsubscribe();
-  }, []);
-
-  // When someone signs in or out, loads (or clears) their profile and data.
-  useEffect(() => {
-    if (!userId) {
-      setScreen('login');
-      setProfile(null);
-      setHistory([]);
-      setMeasurements([]);
-      setShowTutorial(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    async function loadData() {
-      const { data, error } = await supabase
-        .from('perfis')
-        .select('nome, tipo, tutorial_visto')
-        .eq('id', userId)
-        .single();
-
-      if (cancelled) return;
-      if (error) console.log('Error loading profile', error);
-
-      // If it fails, falls back to a student (most restricted) with no tutorial.
-      const loadedProfile = data || { nome: null, tipo: 'aluno', tutorial_visto: true };
-      const isStudent = loadedProfile.tipo === 'aluno';
-
-      // Students who haven't filled the health form start with it.
-      if (isStudent) {
-        const { data: form, error: formError } = await supabase
-          .from('anamneses')
-          .select('consentimento')
-          .eq('aluno_id', userId)
-          .maybeSingle();
-
-        if (cancelled) return;
-        setScreen(!formError && !form?.consentimento ? 'anamnesis' : 'workout');
+    if (isStudent) {
+      try {
+        const form = await api('GET', '/anamnese');
+        if (!form?.consentimento) firstScreen = 'anamnesis';
+      } catch (e) {
+        console.log('Error loading anamnesis', e);
       }
 
-      setShowTutorial(!loadedProfile.tutorial_visto);
-      setProfile(loadedProfile);
-
-      if (!isStudent) return;
-
-      const [historyResult, measurementsResult] = await Promise.all([
-        supabase.from('historico').select('dados').order('criado_em', { ascending: false }),
-        supabase.from('medidas').select('dados').order('criado_em', { ascending: false }),
-      ]);
-
-      if (cancelled) return;
-      setHistory((historyResult.data || []).map((row) => row.dados));
-      setMeasurements((measurementsResult.data || []).map((row) => row.dados));
+      try {
+        const [h, m] = await Promise.all([
+          api('GET', '/historico'),
+          api('GET', '/medidas'),
+        ]);
+        setHistory((h || []).map((row) => row.dados));
+        setMeasurements((m || []).map((row) => row.dados));
+      } catch (e) {
+        console.log('Error loading history', e);
+      }
     }
 
-    loadData();
+    setScreen(firstScreen);
+    setShowTutorial(!p.tutorial_visto);
+    setProfile(p);
+  }
+
+  // When the app opens: if there is a saved login, goes straight in.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const p = await carregarPerfil();
+        if (p && !cancelled) await openSession(p);
+      } catch (e) {
+        console.log('Error starting', e);
+      }
+      if (!cancelled) setLoading(false);
+    })();
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, []);
 
-  function signOut() {
-    supabase.auth.signOut();
+  async function signOut() {
+    await sair();
+    setProfile(null);
+    setHistory([]);
+    setMeasurements([]);
+    setShowTutorial(false);
+    setScreen('login');
   }
 
   // Closes the tutorial and saves that it was seen.
   async function finishTutorial() {
     setShowTutorial(false);
     setProfile((current) => ({ ...current, tutorial_visto: true }));
-    await supabase.from('perfis').update({ tutorial_visto: true }).eq('id', userId);
+    try {
+      await api('PUT', '/perfil', { tutorial_visto: true });
+    } catch (e) {
+      console.log('Error saving tutorial', e);
+    }
   }
 
   // Inserts a row in the cloud and warns the user if it fails.
   async function saveToCloud(table, row, what) {
-    const { error } = await supabase.from(table).insert({ dados: row });
-    if (error) {
-      console.log(`Error saving ${what}`, error);
+    try {
+      await api('POST', '/' + table, { dados: row });
+    } catch (e) {
+      console.log(`Error saving ${what}`, e);
       avisar('Erro ao salvar', `Não foi possível salvar ${what} na nuvem.`);
     }
   }
@@ -148,9 +128,11 @@ export default function App() {
 
   async function removeMeasurement(id) {
     setMeasurements((current) => current.filter((item) => item.id !== id));
-
-    const { error } = await supabase.from('medidas').delete().eq('dados->>id', String(id));
-    if (error) avisar('Erro ao remover', 'Não foi possível remover a medida na nuvem.');
+    try {
+      await api('DELETE', '/medidas/' + encodeURIComponent(String(id)));
+    } catch (e) {
+      avisar('Erro ao remover', 'Não foi possível remover a medida na nuvem.');
+    }
   }
 
   // Wraps a screen in the transition animation.
@@ -162,8 +144,8 @@ export default function App() {
     );
   }
 
-  // Waits for the login and profile before showing anything.
-  if (loading || (session && !profile)) {
+  // Waits for the saved login before showing anything.
+  if (loading) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={CORES.destaque} />
@@ -172,11 +154,18 @@ export default function App() {
   }
 
   // Logged out: only login, sign up and forgot password.
-  if (!session) {
+  if (!profile) {
     const goToLogin = () => setScreen('login');
 
     if (screen === 'signup') {
-      return show('signup', <SignUpScreen onGoToLogin={goToLogin} />, 'direita');
+      return show(
+        'signup',
+        <SignUpScreen
+          onGoToLogin={goToLogin}
+          onSignUpSuccess={(p) => openSession(p)}
+        />,
+        'direita'
+      );
     }
     if (screen === 'forgot') {
       return show('forgot', <ForgotPasswordScreen onGoToLogin={goToLogin} />, 'direita');
@@ -186,6 +175,7 @@ export default function App() {
       <LoginScreen
         onGoToSignUp={() => setScreen('signup')}
         onGoToForgotPassword={() => setScreen('forgot')}
+        onLoginSuccess={(p) => openSession(p)}
       />
     );
   }

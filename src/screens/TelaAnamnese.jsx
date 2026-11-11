@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { api } from '../utils/api';
 import { avisar } from '../utils/avisar';
-import { supabase } from '../utils/supabase';
 import { CORES } from '../utils/tema';
 
 const OBJETIVOS = [
@@ -73,8 +73,8 @@ export default function TelaAnamnese({ usuario, aoConcluir }) {
     }
 
     setSalvando(true);
-    const { error } = await supabase.from('anamneses').upsert(
-      {
+    try {
+      await api('PUT', '/anamnese', {
         aluno_id: usuario.id,
         objetivo,
         condicoes,
@@ -83,17 +83,14 @@ export default function TelaAnamnese({ usuario, aoConcluir }) {
         medicamentos: medicamentos.trim(),
         consentimento: true,
         consentimento_em: new Date().toISOString(),
-        atualizado_em: new Date().toISOString(),
-      },
-      { onConflict: 'aluno_id' }
-    );
-    setSalvando(false);
-
-    if (error) {
-      console.log('Erro ao salvar anamnese', error);
+      });
+    } catch (e) {
+      setSalvando(false);
+      console.log('Erro ao salvar anamnese', e);
       avisar('Erro', 'Não foi possível salvar. Tente de novo.');
       return;
     }
+    setSalvando(false);
 
     aoConcluir();
   }

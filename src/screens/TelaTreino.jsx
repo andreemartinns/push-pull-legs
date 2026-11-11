@@ -20,9 +20,9 @@ import ModalCarga from '../components/ModalCarga';
 import ModalDivisao from '../components/ModalDivisao';
 import ModalExercicios from '../components/ModalExercicios';
 import TemporizadorDescanso from '../components/TemporizadorDescanso';
+import { api } from '../utils/api';
 import { DIVISOES } from '../utils/divisoes';
 import { GRUPOS } from '../utils/grupos';
-import { supabase } from '../utils/supabase';
 import { CORES } from '../utils/tema';
 
 // No celular a animação roda no motor nativo (mais fluida). No navegador, não existe.
@@ -357,7 +357,7 @@ export default function TelaTreino({
   const [prescrito, setPrescrito] = useState(null); // { treinos, proximoId } montado pelo professor
   const carregouInicial = useRef(false);
 
-  // Tudo isso vem do histórico (que o App carrega do Supabase) e se atualiza sozinho.
+  // Tudo isso vem do histórico (que o App carrega da API) e se atualiza sozinho.
   const ultimasCargas = useMemo(() => montarUltimasCargas(historico), [historico]);
   const recordes = useMemo(() => montarRecordes(historico), [historico]);
   const sequencia = useMemo(
@@ -377,18 +377,13 @@ export default function TelaTreino({
   // Carrega o treino em andamento da nuvem.
   useEffect(() => {
     async function carregar() {
-      const { data, error } = await supabase
-        .from('andamento')
-        .select('exercicios')
-        .maybeSingle();
-
-      if (error) {
-        console.log('Erro ao carregar treino em andamento', error);
-        return;
+      try {
+        const data = await api('GET', '/andamento');
+        setExercicios(data?.exercicios || []);
+        carregouInicial.current = true;
+      } catch (e) {
+        console.log('Erro ao carregar treino em andamento', e);
       }
-
-      setExercicios(data?.exercicios || []);
-      carregouInicial.current = true;
     }
     carregar();
   }, []);
@@ -396,17 +391,12 @@ export default function TelaTreino({
   // Carrega da nuvem os exercícios que o aluno criou.
   useEffect(() => {
     async function carregarPersonalizados() {
-      const { data, error } = await supabase
-        .from('exercicios_personalizados')
-        .select('id, nome, grupo')
-        .order('criado_em', { ascending: true });
-
-      if (error) {
-        console.log('Erro ao carregar exercícios personalizados', error);
-        return;
+      try {
+        const data = await api('GET', '/exercicios-personalizados');
+        setPersonalizados(data || []);
+      } catch (e) {
+        console.log('Erro ao carregar exercícios personalizados', e);
       }
-
-      setPersonalizados(data || []);
     }
     carregarPersonalizados();
   }, []);
@@ -415,13 +405,11 @@ export default function TelaTreino({
   // Aceita o formato novo ({ treinos, proximoId }) e o antigo (lista única).
   useEffect(() => {
     async function carregarPrescrito() {
-      const { data, error } = await supabase
-        .from('treinos_prescritos')
-        .select('exercicios')
-        .maybeSingle();
-
-      if (error) {
-        console.log('Erro ao carregar treino do professor', error);
+      let data = null;
+      try {
+        data = await api('GET', '/treinos-prescritos');
+      } catch (e) {
+        console.log('Erro ao carregar treino do professor', e);
         return;
       }
 
@@ -446,15 +434,9 @@ export default function TelaTreino({
   useEffect(() => {
     if (!carregouInicial.current) return;
 
-    supabase
-      .from('andamento')
-      .upsert(
-        { exercicios, atualizado_em: new Date().toISOString() },
-        { onConflict: 'user_id' }
-      )
-      .then(({ error }) => {
-        if (error) console.log('Erro ao salvar treino em andamento', error);
-      });
+    api('PUT', '/andamento', { exercicios }).catch((e) => {
+      console.log('Erro ao salvar treino em andamento', e);
+    });
   }, [exercicios]);
 
   // Se a lista de exercícios ficar vazia, a anotação do treino é descartada.
@@ -606,21 +588,15 @@ export default function TelaTreino({
     setPersonalizados((atual) => [...atual, temporario]);
     adicionarExercicio(nome);
 
-    const { data, error } = await supabase
-      .from('exercicios_personalizados')
-      .insert({ nome, grupo })
-      .select('id, nome, grupo')
-      .single();
-
-    if (error) {
-      console.log('Erro ao salvar exercício personalizado', error);
+    try {
+      const data = await api('POST', '/exercicios-personalizados', { nome, grupo });
+      setPersonalizados((atual) =>
+        atual.map((item) => (item.id === temporario.id ? data : item))
+      );
+    } catch (e) {
+      console.log('Erro ao salvar exercício personalizado', e);
       setPersonalizados((atual) => atual.filter((item) => item.id !== temporario.id));
-      return;
     }
-
-    setPersonalizados((atual) =>
-      atual.map((item) => (item.id === temporario.id ? data : item))
-    );
   }
 
   // Apaga o exercício da lista do aluno. Treinos já feitos continuam no histórico.
@@ -629,9 +605,11 @@ export default function TelaTreino({
 
     if (String(id).startsWith('novo-')) return;
 
-    const { error } = await supabase.from('exercicios_personalizados').delete().eq('id', id);
-
-    if (error) console.log('Erro ao apagar exercício personalizado', error);
+    try {
+      await api('DELETE', '/exercicios-personalizados/' + id);
+    } catch (e) {
+      console.log('Erro ao apagar exercício personalizado', e);
+    }
   }
 
   // Tocar no círculo: se vai concluir, abre a janelinha da carga.
@@ -1037,7 +1015,7 @@ const styles = StyleSheet.create({
   nomeMarca: {
     marginLeft: 12,
     flexShrink: 1,
-},
+  },
   academia: {
     fontSize: 10,
     letterSpacing: 5,
@@ -1050,7 +1028,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textTransform: 'uppercase',
     color: CORES.texto,
-},
+  },
   botaoSair: {
     paddingVertical: 6,
     paddingHorizontal: 4,

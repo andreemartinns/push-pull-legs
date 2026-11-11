@@ -10,7 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { supabase } from '../utils/supabase';
+import { api } from '../utils/api';
 import { CORES } from '../utils/tema';
 
 const AVISO = 'Não substitui orientação profissional. Seu professor pode ver suas perguntas.';
@@ -25,26 +25,28 @@ export default function TelaAssistente({ aoVoltar }) {
   // Carrega as perguntas anteriores do aluno.
   useEffect(() => {
     async function carregar() {
-      const { data, error } = await supabase
-        .from('ia_perguntas')
-        .select('id, pergunta, resposta, alerta')
-        .order('criado_em', { ascending: false })
-        .limit(20);
-
-      if (error) console.log('Erro ao carregar perguntas', error);
+      let data = [];
+      try {
+        data = (await api('GET', '/ia-perguntas')) || [];
+      } catch (e) {
+        console.log('Erro ao carregar perguntas', e);
+      }
 
       const lista = [];
-      (data || []).reverse().forEach((linha) => {
-        lista.push({ id: `${linha.id}-p`, quem: 'aluno', texto: linha.pergunta });
-        if (linha.resposta) {
-          lista.push({
-            id: `${linha.id}-r`,
-            quem: 'ia',
-            texto: linha.resposta,
-            alerta: linha.alerta,
-          });
-        }
-      });
+      data
+        .slice(0, 20)
+        .reverse()
+        .forEach((linha) => {
+          lista.push({ id: `${linha.id}-p`, quem: 'aluno', texto: linha.pergunta });
+          if (linha.resposta) {
+            lista.push({
+              id: `${linha.id}-r`,
+              quem: 'ia',
+              texto: linha.resposta,
+              alerta: linha.alerta,
+            });
+          }
+        });
       setMensagens(lista);
       setCarregando(false);
     }
@@ -68,27 +70,14 @@ export default function TelaAssistente({ aoVoltar }) {
     let alerta = false;
 
     try {
-      const { data, error } = await supabase.functions.invoke('ia-duvidas', {
-        body: { pergunta },
-      });
-
-      if (error) {
-        console.log('Erro ao chamar a IA', error);
-        // Tenta ler a mensagem de erro enviada pela função (ex: limite por hora).
-        try {
-          const corpo = await error.context?.json?.();
-          if (corpo?.erro) resposta = corpo.erro;
-        } catch (e) {
-          // mantém a mensagem padrão
-        }
-      } else if (data?.resposta) {
+      const data = await api('POST', '/ia-duvidas', { pergunta });
+      if (data?.resposta) {
         resposta = data.resposta;
         alerta = !!data.alerta;
-      } else if (data?.erro) {
-        resposta = data.erro;
       }
     } catch (erro) {
-      console.log('Erro inesperado ao chamar a IA', erro);
+      console.log('Erro ao chamar a IA', erro);
+      if (erro?.message && erro.message !== 'Erro de conexão') resposta = erro.message;
     }
 
     setMensagens((atual) => [
