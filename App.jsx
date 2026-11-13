@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import Transicao from './src/components/Transicao';
 import Tutorial from './src/components/Tutorial';
-import TelaAdmin from './src/screens/TelaAdmin';
 import TelaAgua from './src/screens/TelaAgua';
 import TelaAnamnese from './src/screens/TelaAnamnese';
 import TelaAssistente from './src/screens/TelaAssistente';
@@ -184,12 +183,9 @@ export default function App() {
     return show('tutorial', <Tutorial tipo={profile.tipo} aoConcluir={finishTutorial} />);
   }
 
-  // Teacher and admin have their own screens.
+  // Teacher has its own screens.
   if (profile.tipo === 'professor') {
     return show('teacher', <TelaProfessor usuario={user} aoSair={signOut} />);
-  }
-  if (profile.tipo === 'admin') {
-    return show('admin', <TelaAdmin usuario={user} aoSair={signOut} />);
   }
 
   // From here on: student screens.

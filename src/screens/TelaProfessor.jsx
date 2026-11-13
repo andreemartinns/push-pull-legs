@@ -11,8 +11,8 @@ import {
   View,
 } from 'react-native';
 import Logo from '../components/Logo';
+import { api } from '../utils/api';
 import { avisar } from '../utils/avisar';
-import { supabase } from '../utils/supabase';
 import { CORES } from '../utils/tema';
 import TelaEditorTreino from './TelaEditorTreino';
 
@@ -180,43 +180,29 @@ export default function TelaProfessor({ usuario, aoSair }) {
   const [editando, setEditando] = useState(false); // editor de treino aberto
 
   const carregar = useCallback(async () => {
-    const [respAlunos, respHistorico, respFichas] = await Promise.all([
-      supabase.from('perfis').select('id, nome').eq('tipo', 'aluno').order('nome'),
-      supabase.from('historico').select('user_id, criado_em').order('criado_em', { ascending: false }),
-      supabase.from('anamneses').select('aluno_id, objetivo, condicoes, restricao_medica'),
-    ]);
-
-    if (respAlunos.error || respHistorico.error || respFichas.error) {
-      console.log('Erro ao carregar', respAlunos.error, respHistorico.error, respFichas.error);
+    let lista = [];
+    try {
+      lista = (await api('GET', '/meus-alunos-resumo')) || [];
+    } catch (e) {
+      console.log('Erro ao carregar', e);
       avisar('Erro', 'Não foi possível carregar seus alunos.');
     }
 
-    // Como a lista vem da mais nova para a mais antiga, o primeiro de cada aluno é o último treino.
     const mapa = {};
-    (respHistorico.data || []).forEach((linha) => {
-      if (!mapa[linha.user_id]) mapa[linha.user_id] = linha.criado_em;
-    });
-
-    const listaAlunos = respAlunos.data || [];
-    const fichas = {};
-    (respFichas.data || []).forEach((ficha) => {
-      fichas[ficha.aluno_id] = ficha;
-    });
-
     const mapaRiscos = {};
     const mapaSemFicha = {};
     const mapaObjetivos = {};
-    listaAlunos.forEach((aluno) => {
-      const ficha = fichas[aluno.id];
-      if (!ficha) {
+    lista.forEach((aluno) => {
+      if (aluno.ultimo) mapa[aluno.id] = aluno.ultimo;
+      if (!aluno.tem_ficha) {
         mapaSemFicha[aluno.id] = true;
       } else {
-        if (temRiscoNaFicha(ficha)) mapaRiscos[aluno.id] = true;
-        if (ficha.objetivo) mapaObjetivos[aluno.id] = ficha.objetivo;
+        if (temRiscoNaFicha(aluno)) mapaRiscos[aluno.id] = true;
+        if (aluno.objetivo) mapaObjetivos[aluno.id] = aluno.objetivo;
       }
     });
 
-    setAlunos(listaAlunos);
+    setAlunos(lista.map((a) => ({ id: a.id, nome: a.nome })));
     setUltimos(mapa);
     setRiscos(mapaRiscos);
     setSemFicha(mapaSemFicha);
@@ -350,65 +336,44 @@ function FichaAluno({ aluno, professorId, aoVoltar, aoMontarTreino }) {
 
   useEffect(() => {
     async function carregar() {
-      const [respHistorico, respMedidas, respAnamnese, respAgua, respPerguntas] = await Promise.all([
-        supabase
-          .from('historico')
-          .select('dados, criado_em')
-          .eq('user_id', aluno.id)
-          .order('criado_em', { ascending: false }),
-        supabase
-          .from('medidas')
-          .select('id, dados, criado_em')
-          .eq('user_id', aluno.id)
-          .order('criado_em', { ascending: false }),
-        supabase.from('anamneses').select('*').eq('aluno_id', aluno.id).maybeSingle(),
-        supabase.from('agua_config').select('*').eq('aluno_id', aluno.id).maybeSingle(),
-        supabase
-          .from('ia_perguntas')
-          .select('id, pergunta, resposta, alerta, criado_em')
-          .eq('aluno_id', aluno.id)
-          .order('criado_em', { ascending: false })
-          .limit(50),
+      let falhou = false;
+      const buscar = (caminho, padrao) =>
+        api('GET', `${caminho}?aluno_id=${aluno.id}`).catch((e) => {
+          console.log('Erro na ficha', caminho, e);
+          falhou = true;
+          return padrao;
+        });
+
+      const [historico, medidas, ficha, agua, listaIA] = await Promise.all([
+        buscar('/historico', []),
+        buscar('/medidas', []),
+        buscar('/anamnese', null),
+        buscar('/agua', null),
+        buscar('/ia-perguntas', []),
       ]);
 
-      if (
-        respHistorico.error ||
-        respMedidas.error ||
-        respAnamnese.error ||
-        respAgua.error ||
-        respPerguntas.error
-      ) {
-        console.log(
-          'Erro na ficha',
-          respHistorico.error,
-          respMedidas.error,
-          respAnamnese.error,
-          respAgua.error,
-          respPerguntas.error
-        );
-        avisar('Erro', 'Não foi possível carregar a ficha do aluno.');
-      }
+      if (falhou) avisar('Erro', 'Não foi possível carregar a ficha do aluno.');
 
-      const listaMedidas = respMedidas.data || [];
+      const listaMedidas = medidas || [];
       const pesoEncontrado = listaMedidas
         .map((m) => Number(m.dados?.valores?.peso))
         .find((p) => Number.isFinite(p) && p > 0);
 
       // Alertas primeiro (mais novos antes); depois as demais (mais novas antes).
-      const listaPerguntas = respPerguntas.data || [];
+      const listaPerguntas = (listaIA || []).slice(0, 50);
       const alertas = listaPerguntas.filter((p) => p.alerta);
       const normais = listaPerguntas.filter((p) => !p.alerta);
       setPerguntas([...alertas, ...normais].slice(0, 20));
 
-      setTreinos(respHistorico.data || []);
+      setTreinos(historico || []);
       setQtdMedidas(listaMedidas.length);
-      setAnamnese(respAnamnese.data || null);
+      setAnamnese(ficha || null);
       setPeso(pesoEncontrado || null);
 
       const sugerida = pesoEncontrado ? Math.round((pesoEncontrado * 35) / 50) * 50 : 2000;
-      if (respAgua.data) {
-        setModoAgua(respAgua.data.modo);
-        setMetaAgua(respAgua.data.meta_ml || sugerida);
+      if (agua) {
+        setModoAgua(agua.modo);
+        setMetaAgua(agua.meta_ml || sugerida);
       } else {
         setMetaAgua(sugerida);
       }
@@ -423,19 +388,19 @@ function FichaAluno({ aluno, professorId, aoVoltar, aoMontarTreino }) {
 
   async function salvarAgua() {
     setSalvandoAgua(true);
-    const { error } = await supabase.from('agua_config').upsert({
-      aluno_id: aluno.id,
-      modo: modoAgua,
-      meta_ml: modoAgua === 'manual' ? metaAgua : null,
-      atualizado_por: professorId,
-      atualizado_em: new Date().toISOString(),
-    });
-    setSalvandoAgua(false);
-    if (error) {
-      console.log('Erro ao salvar água', error);
+    try {
+      await api('PUT', '/agua', {
+        aluno_id: aluno.id,
+        modo: modoAgua,
+        meta_ml: modoAgua === 'manual' ? metaAgua : null,
+      });
+    } catch (e) {
+      setSalvandoAgua(false);
+      console.log('Erro ao salvar água', e);
       avisar('Erro', 'Não foi possível salvar a configuração de água.');
       return;
     }
+    setSalvandoAgua(false);
     avisar('Salvo', 'Configuração de água atualizada.');
   }
 
