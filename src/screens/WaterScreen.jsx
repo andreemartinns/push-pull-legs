@@ -2,18 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import CopoAgua from '../components/WaterGlass';
 import Constants from 'expo-constants';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Cabecalho, Cartao, Secao, Tela } from '../components/UI';
 import { api } from '../utils/api';
 import { avisar } from '../utils/notify';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 const NA_WEB = Platform.OS === 'web';
 const NO_EXPO_GO = Constants.appOwnership === 'expo';
@@ -293,7 +286,7 @@ export default function TelaAgua({ usuario, medidas = [], aoVoltar }) {
   if (carregando) {
     return (
       <View style={styles.centro}>
-        <ActivityIndicator size="large" color={CORES.destaque} />
+        <ActivityIndicator size="large" color={P.verde} />
       </View>
     );
   }
@@ -303,322 +296,280 @@ export default function TelaAgua({ usuario, medidas = [], aoVoltar }) {
   const batida = meta !== null && consumido >= meta;
 
   return (
-    <View style={styles.container}>
-      <Pressable onPress={aoVoltar} hitSlop={10} style={styles.voltar}>
-        <Text style={styles.textoVoltar}>← Voltar</Text>
-      </Pressable>
+    <Tela>
+      <Cabecalho titulo="Água" subtitulo="Hidratação" aoVoltar={aoVoltar} />
 
-      <View style={styles.titulo}>
-        <View style={styles.barraTitulo} />
-        <View>
-          <Text style={styles.rotulo}>Hidratação</Text>
-          <Text style={styles.nome}>Água</Text>
-        </View>
-      </View>
+      {desligado && (
+        <Cartao style={styles.bloco}>
+          <Text style={styles.textoCartao}>
+            Seu professor desativou a meta de água para você. Em caso de dúvida, fale com ele.
+          </Text>
+        </Cartao>
+      )}
 
-      <ScrollView contentContainerStyle={styles.conteudo}>
-        {desligado && (
-          <View style={styles.cartao}>
-            <Text style={styles.textoCartao}>
-              Seu professor desativou a meta de água para você. Em caso de dúvida, fale com ele.
+      {!desligado && meta === null && sensivel && config.modo === 'automatico' && (
+        <Cartao style={[styles.bloco, styles.cartaoAlerta]}>
+          <Text style={styles.textoAlerta}>
+            Pela sua ficha de saúde, não sugerimos uma meta automática. Algumas condições exigem
+            controle de líquidos. Converse com seu professor ou médico sobre quanto beber.
+          </Text>
+        </Cartao>
+      )}
+
+      {!desligado && meta === null && !sensivel && !peso && (
+        <Cartao style={styles.bloco}>
+          <Text style={styles.textoCartao}>
+            Para sugerir uma meta, registre seu peso em Medidas.
+          </Text>
+        </Cartao>
+      )}
+
+      {meta !== null && (
+        <>
+          <Cartao style={[styles.bloco, batida && styles.cartaoBatida]}>
+            <Text style={styles.rotuloCartao}>Meta de hoje</Text>
+
+            <CopoAgua percentual={percentual} pulso={pulso} />
+            <Text style={[styles.valorGrande, { textAlign: 'center' }]}>
+              {consumido} <Text style={styles.valorMeta}>/ {meta} ml</Text>
             </Text>
-          </View>
-        )}
-
-        {!desligado && meta === null && sensivel && config.modo === 'automatico' && (
-          <View style={[styles.cartao, styles.cartaoAlerta]}>
-            <Text style={styles.textoAlerta}>
-              Pela sua ficha de saúde, não sugerimos uma meta automática. Algumas condições exigem
-              controle de líquidos. Converse com seu professor ou médico sobre quanto beber.
+            <Text style={[styles.pequeno, { textAlign: 'center' }, batida && styles.textoBatida]}>
+              {batida ? 'Meta batida! Parabéns!' : `faltam ${falta} ml`}
             </Text>
-          </View>
-        )}
 
-        {!desligado && meta === null && !sensivel && !peso && (
-          <View style={styles.cartao}>
-            <Text style={styles.textoCartao}>
-              Para sugerir uma meta, registre seu peso em Medidas.
-            </Text>
-          </View>
-        )}
-
-        {meta !== null && (
-          <>
-            <View style={[styles.cartao, batida && styles.cartaoBatida]}>
-              <Text style={styles.rotuloCartao}>Meta de hoje</Text>
-
-              <CopoAgua percentual={percentual} pulso={pulso} />
-              <Text style={[styles.valorGrande, { textAlign: 'center' }]}>
-                {consumido} <Text style={styles.valorMeta}>/ {meta} ml</Text>
-              </Text>
-              <Text style={[styles.pequeno, { textAlign: 'center' }, batida && styles.textoBatida]}>
-                {batida ? ' Meta batida! Parabéns!' : `faltam ${falta} ml`}
-              </Text>
-
-              <View style={styles.linhaBotoes}>
-                {QUANTIDADES.map((q) => {
-                  const on = quantidade === q;
-                  return (
-                    <Pressable
-                      key={q}
-                      onPress={() => setQuantidade(q)}
-                      style={[styles.opcao, on && styles.opcaoAtiva]}
-                    >
-                      <Text style={[styles.textoOpcao, on && styles.textoOpcaoAtiva]}>{q}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-
-              <View style={styles.linhaBotoes}>
-                <Pressable style={[styles.botao, styles.botaoEspaco]} onPress={registrar}>
-                  <Text style={styles.textoBotao}>+ {quantidade} ml</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.botaoIcone, registros.length === 0 && styles.desabilitado]}
-                  onPress={desfazer}
-                  disabled={registros.length === 0}
-                  accessibilityLabel="Desfazer"
-                >
-                  <Text style={styles.textoIcone}>↶</Text>
-                </Pressable>
-              </View>
-            </View>
-
-            {registros.length > 0 && (
-              <>
-                <Text style={styles.secao}>Hoje</Text>
-                <View style={styles.cartao}>
-                  {registros
-                    .map((r, i) => ({ ...r, i }))
-                    .reverse()
-                    .map((r) => (
-                      <View key={r.i} style={styles.registro}>
-                        <Text style={styles.textoRegistro}>
-                          {r.h} <Text style={styles.registroMl}>· {r.ml} ml</Text>
-                        </Text>
-                        <Pressable onPress={() => apagar(r.i)} hitSlop={10}>
-                          <Text style={styles.apagar}>✕</Text>
-                        </Pressable>
-                      </View>
-                    ))}
-                </View>
-              </>
-            )}
-
-            <Pressable onPress={() => setAvisoAberto((v) => !v)} style={styles.infoLinha}>
-              <Text style={styles.infoIcone}>ⓘ</Text>
-              <Text style={styles.infoTexto}>Meta {origem}</Text>
-            </Pressable>
-            {avisoAberto && (
-              <Text style={styles.aviso}>
-                É só uma estimativa e não substitui orientação profissional. Se sentir qualquer
-                mal-estar, pare e procure seu professor ou médico.
-              </Text>
-            )}
-
-            <Text style={styles.secao}>Lembretes</Text>
-            <View style={styles.cartao}>
-              <View style={styles.linhaMini}>
-                <Mini rotulo="Das" valor={inicio} aoMudar={mudarInicio} />
-                <Mini rotulo="Às" valor={fim} aoMudar={mudarFim} />
-              </View>
-
-              <Text style={[styles.rotuloCartao, { marginTop: 14 }]}>A cada:</Text>
-              <View style={styles.linhaBotoes}>
-                {INTERVALOS.map((valor) => {
-                  const ativo = intervalo === valor;
-                  return (
-                    <Pressable
-                      key={valor}
-                      onPress={() => mudarConfig({ intervalo: valor, inicio, fim })}
-                      style={[styles.opcao, ativo && styles.opcaoAtiva]}
-                    >
-                      <Text style={[styles.textoOpcao, ativo && styles.textoOpcaoAtiva]}>
-                        {valor}h
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-
-              {lembreteAtivo ? (
-                <>
-                  <Text style={styles.proximo}>
-                    Próximo lembrete: {proximoLembrete(inicio, fim, intervalo)}
-                  </Text>
-                  <Pressable style={styles.botaoSecundarioCheio} onPress={desativarLembretes}>
-                    <Text style={styles.textoSecundario}>Desativar lembretes</Text>
+            <View style={styles.linhaBotoes}>
+              {QUANTIDADES.map((q, i) => {
+                const on = quantidade === q;
+                return (
+                  <Pressable
+                    key={q}
+                    onPress={() => setQuantidade(q)}
+                    style={[
+                      styles.opcao,
+                      i < QUANTIDADES.length - 1 && styles.opcaoEspaco,
+                      on && styles.opcaoAtiva,
+                    ]}
+                  >
+                    <Text style={[styles.textoOpcao, on && styles.textoOpcaoAtiva]}>{q}</Text>
                   </Pressable>
-                </>
-              ) : (
-                <Pressable style={styles.botaoCheio} onPress={() => ativarLembretes()}>
-                  <Text style={styles.textoBotao}>Ativar lembretes</Text>
-                </Pressable>
-              )}
-
-              {SEM_SUPORTE && (
-                <Pressable style={styles.botaoSecundarioCheio} onPress={simular}>
-                  <Text style={styles.textoSecundario}>Simular lembrete</Text>
-                </Pressable>
-              )}
+                );
+              })}
             </View>
-          </>
-        )}
-      </ScrollView>
-    </View>
+
+            <View style={styles.linhaBotoes}>
+              <Pressable
+                style={({ pressed }) => [styles.botao, styles.botaoEspaco, pressed && styles.pressionado]}
+                onPress={registrar}
+              >
+                <Text style={styles.textoBotao}>+ {quantidade} ml</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.botaoIcone, registros.length === 0 && styles.desabilitado]}
+                onPress={desfazer}
+                disabled={registros.length === 0}
+                accessibilityLabel="Desfazer"
+              >
+                <Text style={styles.textoIcone}>↶</Text>
+              </Pressable>
+            </View>
+          </Cartao>
+
+          {registros.length > 0 && (
+            <>
+              <Secao titulo="Hoje" />
+              <Cartao style={styles.bloco}>
+                {registros
+                  .map((r, i) => ({ ...r, i }))
+                  .reverse()
+                  .map((r, pos, lista) => (
+                    <View
+                      key={r.i}
+                      style={[styles.registro, pos === lista.length - 1 && styles.semBorda]}
+                    >
+                      <Text style={styles.textoRegistro}>
+                        {r.h} <Text style={styles.registroMl}>· {r.ml} ml</Text>
+                      </Text>
+                      <Pressable onPress={() => apagar(r.i)} hitSlop={10}>
+                        <Text style={styles.apagar}>✕</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+              </Cartao>
+            </>
+          )}
+
+          <Pressable onPress={() => setAvisoAberto((v) => !v)} style={styles.infoLinha}>
+            <Text style={styles.infoIcone}>ⓘ</Text>
+            <Text style={styles.infoTexto}>Meta {origem}</Text>
+          </Pressable>
+          {avisoAberto && (
+            <Text style={styles.aviso}>
+              É só uma estimativa e não substitui orientação profissional. Se sentir qualquer
+              mal-estar, pare e procure seu professor ou médico.
+            </Text>
+          )}
+
+          <Secao titulo="Lembretes" />
+          <Cartao style={styles.bloco}>
+            <View style={styles.linhaMini}>
+              <Mini rotulo="Das" valor={inicio} aoMudar={mudarInicio} />
+              <Mini rotulo="Às" valor={fim} aoMudar={mudarFim} />
+            </View>
+
+            <Text style={[styles.rotuloCartao, { marginTop: 16 }]}>A cada:</Text>
+            <View style={styles.linhaBotoes}>
+              {INTERVALOS.map((valor, i) => {
+                const ativo = intervalo === valor;
+                return (
+                  <Pressable
+                    key={valor}
+                    onPress={() => mudarConfig({ intervalo: valor, inicio, fim })}
+                    style={[
+                      styles.opcao,
+                      i < INTERVALOS.length - 1 && styles.opcaoEspaco,
+                      ativo && styles.opcaoAtiva,
+                    ]}
+                  >
+                    <Text style={[styles.textoOpcao, ativo && styles.textoOpcaoAtiva]}>
+                      {valor}h
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {lembreteAtivo ? (
+              <>
+                <Text style={styles.proximo}>
+                  Próximo lembrete: {proximoLembrete(inicio, fim, intervalo)}
+                </Text>
+                <Pressable style={styles.botaoSecundarioCheio} onPress={desativarLembretes}>
+                  <Text style={styles.textoSecundario}>Desativar lembretes</Text>
+                </Pressable>
+              </>
+            ) : (
+              <Pressable style={styles.botaoCheio} onPress={() => ativarLembretes()}>
+                <Text style={styles.textoBotao}>Ativar lembretes</Text>
+              </Pressable>
+            )}
+
+            {SEM_SUPORTE && (
+              <Pressable style={styles.botaoSecundarioCheio} onPress={simular}>
+                <Text style={styles.textoSecundario}>Simular lembrete</Text>
+              </Pressable>
+            )}
+          </Cartao>
+        </>
+      )}
+    </Tela>
   );
 }
 
 const styles = StyleSheet.create({
-  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: CORES.fundo },
-  container: { flex: 1, backgroundColor: CORES.fundo, paddingHorizontal: 20, paddingTop: 50 },
-  voltar: { alignSelf: 'flex-start', paddingVertical: 6, marginBottom: 16 },
-  textoVoltar: { fontSize: 14, fontWeight: 'bold', color: CORES.textoSecundario },
-  titulo: { flexDirection: 'row', alignItems: 'stretch', marginBottom: 20 },
-  barraTitulo: { width: 4, borderRadius: 2, backgroundColor: CORES.destaque, marginRight: 10 },
-  rotulo: { fontSize: 13, color: CORES.textoSecundario },
-  nome: {
-    fontSize: 28,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-  },
-  conteudo: { paddingBottom: 40 },
-  secao: {
-    fontSize: 14,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-    marginTop: 8,
-    marginBottom: 10,
-  },
-  cartao: {
-    backgroundColor: CORES.cartao,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  cartaoAlerta: { borderColor: '#FF6B6B' },
-  cartaoBatida: { borderColor: CORES.destaque },
-  textoCartao: { fontSize: 14, color: CORES.texto },
-  textoAlerta: { fontSize: 14, fontWeight: 'bold', color: '#FF6B6B' },
-  rotuloCartao: { fontSize: 13, color: CORES.textoSecundario },
-  valorGrande: {
-    fontSize: 40,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
-    marginTop: 4,
-  },
-  valorMeta: { fontSize: 18, color: CORES.textoSecundario },
-  pequeno: { fontSize: 13, color: CORES.textoSecundario, marginTop: 6 },
-  textoBatida: { color: CORES.destaque, fontWeight: 'bold' },
-  linhaBotoes: { flexDirection: 'row', marginTop: 14 },
+  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: P.fundo },
+  bloco: { marginBottom: 12 },
+  pressionado: { transform: [{ scale: 0.97 }], opacity: 0.9 },
+  cartaoAlerta: { borderWidth: 2, borderColor: P.erro },
+  cartaoBatida: { borderWidth: 2, borderColor: P.verde },
+  textoCartao: { fontSize: 14, lineHeight: 20, color: P.texto },
+  textoAlerta: { fontSize: 14, lineHeight: 20, fontWeight: '700', color: P.erro },
+  rotuloCartao: { fontSize: 13, fontWeight: '700', color: P.textoSecundario },
+  valorGrande: { fontSize: 40, fontWeight: '800', color: P.texto, marginTop: 4 },
+  valorMeta: { fontSize: 18, fontWeight: '600', color: P.textoSecundario },
+  pequeno: { fontSize: 13, color: P.textoSecundario, marginTop: 6 },
+  textoBatida: { color: P.verde, fontWeight: '800' },
+  linhaBotoes: { flexDirection: 'row', marginTop: 16 },
   botao: {
     flex: 1,
-    backgroundColor: CORES.destaque,
-    borderRadius: 10,
-    paddingVertical: 14,
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingVertical: 16,
     alignItems: 'center',
   },
   botaoEspaco: { marginRight: 8 },
   botaoIcone: {
-    width: 50,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 10,
+    width: 54,
+    backgroundColor: P.fundo,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  textoIcone: { fontSize: 20, color: CORES.textoSecundario },
+  textoIcone: { fontSize: 20, color: P.texto },
   desabilitado: { opacity: 0.35 },
   botaoCheio: {
-    backgroundColor: CORES.destaque,
-    borderRadius: 10,
-    paddingVertical: 12,
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 14,
+    marginTop: 16,
   },
-  textoBotao: {
-    fontSize: 14,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.textoSobreDestaque,
-  },
+  textoBotao: { fontSize: 15, fontWeight: '800', color: P.verde },
   botaoSecundarioCheio: {
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 10,
-    paddingVertical: 12,
+    backgroundColor: P.fundo,
+    borderRadius: 999,
+    paddingVertical: 14,
     alignItems: 'center',
     marginTop: 10,
   },
-  textoSecundario: { fontSize: 14, fontWeight: 'bold', color: CORES.textoSecundario },
+  textoSecundario: { fontSize: 14, fontWeight: '700', color: P.texto },
   opcao: {
     flex: 1,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 10,
-    paddingVertical: 10,
+    backgroundColor: P.fundo,
+    borderRadius: 999,
+    paddingVertical: 12,
     alignItems: 'center',
-    marginRight: 8,
   },
-  opcaoAtiva: { backgroundColor: CORES.destaque, borderColor: CORES.destaque },
-  textoOpcao: { fontSize: 15, fontWeight: 'bold', color: CORES.texto },
-  textoOpcaoAtiva: { color: CORES.textoSobreDestaque },
+  opcaoEspaco: { marginRight: 8 },
+  opcaoAtiva: { backgroundColor: P.verde },
+  textoOpcao: { fontSize: 15, fontWeight: '700', color: P.texto },
+  textoOpcaoAtiva: { color: P.textoSobreVerde },
   registro: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: CORES.borda,
+    borderBottomColor: P.pontoVazio,
   },
-  textoRegistro: { fontSize: 14, fontWeight: 'bold', color: CORES.texto },
-  registroMl: { color: CORES.textoSecundario, fontWeight: 'normal' },
-  apagar: { fontSize: 14, color: CORES.textoSecundario, paddingHorizontal: 6 },
-  infoLinha: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  infoIcone: { fontSize: 14, color: CORES.textoSecundario, marginRight: 6 },
-  infoTexto: { fontSize: 12, color: CORES.textoSecundario },
-  aviso: {
-    fontSize: 12,
-    color: CORES.textoSecundario,
-    textAlign: 'center',
-    marginBottom: 10,
+  semBorda: { borderBottomWidth: 0 },
+  textoRegistro: { fontSize: 14, fontWeight: '700', color: P.texto },
+  registroMl: { color: P.textoSecundario, fontWeight: '400' },
+  apagar: { fontSize: 14, color: P.textoSecundario, paddingHorizontal: 6 },
+  infoLinha: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+    marginBottom: 8,
   },
+  infoIcone: { fontSize: 14, color: P.textoSecundario, marginRight: 6 },
+  infoTexto: { fontSize: 12, color: P.textoSecundario },
+  aviso: { fontSize: 12, color: P.textoSecundario, textAlign: 'center', marginBottom: 10 },
   linhaMini: { flexDirection: 'row', justifyContent: 'space-between' },
   mini: { alignItems: 'center', flex: 1 },
-  miniRotulo: { fontSize: 12, color: CORES.textoSecundario, marginBottom: 6 },
+  miniRotulo: { fontSize: 12, fontWeight: '700', color: P.textoSecundario, marginBottom: 8 },
   miniLinha: { flexDirection: 'row', alignItems: 'center' },
   miniBotao: {
-    width: 34,
-    height: 34,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: P.fundo,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  miniTexto: { fontSize: 18, fontWeight: 'bold', color: CORES.texto },
+  miniTexto: { fontSize: 18, fontWeight: '700', color: P.texto },
   miniValor: {
     fontSize: 20,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
+    fontWeight: '800',
+    color: P.texto,
     minWidth: 56,
     textAlign: 'center',
   },
   proximo: {
     fontSize: 13,
-    fontWeight: 'bold',
-    color: CORES.destaque,
+    fontWeight: '800',
+    color: P.verde,
     textAlign: 'center',
-    marginTop: 14,
+    marginTop: 16,
   },
 });

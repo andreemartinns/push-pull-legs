@@ -22,3 +22,18 @@ export const ESPACO = {
   g: 24,
   gg: 32,
 };
+
+export const P = {
+  fundo: '#F1EFE4',
+  verde: '#0F3D2E',
+  verdeClaro: '#14573F',
+  limao: '#D6F24A',
+  texto: '#0B1F17',
+  textoSecundario: '#55655C',
+  cartao: '#E6E3D3',
+  textoSobreVerde: '#F1EFE4',
+  textoSuaveSobreVerde: '#BFD3C6',
+  pontoVazio: '#B5B8A8',
+  campoFocado: '#DDD9C6',
+  erro: '#C23B3B',
+};

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { api } from '../utils/api';
 import { avisar } from '../utils/notify';
-import { CORES } from '../utils/theme';
+import { BotaoPrincipal, Campo, Pilula, Tela } from '../components/UI';
+import { P } from '../utils/theme';
 
 const OBJETIVOS = [
   'Hipertrofia',
@@ -20,17 +21,6 @@ const CONDICOES = [
   'Problema articular ou nas costas',
   'Gestante',
 ];
-
-function Opcao({ texto, ativo, aoPressionar }) {
-  return (
-    <Pressable
-      onPress={aoPressionar}
-      style={[styles.opcao, ativo && styles.opcaoAtiva]}
-    >
-      <Text style={[styles.opcaoTexto, ativo && styles.opcaoTextoAtivo]}>{texto}</Text>
-    </Pressable>
-  );
-}
 
 export default function TelaAnamnese({ usuario, aoConcluir }) {
   const [objetivo, setObjetivo] = useState(null);
@@ -96,7 +86,7 @@ export default function TelaAnamnese({ usuario, aoConcluir }) {
   }
 
   return (
-    <ScrollView style={styles.tela} contentContainerStyle={styles.conteudo}>
+    <Tela>
       <Text style={styles.titulo}>Sua ficha de saúde</Text>
       <Text style={styles.intro}>
         Seu professor usa estas respostas para montar um treino seguro para você. Leva 1 minuto.
@@ -105,7 +95,7 @@ export default function TelaAnamnese({ usuario, aoConcluir }) {
       <Text style={styles.pergunta}>Qual o seu objetivo?</Text>
       <View style={styles.linha}>
         {OBJETIVOS.map((item) => (
-          <Opcao
+          <Pilula
             key={item}
             texto={item}
             ativo={objetivo === item}
@@ -117,42 +107,40 @@ export default function TelaAnamnese({ usuario, aoConcluir }) {
       <Text style={styles.pergunta}>Você tem alguma destas condições?</Text>
       <View style={styles.linha}>
         {CONDICOES.map((item) => (
-          <Opcao
+          <Pilula
             key={item}
             texto={item}
             ativo={condicoes.includes(item)}
             aoPressionar={() => alternarCondicao(item)}
           />
         ))}
-        <Opcao texto="Nenhuma" ativo={semCondicao} aoPressionar={escolherNenhuma} />
+        <Pilula texto="Nenhuma" ativo={semCondicao} aoPressionar={escolherNenhuma} />
       </View>
 
       <Text style={styles.pergunta}>Algum médico já restringiu ou limitou exercícios para você?</Text>
       <View style={styles.linha}>
-        <Opcao texto="Sim" ativo={restricao === true} aoPressionar={() => setRestricao(true)} />
-        <Opcao texto="Não" ativo={restricao === false} aoPressionar={() => setRestricao(false)} />
+        <Pilula texto="Sim" ativo={restricao === true} aoPressionar={() => setRestricao(true)} />
+        <Pilula texto="Não" ativo={restricao === false} aoPressionar={() => setRestricao(false)} />
       </View>
 
       <Text style={styles.pergunta}>Lesões ou dores atuais (opcional)</Text>
-      <TextInput
-        style={styles.campo}
-        value={lesoes}
-        onChangeText={setLesoes}
+      <Campo
+        valor={lesoes}
+        aoMudar={setLesoes}
         placeholder="Ex: dor no ombro direito, joelho operado"
-        placeholderTextColor={CORES.textoSecundario}
         multiline
         maxLength={300}
+        capitalizar="sentences"
       />
 
       <Text style={styles.pergunta}>Medicamentos de uso contínuo (opcional)</Text>
-      <TextInput
-        style={styles.campo}
-        value={medicamentos}
-        onChangeText={setMedicamentos}
+      <Campo
+        valor={medicamentos}
+        aoMudar={setMedicamentos}
         placeholder="Ex: losartana, insulina"
-        placeholderTextColor={CORES.textoSecundario}
         multiline
         maxLength={300}
+        capitalizar="sentences"
       />
 
       <Pressable style={styles.consentimento} onPress={() => setConsentimento(!consentimento)}>
@@ -165,129 +153,30 @@ export default function TelaAnamnese({ usuario, aoConcluir }) {
         </Text>
       </Pressable>
 
-      <Pressable
-        style={[styles.botao, salvando && styles.desabilitado]}
-        onPress={salvar}
-        disabled={salvando}
-      >
-        <Text style={styles.botaoTexto}>{salvando ? 'Salvando...' : 'Salvar e continuar'}</Text>
-      </Pressable>
-    </ScrollView>
+      <View style={styles.espaco}>
+        <BotaoPrincipal titulo="Salvar e continuar" aoPressionar={salvar} carregando={salvando} />
+      </View>
+    </Tela>
   );
 }
 
 const styles = StyleSheet.create({
-  tela: {
-    flex: 1,
-    backgroundColor: CORES.fundo,
-  },
-  conteudo: {
-    padding: 20,
-    paddingTop: 56,
-    paddingBottom: 48,
-  },
-  titulo: {
-    fontSize: 26,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-  },
-  intro: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
-    marginTop: 6,
-    marginBottom: 8,
-  },
-  pergunta: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: CORES.texto,
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  linha: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  opcao: {
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.cartao,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  opcaoAtiva: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
-  },
-  opcaoTexto: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.texto,
-  },
-  opcaoTextoAtivo: {
-    color: CORES.textoSobreDestaque,
-  },
-  campo: {
-    minHeight: 64,
-    backgroundColor: CORES.cartao,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: CORES.texto,
-    textAlignVertical: 'top',
-  },
-  consentimento: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginTop: 24,
-  },
+  titulo: { fontSize: 32, fontWeight: '800', letterSpacing: -0.5, color: P.texto },
+  intro: { fontSize: 14, lineHeight: 20, color: P.textoSecundario, marginTop: 8, marginBottom: 8 },
+  pergunta: { fontSize: 18, fontWeight: '700', color: P.texto, marginTop: 24, marginBottom: 12 },
+  linha: { flexDirection: 'row', flexWrap: 'wrap' },
+  consentimento: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 8 },
   caixa: {
-    width: 24,
-    height: 24,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 6,
+    width: 26,
+    height: 26,
+    borderRadius: 8,
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: CORES.cartao,
+    backgroundColor: P.cartao,
   },
-  caixaAtiva: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
-  },
-  marca: {
-    fontWeight: 'bold',
-    color: CORES.textoSobreDestaque,
-  },
-  consentimentoTexto: {
-    flex: 1,
-    fontSize: 13,
-    color: CORES.textoSecundario,
-  },
-  botao: {
-    marginTop: 24,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    backgroundColor: CORES.destaque,
-  },
-  botaoTexto: {
-    fontSize: 16,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.textoSobreDestaque,
-  },
-  desabilitado: {
-    opacity: 0.6,
-  },
+  caixaAtiva: { backgroundColor: P.verde },
+  marca: { fontWeight: '800', color: P.limao },
+  consentimentoTexto: { flex: 1, fontSize: 13, lineHeight: 19, color: P.textoSecundario },
+  espaco: { marginTop: 24 },
 });

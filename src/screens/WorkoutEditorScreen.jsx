@@ -1,21 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import ModalDivisao from '../components/SplitModal';
 import ModalEditarExercicio from '../components/EditExerciseModal';
 import ModalExercicios from '../components/ExercisesModal';
+import { Cabecalho, Tela } from '../components/UI';
 import { api } from '../utils/api';
 import { avisar } from '../utils/notify';
 import { DIVISOES } from '../utils/splits';
 import { GRUPOS } from '../utils/muscleGroups';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 export default function TelaEditorTreino({ aluno, professorId, aoVoltar }) {
   const [carregando, setCarregando] = useState(true);
@@ -214,28 +207,25 @@ export default function TelaEditorTreino({ aluno, professorId, aoVoltar }) {
   if (carregando) {
     return (
       <View style={styles.centro}>
-        <ActivityIndicator size="large" color={CORES.destaque} />
+        <ActivityIndicator size="large" color={P.verde} />
       </View>
     );
   }
 
   return (
-    <View style={styles.tela}>
-      <View style={styles.topo}>
-        <View style={styles.textosTopo}>
-          <Text style={styles.titulo}>Treino de {aluno.nome || 'aluno'}</Text>
-          <Text style={styles.sub}>Monte e salve para o aluno ver</Text>
-        </View>
-        <Pressable style={styles.botaoVoltar} onPress={aoVoltar}>
-          <Text style={styles.botaoVoltarTexto}>Voltar</Text>
-        </Pressable>
-      </View>
+    <View style={styles.raiz}>
+      <Tela>
+        <Cabecalho
+          titulo={`Treino de ${aluno.nome || 'aluno'}`}
+          subtitulo="Monte e salve para o aluno ver"
+          aoVoltar={aoVoltar}
+        />
 
-      <ScrollView contentContainerStyle={styles.lista}>
         {!ficha && (
           <View style={styles.avisoNeutro}>
             <Text style={styles.avisoNeutroTexto}>
-              O aluno ainda não preencheu a ficha de saúde. Considere esperar antes de montar o treino.
+              O aluno ainda não preencheu a ficha de saúde. Considere esperar antes de montar o
+              treino.
             </Text>
           </View>
         )}
@@ -312,7 +302,7 @@ export default function TelaEditorTreino({ aluno, professorId, aoVoltar }) {
               value={sel.nome}
               onChangeText={renomear}
               placeholder="Nome do treino"
-              placeholderTextColor={CORES.textoSecundario}
+              placeholderTextColor={P.textoSecundario}
             />
             <View style={styles.linhaBotoes}>
               <Pressable style={styles.botaoPequeno} onPress={() => moverTreino(-1)}>
@@ -372,7 +362,11 @@ export default function TelaEditorTreino({ aluno, professorId, aoVoltar }) {
         ))}
 
         <Pressable
-          style={[styles.botaoSalvar, salvando && styles.desabilitado]}
+          style={({ pressed }) => [
+            styles.botaoSalvar,
+            salvando && styles.desabilitado,
+            pressed && styles.pressionado,
+          ]}
           onPress={salvar}
           disabled={salvando}
         >
@@ -381,10 +375,10 @@ export default function TelaEditorTreino({ aluno, professorId, aoVoltar }) {
 
         {sel && (
           <Pressable style={styles.botaoRemoverTreino} onPress={removerEsteTreino}>
-            <Text style={styles.textoRemover}>Remover este treino</Text>
+            <Text style={[styles.textoRemover, styles.textoRemoverTreino]}>Remover este treino</Text>
           </Pressable>
         )}
-      </ScrollView>
+      </Tela>
 
       <ModalExercicios
         visivel={modalVisivel}
@@ -415,184 +409,86 @@ export default function TelaEditorTreino({ aluno, professorId, aoVoltar }) {
 }
 
 const styles = StyleSheet.create({
+  raiz: { flex: 1, backgroundColor: P.fundo },
   centro: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: CORES.fundo,
+    backgroundColor: P.fundo,
   },
-  tela: {
-    flex: 1,
-    backgroundColor: CORES.fundo,
-    paddingTop: 48,
-  },
-  topo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12,
-  },
-  textosTopo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  titulo: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: CORES.destaque,
-  },
-  sub: {
-    fontSize: 13,
-    color: CORES.textoSecundario,
-  },
-  botaoVoltar: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: CORES.borda,
-  },
-  botaoVoltarTexto: {
-    color: CORES.texto,
-  },
-  lista: {
-    paddingHorizontal: 20,
-    paddingBottom: 48,
-  },
+  pressionado: { transform: [{ scale: 0.97 }], opacity: 0.9 },
+  sub: { fontSize: 13, color: P.textoSecundario, marginBottom: 4 },
+
   avisoRisco: {
-    borderWidth: 1.5,
-    borderColor: '#FF6B6B',
-    backgroundColor: CORES.cartao,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
-  },
-  avisoRiscoTitulo: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#FF6B6B',
-    marginBottom: 6,
-  },
-  avisoRiscoTexto: {
-    fontSize: 14,
-    color: CORES.texto,
-    marginTop: 2,
-  },
-  avisoNeutro: {
-    backgroundColor: CORES.cartao,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
-  },
-  avisoNeutroTexto: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
-  },
-  secao: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: CORES.texto,
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  linha: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  chip: {
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.cartao,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  chipTexto: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.texto,
-  },
-  chipAtivo: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
-  },
-  chipTextoAtivo: {
-    color: CORES.textoSobreDestaque,
-  },
-  inputNome: {
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.cartao,
-    borderRadius: 10,
-    color: CORES.texto,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginTop: 10,
-    marginBottom: 8,
-    fontSize: 15,
-  },
-  vazio: {
-    color: CORES.textoSecundario,
-    marginTop: 4,
-  },
-  cartao: {
-    backgroundColor: CORES.cartao,
-    borderRadius: 12,
-    padding: 14,
+    borderWidth: 2,
+    borderColor: P.erro,
+    backgroundColor: P.cartao,
+    borderRadius: 24,
+    padding: 16,
     marginBottom: 10,
   },
-  nome: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: CORES.texto,
+  avisoRiscoTitulo: { fontSize: 15, fontWeight: '800', color: P.erro, marginBottom: 6 },
+  avisoRiscoTexto: { fontSize: 14, lineHeight: 20, color: P.texto, marginTop: 2 },
+  avisoNeutro: {
+    backgroundColor: P.cartao,
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 10,
   },
-  detalhe: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
-    marginTop: 2,
+  avisoNeutroTexto: { fontSize: 14, lineHeight: 20, color: P.textoSecundario },
+
+  secao: { fontSize: 18, fontWeight: '700', color: P.texto, marginTop: 20, marginBottom: 12 },
+  linha: { flexDirection: 'row', flexWrap: 'wrap' },
+  chip: {
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    marginRight: 8,
+    marginBottom: 8,
   },
-  linhaBotoes: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 10,
+  chipTexto: { fontSize: 14, fontWeight: '700', color: P.texto },
+  chipAtivo: { backgroundColor: P.verde },
+  chipTextoAtivo: { color: P.textoSobreVerde },
+  inputNome: {
+    backgroundColor: P.cartao,
+    borderRadius: 20,
+    color: P.texto,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    marginTop: 12,
+    marginBottom: 4,
+    fontSize: 15,
   },
+  vazio: { color: P.textoSecundario, marginTop: 4 },
+  cartao: {
+    backgroundColor: P.cartao,
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 10,
+  },
+  nome: { fontSize: 16, fontWeight: '800', color: P.texto },
+  detalhe: { fontSize: 14, color: P.textoSecundario, marginTop: 2 },
+  linhaBotoes: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 },
   botaoPequeno: {
-    borderWidth: 1,
-    borderColor: CORES.borda,
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    backgroundColor: P.fundo,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
     marginRight: 8,
     marginBottom: 6,
   },
-  botaoPequenoTexto: {
-    fontSize: 13,
-    color: CORES.texto,
-  },
-  textoRemover: {
-    color: '#FF6B6B',
-  },
+  botaoPequenoTexto: { fontSize: 13, fontWeight: '700', color: P.texto },
+  textoRemover: { color: P.erro },
+  textoRemoverTreino: { fontSize: 14, fontWeight: '700' },
   botaoSalvar: {
-    marginTop: 16,
-    paddingVertical: 14,
-    borderRadius: 10,
+    marginTop: 20,
+    paddingVertical: 18,
+    borderRadius: 999,
     alignItems: 'center',
-    backgroundColor: CORES.destaque,
+    backgroundColor: P.limao,
   },
-  botaoSalvarTexto: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: CORES.textoSobreDestaque,
-  },
-  desabilitado: {
-    opacity: 0.6,
-  },
-  botaoRemoverTreino: {
-    marginTop: 14,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
+  botaoSalvarTexto: { fontSize: 16, fontWeight: '800', color: P.verde },
+  desabilitado: { opacity: 0.6 },
+  botaoRemoverTreino: { marginTop: 14, alignItems: 'center', paddingVertical: 8 },
 });

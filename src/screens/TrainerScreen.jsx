@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -10,10 +11,9 @@ import {
   Text,
   View,
 } from 'react-native';
-import Logo from '../components/Logo';
 import { api } from '../utils/api';
 import { avisar } from '../utils/notify';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 import TelaEditorTreino from './WorkoutEditorScreen';
 
 // No celular a animação roda no motor nativo (mais fluida). No navegador, não existe.
@@ -71,7 +71,6 @@ const ABAS = [
 
 // ----- Blocos visuais (mesmo padrão da tela de treino) -----
 
-// Faz o conteúdo aparecer subindo suavemente. "atraso" escalona a entrada dos blocos.
 function Aparecer({ atraso = 0, children }) {
   const valor = useRef(new Animated.Value(0)).current;
 
@@ -104,43 +103,36 @@ function Aparecer({ atraso = 0, children }) {
   );
 }
 
-// Cabeçalho de seção: barrinha amarela, título e uma linha de explicação.
 function TituloSecao({ titulo, descricao }) {
   return (
     <View style={styles.secao}>
-      <View style={styles.barraSecao} />
-      <View style={styles.textosSecao}>
-        <Text style={styles.tituloSecao}>{titulo}</Text>
-        {!!descricao && <Text style={styles.descricaoSecao}>{descricao}</Text>}
-      </View>
+      <Text style={styles.tituloSecao}>{titulo}</Text>
+      {!!descricao && <Text style={styles.descricaoSecao}>{descricao}</Text>}
     </View>
   );
 }
 
-// Topo igual ao da tela de treino: logo, nome da academia e botão de texto à direita.
+// Topo igual ao da tela de treino: mascote, nome da academia e botão em pílula à direita.
 function Topo({ textoBotao, aoPressionar }) {
   return (
-    <>
-      <View style={styles.topo}>
-        <View style={styles.marca}>
-          <Logo tamanho={56} style={styles.logo} />
-          <View style={styles.nomeMarca}>
-            <Text style={styles.academia}>Academia</Text>
-            <Text style={styles.nomeAcademia}>Ritmo Brasil</Text>
-          </View>
-        </View>
-
-        <Pressable
-          onPress={aoPressionar}
-          hitSlop={10}
-          style={({ pressed }) => [styles.botaoTopo, pressed && styles.pressionado]}
-        >
-          <Text style={styles.textoBotaoTopo}>{textoBotao}</Text>
-        </Pressable>
+    <View style={styles.topo}>
+      <View style={styles.marca}>
+        <Image
+          source={require('../../assets/mascot.png')}
+          style={styles.mascot}
+          resizeMode="contain"
+        />
+        <Text style={styles.nomeAcademia}>RITMO BRASIL</Text>
       </View>
 
-      <View style={styles.linhaAmarela} />
-    </>
+      <Pressable
+        onPress={aoPressionar}
+        hitSlop={10}
+        style={({ pressed }) => [styles.botaoTopo, pressed && styles.pressionado]}
+      >
+        <Text style={styles.textoBotaoTopo}>{textoBotao}</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -238,7 +230,7 @@ export default function TelaProfessor({ usuario, aoSair }) {
   if (carregando) {
     return (
       <View style={styles.centro}>
-        <ActivityIndicator size="large" color={CORES.destaque} />
+        <ActivityIndicator size="large" color={P.verde} />
       </View>
     );
   }
@@ -251,7 +243,7 @@ export default function TelaProfessor({ usuario, aoSair }) {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.conteudo}>
+      <ScrollView contentContainerStyle={styles.conteudo} showsVerticalScrollIndicator={false}>
         <Topo textoBotao="Sair" aoPressionar={aoSair} />
 
         <Aparecer atraso={0}>
@@ -289,7 +281,7 @@ export default function TelaProfessor({ usuario, aoSair }) {
                 style={({ pressed }) => [
                   styles.cartaoAluno,
                   riscos[aluno.id] && styles.cartaoRisco,
-                  pressed && styles.cartaoAlunoAtivo,
+                  pressed && styles.pressionado,
                 ]}
               >
                 <View style={styles.avatar}>
@@ -419,7 +411,7 @@ function FichaAluno({ aluno, professorId, aoVoltar, aoMontarTreino }) {
           <Topo textoBotao="Voltar" aoPressionar={aoVoltar} />
         </View>
         <View style={styles.centro}>
-          <ActivityIndicator size="large" color={CORES.destaque} />
+          <ActivityIndicator size="large" color={P.verde} />
         </View>
       </View>
     );
@@ -427,7 +419,11 @@ function FichaAluno({ aluno, professorId, aoVoltar, aoMontarTreino }) {
 
   return (
     <View style={styles.container}>
-      <ScrollView stickyHeaderIndices={[1]} contentContainerStyle={styles.conteudoFicha}>
+      <ScrollView
+        stickyHeaderIndices={[1]}
+        contentContainerStyle={styles.conteudoFicha}
+        showsVerticalScrollIndicator={false}
+      >
         {/* 0: topo, resumo, alertas e ação principal */}
         <View style={styles.paddingLateral}>
           <Topo textoBotao="Voltar" aoPressionar={aoVoltar} />
@@ -520,26 +516,17 @@ function FichaAluno({ aluno, professorId, aoVoltar, aoMontarTreino }) {
                 <Pressable
                   key={item.id}
                   onPress={() => setAba(item.id)}
-                  style={({ pressed }) => [
+                  style={[
                     styles.aba,
                     indice < ABAS.length - 1 && styles.abaEspaco,
-                    (pressed || ativa) && styles.abaAtiva,
+                    ativa && styles.abaAtiva,
                   ]}
                 >
-                  {({ pressed }) => (
-                    <>
-                      <Text
-                        style={[styles.textoAba, (pressed || ativa) && styles.textoAbaAtiva]}
-                        numberOfLines={1}
-                      >
-                        {item.nome}
-                      </Text>
-                      {mostrarPonto && (
-                        <View
-                          style={[styles.pontoAba, (pressed || ativa) && styles.pontoAbaAtivo]}
-                        />
-                      )}
-                    </>
+                  <Text style={[styles.textoAba, ativa && styles.textoAbaAtiva]} numberOfLines={1}>
+                    {item.nome}
+                  </Text>
+                  {mostrarPonto && (
+                    <View style={[styles.pontoAba, ativa && styles.pontoAbaAtivo]} />
                   )}
                 </Pressable>
               );
@@ -581,14 +568,11 @@ function FichaAluno({ aluno, professorId, aoVoltar, aoMontarTreino }) {
 
             {aba === 'saude' && (
               <>
-                <TituloSecao
-                  titulo="Ficha de saúde"
-                  descricao="Respostas do aluno no cadastro"
-                />
+                <TituloSecao titulo="Ficha de saúde" descricao="Respostas do aluno no cadastro" />
 
                 {!anamnese && (
                   <View style={styles.cartao}>
-                    <Text style={styles.detalhe}>
+                    <Text style={styles.detalheSemTopo}>
                       O aluno ainda não preencheu a ficha de saúde. Evite montar o treino antes
                       disso.
                     </Text>
@@ -662,10 +646,7 @@ function FichaAluno({ aluno, professorId, aoVoltar, aoMontarTreino }) {
 
             {aba === 'agua' && (
               <>
-                <TituloSecao
-                  titulo="Meta de água"
-                  descricao="Defina como o aluno vê a meta diária"
-                />
+                <TituloSecao titulo="Meta de água" descricao="Defina como o aluno vê a meta diária" />
 
                 <View style={styles.cartao}>
                   {temRisco && (
@@ -688,22 +669,15 @@ function FichaAluno({ aluno, professorId, aoVoltar, aoMontarTreino }) {
                         <Pressable
                           key={modo.id}
                           onPress={() => setModoAgua(modo.id)}
-                          style={({ pressed }) => [
+                          style={[
                             styles.modo,
                             indice < MODOS.length - 1 && styles.modoEspaco,
-                            (pressed || ativo) && styles.modoAtivo,
+                            ativo && styles.modoAtivo,
                           ]}
                         >
-                          {({ pressed }) => (
-                            <Text
-                              style={[
-                                styles.textoModo,
-                                (pressed || ativo) && styles.textoModoAtivo,
-                              ]}
-                            >
-                              {modo.nome}
-                            </Text>
-                          )}
+                          <Text style={[styles.textoModo, ativo && styles.textoModoAtivo]}>
+                            {modo.nome}
+                          </Text>
                         </Pressable>
                       );
                     })}
@@ -762,249 +736,121 @@ function FichaAluno({ aluno, professorId, aoVoltar, aoMontarTreino }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: CORES.fundo,
-  },
+  container: { flex: 1, backgroundColor: P.fundo },
   centro: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: CORES.fundo,
+    backgroundColor: P.fundo,
   },
-  conteudo: {
-    paddingHorizontal: 20,
-    paddingBottom: 60,
-  },
-  conteudoFicha: {
-    paddingBottom: 60,
-  },
-  paddingLateral: {
-    paddingHorizontal: 20,
-  },
+  conteudo: { paddingHorizontal: 20, paddingBottom: 60 },
+  conteudoFicha: { paddingBottom: 60 },
+  paddingLateral: { paddingHorizontal: 20 },
+  pressionado: { transform: [{ scale: 0.97 }], opacity: 0.9 },
 
   // Topo (igual ao da tela de treino)
   topo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 50,
-    paddingBottom: 14,
+    paddingTop: 56,
+    paddingBottom: 24,
   },
-  marca: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logo: {
-    alignSelf: 'auto',
-    marginBottom: 0,
-  },
-  nomeMarca: {
-    marginLeft: 12,
-  },
-  academia: {
-    fontSize: 12,
-    fontStyle: 'italic',
-    color: CORES.textoSecundario,
-  },
-  nomeAcademia: {
-    fontSize: 20,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
-  },
+  marca: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
+  mascot: { width: 24, height: 32 },
+  nomeAcademia: { marginLeft: 8, fontSize: 15, fontWeight: '800', letterSpacing: 1.5, color: P.texto },
   botaoTopo: {
-    paddingVertical: 6,
-    paddingHorizontal: 4,
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
   },
-  textoBotaoTopo: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
-    fontWeight: 'bold',
-  },
-  linhaAmarela: {
-    height: 4,
-    backgroundColor: CORES.destaque,
-    marginHorizontal: -20,
-    marginBottom: 16,
-  },
-  pressionado: {
-    opacity: 0.6,
-  },
+  textoBotaoTopo: { fontSize: 13, fontWeight: '700', color: P.texto },
 
   // Cabeçalho da tela
-  cabecalho: {
-    marginBottom: 14,
-  },
-  saudacao: {
-    fontSize: 15,
-    color: CORES.textoSecundario,
-  },
-  titulo: {
-    fontSize: 28,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-  },
-  tituloFlex: {
-    flexShrink: 1,
-  },
+  cabecalho: { marginBottom: 20 },
+  saudacao: { fontSize: 15, color: P.textoSecundario, marginBottom: 6 },
+  titulo: { fontSize: 36, fontWeight: '800', letterSpacing: -0.5, color: P.texto },
+  tituloFlex: { flexShrink: 1 },
 
   // Títulos de seção
-  secao: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  barraSecao: {
-    width: 4,
-    borderRadius: 2,
-    backgroundColor: CORES.destaque,
-    marginRight: 10,
-  },
-  textosSecao: {
-    flex: 1,
-  },
-  tituloSecao: {
-    fontSize: 16,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-  },
-  descricaoSecao: {
-    fontSize: 12,
-    color: CORES.textoSecundario,
-    marginTop: 2,
-  },
+  secao: { marginTop: 12, marginBottom: 14 },
+  tituloSecao: { fontSize: 18, fontWeight: '700', color: P.texto },
+  descricaoSecao: { fontSize: 13, color: P.textoSecundario, marginTop: 4 },
 
   // Cartões de número
-  linhaNumeros: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
+  linhaNumeros: { flexDirection: 'row', marginBottom: 16 },
   cartaoNumero: {
     flex: 1,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.cartao,
-    borderRadius: 10,
-    paddingVertical: 12,
+    backgroundColor: P.cartao,
+    borderRadius: 24,
+    paddingVertical: 16,
     paddingHorizontal: 6,
     marginHorizontal: 4,
   },
-  numero: {
-    fontSize: 22,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
-  },
-  numeroAlerta: {
-    color: CORES.erro,
-  },
-  rotuloNumero: {
-    fontSize: 11,
-    color: CORES.textoSecundario,
-    marginTop: 2,
-    textAlign: 'center',
-  },
+  numero: { fontSize: 24, fontWeight: '800', color: P.texto },
+  numeroAlerta: { color: P.erro },
+  rotuloNumero: { fontSize: 11, color: P.textoSecundario, marginTop: 2, textAlign: 'center' },
 
   // Lista de alunos
   cartaoAluno: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: CORES.cartao,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 10,
+    backgroundColor: P.cartao,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    borderRadius: 24,
     padding: 14,
     marginBottom: 10,
-  },
-  cartaoAlunoAtivo: {
-    borderColor: CORES.destaque,
   },
   avatar: {
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: CORES.destaque,
+    backgroundColor: P.verde,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
-  avatarTexto: {
-    fontSize: 20,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.textoSobreDestaque,
-  },
-  corpoAluno: {
-    flex: 1,
-  },
-  nomeAluno: {
-    fontSize: 17,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-    flexShrink: 1,
-  },
-  seta: {
-    fontSize: 26,
-    color: CORES.textoSecundario,
-    marginLeft: 8,
-  },
+  avatarTexto: { fontSize: 20, fontWeight: '800', color: P.limao },
+  corpoAluno: { flex: 1 },
+  nomeAluno: { fontSize: 17, fontWeight: '800', color: P.texto, flexShrink: 1 },
+  seta: { fontSize: 26, color: P.textoSecundario, marginLeft: 8 },
 
   // Etiquetas
-  linhaNome: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  },
+  linhaNome: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   etiquetaRisco: {
-    backgroundColor: CORES.erro,
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 1,
+    backgroundColor: P.erro,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     marginLeft: 8,
   },
   etiquetaAlerta: {
-    backgroundColor: CORES.erro,
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 1,
+    backgroundColor: P.erro,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     marginRight: 8,
   },
-  textoEtiquetaRisco: {
-    fontSize: 11,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.fundo,
-  },
+  textoEtiquetaRisco: { fontSize: 11, fontWeight: '800', color: P.fundo },
   etiquetaSemFicha: {
-    borderWidth: 1,
-    borderColor: CORES.textoSecundario,
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 0,
+    backgroundColor: P.pontoVazio,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     marginLeft: 8,
   },
-  textoEtiquetaSemFicha: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: CORES.textoSecundario,
-  },
+  textoEtiquetaSemFicha: { fontSize: 11, fontWeight: '700', color: P.texto },
 
   // Banner de alertas
   banner: {
-    backgroundColor: CORES.cartao,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: CORES.erro,
-    paddingHorizontal: 14,
+    backgroundColor: P.cartao,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: P.erro,
+    paddingHorizontal: 16,
     paddingVertical: 4,
     marginBottom: 12,
   },
@@ -1012,231 +858,108 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
-  bannerTexto: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: CORES.erro,
-  },
-  bannerTextoNeutro: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: CORES.textoSecundario,
-  },
-  bannerSeta: {
-    fontSize: 22,
-    color: CORES.erro,
-    marginLeft: 8,
-  },
-  bannerSetaNeutra: {
-    fontSize: 22,
-    color: CORES.textoSecundario,
-    marginLeft: 8,
-  },
+  bannerTexto: { flex: 1, fontSize: 13, fontWeight: '700', color: P.erro },
+  bannerTextoNeutro: { flex: 1, fontSize: 13, fontWeight: '700', color: P.textoSecundario },
+  bannerSeta: { fontSize: 22, color: P.erro, marginLeft: 8 },
+  bannerSetaNeutra: { fontSize: 22, color: P.textoSecundario, marginLeft: 8 },
 
   // Botões principais
   botaoPrincipal: {
-    backgroundColor: CORES.destaque,
-    borderRadius: 10,
-    paddingVertical: 14,
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingVertical: 18,
     alignItems: 'center',
     marginBottom: 16,
   },
   botaoSalvar: {
-    backgroundColor: CORES.destaque,
-    borderRadius: 10,
-    paddingVertical: 14,
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingVertical: 16,
     alignItems: 'center',
     marginTop: 16,
   },
-  textoBotaoPrincipal: {
-    fontSize: 15,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.textoSobreDestaque,
-  },
+  textoBotaoPrincipal: { fontSize: 16, fontWeight: '800', color: P.verde },
 
-  // Abas (mesmo estilo dos botões do cabeçalho da tela de treino)
+  // Abas
   abasFundo: {
-    backgroundColor: CORES.fundo,
+    backgroundColor: P.fundo,
     paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 12,
   },
-  abas: {
-    flexDirection: 'row',
-  },
+  abas: { flexDirection: 'row' },
   aba: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.cartao,
-    borderRadius: 10,
-    paddingVertical: 10,
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingVertical: 12,
     paddingHorizontal: 2,
   },
-  abaEspaco: {
-    marginRight: 8,
-  },
-  abaAtiva: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
-  },
-  textoAba: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: CORES.texto,
-  },
-  textoAbaAtiva: {
-    color: CORES.textoSobreDestaque,
-  },
+  abaEspaco: { marginRight: 6 },
+  abaAtiva: { backgroundColor: P.verde },
+  textoAba: { fontSize: 13, fontWeight: '700', color: P.textoSecundario },
+  textoAbaAtiva: { color: P.textoSobreVerde },
   pontoAba: {
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: CORES.erro,
+    backgroundColor: P.erro,
     marginLeft: 5,
   },
-  pontoAbaAtivo: {
-    backgroundColor: CORES.textoSobreDestaque,
-  },
+  pontoAbaAtivo: { backgroundColor: P.limao },
 
   // Cartões de conteúdo
   cartao: {
-    backgroundColor: CORES.cartao,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 10,
+    backgroundColor: P.cartao,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    borderRadius: 24,
     padding: 16,
     marginBottom: 10,
   },
-  cartaoRisco: {
-    borderColor: CORES.erro,
-  },
-  avisoRisco: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.erro,
-    marginBottom: 10,
-  },
-  nomeCartao: {
-    fontSize: 17,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
-  },
-  vazio: {
-    color: CORES.textoSecundario,
-    textAlign: 'center',
-    marginTop: 16,
-    marginBottom: 12,
-  },
+  cartaoRisco: { borderColor: P.erro },
+  avisoRisco: { fontSize: 14, lineHeight: 20, fontWeight: '700', color: P.erro, marginBottom: 10 },
+  nomeCartao: { fontSize: 17, fontWeight: '800', color: P.texto },
+  vazio: { color: P.textoSecundario, textAlign: 'center', marginTop: 16, marginBottom: 12 },
 
   // Textos
-  detalhe: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
-    marginTop: 2,
-  },
-  detalheSemTopo: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
-  },
-  textoErro: {
-    color: CORES.erro,
-  },
-  rotuloPrimeiro: {
-    fontSize: 12,
-    color: CORES.textoSecundario,
-  },
-  rotulo: {
-    fontSize: 12,
-    color: CORES.textoSecundario,
-    marginTop: 12,
-  },
-  valor: {
-    fontSize: 15,
-    color: CORES.texto,
-    marginTop: 2,
-  },
-  respostaIA: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
-    marginTop: 2,
-  },
-  dataPergunta: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
-  },
-  anotacao: {
-    fontSize: 14,
-    color: CORES.texto,
-    marginTop: 8,
-  },
+  detalhe: { fontSize: 14, color: P.textoSecundario, marginTop: 2 },
+  detalheSemTopo: { fontSize: 14, lineHeight: 20, color: P.textoSecundario },
+  textoErro: { color: P.erro },
+  rotuloPrimeiro: { fontSize: 12, fontWeight: '700', color: P.textoSecundario },
+  rotulo: { fontSize: 12, fontWeight: '700', color: P.textoSecundario, marginTop: 12 },
+  valor: { fontSize: 15, color: P.texto, marginTop: 2 },
+  respostaIA: { fontSize: 14, lineHeight: 20, color: P.textoSecundario, marginTop: 2 },
+  dataPergunta: { fontSize: 14, color: P.textoSecundario },
+  anotacao: { fontSize: 14, color: P.texto, marginTop: 8 },
 
   // Água
-  linhaModos: {
-    flexDirection: 'row',
-    marginTop: 14,
-    marginBottom: 12,
-  },
+  linhaModos: { flexDirection: 'row', marginTop: 14, marginBottom: 12 },
   modo: {
     flex: 1,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.fundo,
-    borderRadius: 10,
-    paddingVertical: 10,
+    backgroundColor: P.fundo,
+    borderRadius: 999,
+    paddingVertical: 12,
   },
-  modoEspaco: {
-    marginRight: 8,
-  },
-  modoAtivo: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
-  },
-  textoModo: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: CORES.texto,
-  },
-  textoModoAtivo: {
-    color: CORES.textoSobreDestaque,
-  },
-  linhaMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
+  modoEspaco: { marginRight: 8 },
+  modoAtivo: { backgroundColor: P.verde },
+  textoModo: { fontSize: 13, fontWeight: '700', color: P.texto },
+  textoModoAtivo: { color: P.textoSobreVerde },
+  linhaMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   passoMeta: {
     width: 48,
-    height: 42,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.fundo,
+    height: 44,
+    borderRadius: 999,
+    backgroundColor: P.fundo,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  textoPassoMeta: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: CORES.texto,
-  },
-  valorMeta: {
-    fontSize: 24,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
-    marginHorizontal: 20,
-  },
+  textoPassoMeta: { fontSize: 20, fontWeight: '700', color: P.texto },
+  valorMeta: { fontSize: 24, fontWeight: '800', color: P.texto, marginHorizontal: 20 },
 });

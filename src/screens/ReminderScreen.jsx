@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { BotaoPrincipal, Cabecalho, Tela } from '../components/UI';
 import { avisar } from '../utils/notify';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 const CHAVE = 'lembrete_treino';
 const NA_WEB = Platform.OS === 'web';
@@ -207,23 +208,14 @@ export default function TelaLembrete({ aoVoltar }) {
   const semDias = dias.length === 0;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.conteudo}>
-      <Pressable onPress={aoVoltar} hitSlop={10} style={styles.voltar}>
-        <Text style={styles.textoVoltar}>← Voltar</Text>
-      </Pressable>
+    <Tela>
+      <Cabecalho titulo="Lembrete" subtitulo="Treino" aoVoltar={aoVoltar} />
 
-      <View style={styles.titulo}>
-        <View style={styles.barraTitulo} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.rotulo}>Treino</Text>
-          <Text style={styles.nome}>Lembrete</Text>
+      {ativo && (
+        <View style={styles.selo}>
+          <Text style={styles.textoSelo}>● ATIVO</Text>
         </View>
-        {ativo && (
-          <View style={styles.selo}>
-            <Text style={styles.textoSelo}>● ATIVO</Text>
-          </View>
-        )}
-      </View>
+      )}
 
       <Text style={styles.secao}>Horário</Text>
       <View style={styles.horario}>
@@ -279,18 +271,17 @@ export default function TelaLembrete({ aoVoltar }) {
         {semDias ? resumoDias(dias) : `${resumoDias(dias)} · ${horaTexto}`}
       </Text>
 
-      <Pressable
-        style={[styles.botao, semDias && styles.botaoDesabilitado]}
-        onPress={agendar}
-        disabled={semDias}
-      >
-        <Text style={styles.textoBotao}>
-          {ativo ? (alterado ? 'Salvar alterações' : 'Atualizar lembrete') : 'Ativar lembrete'}
-        </Text>
-      </Pressable>
+      <BotaoPrincipal
+        titulo={ativo ? (alterado ? 'Salvar alterações' : 'Atualizar lembrete') : 'Ativar lembrete'}
+        aoPressionar={agendar}
+        desabilitado={semDias}
+      />
 
       {ativo && (
-        <Pressable style={styles.botaoSecundario} onPress={desativar}>
+        <Pressable
+          style={({ pressed }) => [styles.botaoSecundario, pressed && styles.pressionado]}
+          onPress={desativar}
+        >
           <Text style={styles.textoSecundario}>Desativar</Text>
         </Pressable>
       )}
@@ -300,128 +291,90 @@ export default function TelaLembrete({ aoVoltar }) {
           Aqui só dá para ver a tela. O aviso funciona num development build ou no iPhone.
         </Text>
       )}
-    </ScrollView>
+    </Tela>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: CORES.fundo },
-  conteudo: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 40 },
-  voltar: { alignSelf: 'flex-start', paddingVertical: 6, marginBottom: 16 },
-  textoVoltar: { fontSize: 14, fontWeight: 'bold', color: CORES.textoSecundario },
-  titulo: { flexDirection: 'row', alignItems: 'stretch', marginBottom: 28 },
-  barraTitulo: { width: 4, borderRadius: 2, backgroundColor: CORES.destaque, marginRight: 10 },
-  rotulo: { fontSize: 13, color: CORES.textoSecundario },
-  nome: {
-    fontSize: 28,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-  },
+  pressionado: { transform: [{ scale: 0.97 }], opacity: 0.9 },
   selo: {
-    alignSelf: 'center',
-    borderWidth: 1,
-    borderColor: CORES.destaque,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    alignSelf: 'flex-start',
+    backgroundColor: P.verde,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginTop: -8,
+    marginBottom: 12,
   },
-  textoSelo: { fontSize: 11, fontWeight: '900', color: CORES.destaque },
-  secao: {
-    fontSize: 14,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-    marginBottom: 10,
-  },
+  textoSelo: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8, color: P.limao },
+  secao: { fontSize: 18, fontWeight: '700', color: P.texto, marginTop: 12, marginBottom: 14 },
   horario: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   coluna: { alignItems: 'center' },
   passo: {
-    width: 72,
-    height: 46,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.cartao,
-    borderRadius: 10,
+    width: 76,
+    height: 48,
+    backgroundColor: P.cartao,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  passoPressionado: { borderColor: CORES.destaque },
-  textoPasso: { fontSize: 22, fontWeight: 'bold', color: CORES.texto },
+  passoPressionado: { backgroundColor: P.verde },
+  textoPasso: { fontSize: 22, fontWeight: '700', color: P.texto },
   numero: {
-    fontSize: 56,
-    lineHeight: 68,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
+    fontSize: 60,
+    lineHeight: 72,
+    fontWeight: '800',
+    letterSpacing: -1,
+    color: P.texto,
   },
-  doisPontos: { fontSize: 44, fontWeight: '900', color: CORES.destaque, marginHorizontal: 14 },
+  doisPontos: { fontSize: 44, fontWeight: '800', color: P.verde, marginHorizontal: 14 },
   dica: {
-    fontSize: 11,
-    color: CORES.textoSecundario,
+    fontSize: 12,
+    color: P.textoSecundario,
     textAlign: 'center',
     marginTop: 6,
-    marginBottom: 26,
+    marginBottom: 20,
   },
-  atalhos: { flexDirection: 'row', marginBottom: 12 },
+  atalhos: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 },
   atalho: {
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     marginRight: 8,
+    marginBottom: 8,
   },
-  atalhoAtivo: { borderColor: CORES.destaque },
-  textoAtalho: { fontSize: 12, fontWeight: 'bold', color: CORES.textoSecundario },
-  textoAtalhoAtivo: { color: CORES.destaque },
+  atalhoAtivo: { backgroundColor: P.verde },
+  textoAtalho: { fontSize: 13, fontWeight: '700', color: P.textoSecundario },
+  textoAtalhoAtivo: { color: P.textoSobreVerde },
   dias: { flexDirection: 'row', justifyContent: 'space-between' },
   dia: {
     width: 42,
     height: 42,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#555',
-    backgroundColor: CORES.cartao,
+    borderRadius: 21,
+    backgroundColor: P.cartao,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  diaAtivo: { backgroundColor: CORES.destaque, borderColor: CORES.destaque },
-  textoDia: { fontSize: 15, fontWeight: 'bold', color: CORES.textoSecundario },
-  textoDiaAtivo: { color: CORES.textoSobreDestaque },
+  diaAtivo: { backgroundColor: P.verde },
+  textoDia: { fontSize: 15, fontWeight: '700', color: P.textoSecundario },
+  textoDiaAtivo: { color: P.limao },
   resumo: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.texto,
+    fontWeight: '700',
+    color: P.texto,
     textAlign: 'center',
-    marginTop: 14,
+    marginTop: 16,
     marginBottom: 20,
   },
-  resumoErro: { color: '#FF6B6B' },
-  botao: {
-    backgroundColor: CORES.destaque,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  botaoDesabilitado: { opacity: 0.35 },
-  textoBotao: {
-    fontSize: 15,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.textoSobreDestaque,
-  },
+  resumoErro: { color: P.erro },
   botaoSecundario: {
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 10,
-    paddingVertical: 12,
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 12,
   },
-  textoSecundario: { fontSize: 14, fontWeight: 'bold', color: CORES.textoSecundario },
-  aviso: { fontSize: 12, color: CORES.textoSecundario, textAlign: 'center', marginTop: 16 },
+  textoSecundario: { fontSize: 15, fontWeight: '700', color: P.texto },
+  aviso: { fontSize: 12, color: P.textoSecundario, textAlign: 'center', marginTop: 16 },
 });

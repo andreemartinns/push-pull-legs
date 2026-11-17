@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
   LayoutAnimation,
-  Pressable,
   ScrollView,
   SectionList,
   StyleSheet,
@@ -11,22 +10,15 @@ import {
 } from 'react-native';
 import Calendario, { chaveDoTexto } from '../components/Calendar';
 import GraficoEvolucao from '../components/ProgressChart';
+import { Abas, Cabecalho, Numero } from '../components/UI';
 import { DIVISOES } from '../utils/splits';
 import { listarExerciciosComPeso, obterEvolucao } from '../utils/progress';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 // ---- ajudantes ----
 
 const DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
-const DIAS_LONGOS = [
-  'Domingo',
-  'Segunda',
-  'Terça',
-  'Quarta',
-  'Quinta',
-  'Sexta',
-  'Sábado',
-];
+const DIAS_LONGOS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const MESES = [
   'Janeiro',
   'Fevereiro',
@@ -40,6 +32,12 @@ const MESES = [
   'Outubro',
   'Novembro',
   'Dezembro',
+];
+
+const ABAS = [
+  { id: 'historico', rotulo: 'Treinos' },
+  { id: 'evolucao', rotulo: 'Evolução' },
+  { id: 'calendario', rotulo: 'Calendário' },
 ];
 
 // Lê a data salva ("10/10/2026") e devolve dia, mês, ano e dia da semana.
@@ -56,8 +54,6 @@ function lerData(texto) {
   return { dia, mes, ano, diaSemana: data.getDay() };
 }
 
-// Descobre a que divisão (Push, Pull ou Legs) cada exercício pertence.
-// Primeiro pelo nome, nos treinos prontos. Se não achar, pelo grupo muscular.
 const DIVISAO_POR_NOME = {};
 DIVISOES.forEach((divisao) => {
   divisao.exercicios.forEach((ex) => {
@@ -72,7 +68,7 @@ const DIVISAO_POR_GRUPO = {
   Pernas: 'Legs',
 };
 
-// Dá um nome ao treino: Push, Pull ou Legs quando uma divisão domina (60% ou mais),
+// Push, Pull ou Legs quando uma divisão domina (60% ou mais),
 // "Misto" quando mistura, ou o próprio grupo quando é um treino de um grupo só.
 function nomeDoTreino(exercicios) {
   const contagem = {};
@@ -99,12 +95,10 @@ function nomeDoTreino(exercicios) {
   return contagem[melhor] / total >= 0.6 ? melhor : 'Misto';
 }
 
-// Lista os grupos musculares do treino, sem repetir ("Peito, Ombros, Braços").
 function gruposDoTreino(exercicios) {
   return [...new Set(exercicios.map((ex) => ex.grupo).filter(Boolean))].join(', ');
 }
 
-// Separa o histórico em meses, do mais novo para o mais antigo.
 function agruparPorMes(historico) {
   const mapa = new Map();
 
@@ -126,7 +120,6 @@ function plural(quantidade, singular, pluralTexto) {
 
 // ---- fim dos ajudantes ----
 
-// Um treino do histórico: fechado mostra o essencial, aberto mostra os exercícios.
 function CartaoTreino({ item, aberto, aoAlternar }) {
   const exercicios = item.exercicios || [];
   const data = lerData(item.data);
@@ -166,7 +159,10 @@ function CartaoTreino({ item, aberto, aoAlternar }) {
                 : '';
 
             return (
-              <View key={exercicio.id ?? indice} style={styles.linhaExercicio}>
+              <View
+                key={exercicio.id ?? indice}
+                style={[styles.linhaExercicio, indice === exercicios.length - 1 && styles.semBorda]}
+              >
                 <Text style={styles.nomeExercicio}>{exercicio.nome}</Text>
                 <Text style={styles.detalheExercicio}>
                   {series}
@@ -190,7 +186,6 @@ export default function TelaHistorico({ historico, aoVoltar }) {
   const [aba, setAba] = useState('historico');
   const [exercicioSelecionado, setExercicioSelecionado] = useState(null);
   const [diaSelecionado, setDiaSelecionado] = useState(null);
-  // Guarda o que o aluno abriu ou fechou. Sem escolha, só o treino mais recente começa aberto.
   const [abertos, setAbertos] = useState({});
 
   const secoes = useMemo(() => agruparPorMes(historico), [historico]);
@@ -208,14 +203,14 @@ export default function TelaHistorico({ historico, aoVoltar }) {
     setAbertos((atual) => ({ ...atual, [id]: !estavaAberto }));
   }
 
-  // Aba Evolução: já começa no primeiro exercício, para a tela nunca ficar vazia.
+  // Aba Evolução
   const exerciciosComPeso = listarExerciciosComPeso(historico);
   const selecionado = exercicioSelecionado ?? exerciciosComPeso[0] ?? null;
   const pontosEvolucao = selecionado ? obterEvolucao(historico, selecionado) : [];
   const recorde = pontosEvolucao.length ? Math.max(...pontosEvolucao.map((p) => p.peso)) : 0;
   const ultimaCarga = pontosEvolucao.length ? pontosEvolucao[pontosEvolucao.length - 1].peso : 0;
 
-  // Aba Calendário: os treinos do dia que o aluno tocou.
+  // Aba Calendário
   const treinosDoDia = diaSelecionado
     ? historico.filter((item) => chaveDoTexto(item.data) === diaSelecionado)
     : [];
@@ -223,63 +218,22 @@ export default function TelaHistorico({ historico, aoVoltar }) {
 
   const resumoTopo = (
     <View style={styles.resumoTopo}>
-      <View style={[styles.bloco, styles.blocoEspaco]}>
-        <Text style={styles.numeroBloco}>{historico.length}</Text>
-        <Text style={styles.rotuloBloco}>{historico.length === 1 ? 'treino' : 'treinos'}</Text>
-      </View>
-      <View style={styles.bloco}>
-        <Text style={styles.numeroBloco}>{treinosNoMes}</Text>
-        <Text style={styles.rotuloBloco}>neste mês</Text>
-      </View>
+      <Numero valor={historico.length} legenda={historico.length === 1 ? 'treino' : 'treinos'} />
+      <Numero valor={treinosNoMes} legenda="neste mês" />
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <View style={styles.cabecalho}>
-        <Pressable
-          onPress={aoVoltar}
-          style={({ pressed }) => [styles.botaoVoltar, pressed && styles.botaoVoltarAtivo]}
-        >
-          {({ pressed }) => (
-            <Text style={[styles.voltar, pressed && styles.textoVoltarAtivo]}>‹ Voltar</Text>
-          )}
-        </Pressable>
-        <Text style={styles.titulo}>Histórico</Text>
-      </View>
-
-      <View style={styles.abas}>
-        <TouchableOpacity
-          style={[styles.aba, aba === 'historico' && styles.abaAtiva]}
-          onPress={() => setAba('historico')}
-        >
-          <Text style={[styles.textoAba, aba === 'historico' && styles.textoAbaAtiva]}>
-            Treinos
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.aba, aba === 'evolucao' && styles.abaAtiva]}
-          onPress={() => setAba('evolucao')}
-        >
-          <Text style={[styles.textoAba, aba === 'evolucao' && styles.textoAbaAtiva]}>
-            Evolução
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.aba, aba === 'calendario' && styles.abaAtiva]}
-          onPress={() => setAba('calendario')}
-        >
-          <Text style={[styles.textoAba, aba === 'calendario' && styles.textoAbaAtiva]}>
-            Calendário
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <Cabecalho titulo="Histórico" aoVoltar={aoVoltar} />
+      <Abas opcoes={ABAS} ativa={aba} aoMudar={setAba} />
 
       {aba === 'historico' && (
         <SectionList
           sections={secoes}
           keyExtractor={(item, indice) => item.id ?? String(indice)}
           contentContainerStyle={styles.conteudoLista}
+          showsVerticalScrollIndicator={false}
           stickySectionHeadersEnabled={false}
           ListHeaderComponent={historico.length > 0 ? resumoTopo : null}
           renderSectionHeader={({ section }) => (
@@ -310,7 +264,11 @@ export default function TelaHistorico({ historico, aoVoltar }) {
       )}
 
       {aba === 'evolucao' && (
-        <ScrollView style={styles.evolucaoContainer} contentContainerStyle={styles.conteudoLista}>
+        <ScrollView
+          style={styles.evolucaoContainer}
+          contentContainerStyle={styles.conteudoLista}
+          showsVerticalScrollIndicator={false}
+        >
           {exerciciosComPeso.length === 0 ? (
             <Text style={styles.vazio}>
               Registre o peso de algum exercício para ver a evolução aqui.
@@ -343,20 +301,12 @@ export default function TelaHistorico({ historico, aoVoltar }) {
               </ScrollView>
 
               <View style={styles.resumoTopo}>
-                <View style={[styles.bloco, styles.blocoEspaco]}>
-                  <Text style={styles.numeroBloco}>{recorde} kg</Text>
-                  <Text style={styles.rotuloBloco}>recorde</Text>
-                </View>
-                <View style={[styles.bloco, styles.blocoEspaco]}>
-                  <Text style={styles.numeroBloco}>{ultimaCarga} kg</Text>
-                  <Text style={styles.rotuloBloco}>última carga</Text>
-                </View>
-                <View style={styles.bloco}>
-                  <Text style={styles.numeroBloco}>{pontosEvolucao.length}</Text>
-                  <Text style={styles.rotuloBloco}>
-                    {pontosEvolucao.length === 1 ? 'registro' : 'registros'}
-                  </Text>
-                </View>
+                <Numero valor={`${recorde} kg`} legenda="recorde" />
+                <Numero valor={`${ultimaCarga} kg`} legenda="última carga" />
+                <Numero
+                  valor={pontosEvolucao.length}
+                  legenda={pontosEvolucao.length === 1 ? 'registro' : 'registros'}
+                />
               </View>
 
               <GraficoEvolucao pontos={pontosEvolucao} />
@@ -366,7 +316,11 @@ export default function TelaHistorico({ historico, aoVoltar }) {
       )}
 
       {aba === 'calendario' && (
-        <ScrollView style={styles.evolucaoContainer} contentContainerStyle={styles.conteudoLista}>
+        <ScrollView
+          style={styles.evolucaoContainer}
+          contentContainerStyle={styles.conteudoLista}
+          showsVerticalScrollIndicator={false}
+        >
           <Calendario
             historico={historico}
             selecionado={diaSelecionado}
@@ -374,9 +328,7 @@ export default function TelaHistorico({ historico, aoVoltar }) {
           />
 
           {treinosDoDia.length === 0 ? (
-            <Text style={styles.dicaCalendario}>
-              Toque num dia marcado em amarelo para ver o treino.
-            </Text>
+            <Text style={styles.dicaCalendario}>Toque num dia marcado para ver o treino.</Text>
           ) : (
             <View style={styles.treinosDoDia}>
               {dataDoDia && (
@@ -410,126 +362,40 @@ export default function TelaHistorico({ historico, aoVoltar }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
+    paddingTop: 56,
     paddingHorizontal: 20,
-    backgroundColor: CORES.fundo,
+    backgroundColor: P.fundo,
   },
   conteudoLista: {
-    paddingBottom: 40,
-  },
-  cabecalho: {
-    marginBottom: 16,
-  },
-  botaoVoltar: {
-    alignSelf: 'flex-start',
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.cartao,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    marginBottom: 12,
-  },
-  botaoVoltarAtivo: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
-  },
-  voltar: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.texto,
-  },
-  textoVoltarAtivo: {
-    color: CORES.textoSobreDestaque,
-  },
-  titulo: {
-    fontSize: 28,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-  },
-  abas: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  aba: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-    marginRight: 10,
-  },
-  abaAtiva: {
-    borderBottomColor: CORES.destaque,
-  },
-  textoAba: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
-  },
-  textoAbaAtiva: {
-    color: CORES.texto,
-    fontWeight: 'bold',
+    paddingBottom: 130,
   },
 
-  // Resumo em blocos (topo da lista de treinos e da evolução)
   resumoTopo: {
     flexDirection: 'row',
+    gap: 8,
     marginBottom: 8,
   },
-  bloco: {
-    flex: 1,
-    backgroundColor: CORES.cartao,
-    borderWidth: 1,
-    borderColor: CORES.borda,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-  },
-  blocoEspaco: {
-    marginRight: 8,
-  },
-  numeroBloco: {
-    fontSize: 22,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.destaque,
-  },
-  rotuloBloco: {
-    fontSize: 12,
-    color: CORES.textoSecundario,
-    marginTop: 2,
-  },
 
-  // Meses
   cabecalhoMes: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginTop: 20,
-    marginBottom: 10,
+    marginTop: 24,
+    marginBottom: 12,
   },
-  tituloMes: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: CORES.texto,
-  },
-  contagemMes: {
-    fontSize: 12,
-    color: CORES.textoSecundario,
-  },
+  tituloMes: { fontSize: 18, fontWeight: '700', color: P.texto },
+  contagemMes: { fontSize: 13, color: P.textoSecundario },
 
-  // Cartão de treino
   cartaoTreino: {
-    backgroundColor: CORES.cartao,
-    borderWidth: 1,
-    borderColor: CORES.borda,
-    borderRadius: 10,
+    backgroundColor: P.cartao,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: 'transparent',
     marginBottom: 10,
     overflow: 'hidden',
   },
   cartaoTreinoAberto: {
-    borderColor: CORES.destaque,
+    borderColor: P.verde,
   },
   cabecalhoTreino: {
     flexDirection: 'row',
@@ -537,148 +403,72 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   dia: {
-    width: 48,
-    paddingVertical: 6,
+    width: 52,
+    paddingVertical: 8,
     alignItems: 'center',
-    backgroundColor: CORES.fundo,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: CORES.borda,
+    backgroundColor: P.verde,
+    borderRadius: 16,
     marginRight: 14,
   },
-  diaSemana: {
-    fontSize: 11,
-    color: CORES.textoSecundario,
-  },
-  diaNumero: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: CORES.texto,
-  },
-  resumoTreino: {
-    flex: 1,
-  },
-  nomeTreino: {
-    fontSize: 18,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-  },
-  subTreino: {
-    fontSize: 12,
-    color: CORES.textoSecundario,
-    marginTop: 2,
-  },
-  seta: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
-    marginLeft: 10,
-  },
+  diaSemana: { fontSize: 11, color: P.textoSuaveSobreVerde },
+  diaNumero: { fontSize: 20, fontWeight: '800', color: P.limao },
+  resumoTreino: { flex: 1 },
+  nomeTreino: { fontSize: 18, fontWeight: '800', color: P.texto },
+  subTreino: { fontSize: 13, color: P.textoSecundario, marginTop: 2 },
+  seta: { fontSize: 14, color: P.textoSecundario, marginLeft: 10 },
   corpoTreino: {
-    paddingHorizontal: 14,
-    paddingBottom: 6,
-    borderTopWidth: 1,
-    borderTopColor: CORES.borda,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
   blocoAnotacao: {
-    borderLeftWidth: 3,
-    borderLeftColor: CORES.destaque,
-    paddingLeft: 10,
-    marginTop: 12,
+    backgroundColor: P.fundo,
+    borderRadius: 16,
+    padding: 12,
+    marginTop: 4,
     marginBottom: 4,
   },
   rotuloAnotacao: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: CORES.textoSecundario,
+    fontWeight: '700',
+    color: P.textoSecundario,
     marginBottom: 2,
   },
-  textoAnotacao: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: CORES.texto,
-  },
+  textoAnotacao: { fontSize: 14, color: P.texto },
   linhaExercicio: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: CORES.borda,
+    borderBottomColor: P.pontoVazio,
   },
-  nomeExercicio: {
-    flex: 1,
-    fontSize: 14,
-    color: CORES.texto,
-    marginRight: 12,
-  },
-  detalheExercicio: {
-    fontSize: 13,
-    color: CORES.textoSecundario,
-  },
-  pesoExercicio: {
-    fontWeight: 'bold',
-    color: CORES.destaque,
-  },
-  vazio: {
-    fontSize: 16,
-    color: CORES.textoSecundario,
-    marginTop: 20,
-  },
+  semBorda: { borderBottomWidth: 0 },
+  nomeExercicio: { flex: 1, fontSize: 14, fontWeight: '600', color: P.texto, marginRight: 12 },
+  detalheExercicio: { fontSize: 13, color: P.textoSecundario },
+  pesoExercicio: { fontWeight: '800', color: P.verde },
+  vazio: { fontSize: 15, lineHeight: 24, color: P.textoSecundario, marginTop: 20 },
 
-  // Aba Evolução
-  evolucaoContainer: {
-    flex: 1,
-  },
-  instrucao: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
-    marginBottom: 10,
-  },
-  listaExercicios: {
-    flexGrow: 0,
-    marginBottom: 12,
-  },
-  listaExerciciosConteudo: {
-    paddingRight: 20,
-  },
+  evolucaoContainer: { flex: 1 },
+  instrucao: { fontSize: 14, color: P.textoSecundario, marginBottom: 10 },
+  listaExercicios: { flexGrow: 0, marginBottom: 14 },
+  listaExerciciosConteudo: { paddingRight: 20 },
   chipExercicio: {
-    borderWidth: 1,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.cartao,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
     marginRight: 8,
   },
-  chipExercicioAtivo: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
-  },
-  textoChipExercicio: {
-    fontSize: 13,
-    color: CORES.texto,
-  },
-  textoChipExercicioAtivo: {
-    color: CORES.textoSobreDestaque,
-    fontWeight: 'bold',
-  },
+  chipExercicioAtivo: { backgroundColor: P.verde },
+  textoChipExercicio: { fontSize: 14, fontWeight: '700', color: P.texto },
+  textoChipExercicioAtivo: { color: P.textoSobreVerde },
 
-  // Aba Calendário
   dicaCalendario: {
     fontSize: 13,
-    color: CORES.textoSecundario,
+    color: P.textoSecundario,
     textAlign: 'center',
     marginTop: 16,
   },
-  treinosDoDia: {
-    marginTop: 18,
-  },
-  tituloDia: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: CORES.texto,
-    marginBottom: 10,
-  },
+  treinosDoDia: { marginTop: 18 },
+  tituloDia: { fontSize: 18, fontWeight: '700', color: P.texto, marginBottom: 12 },
 });

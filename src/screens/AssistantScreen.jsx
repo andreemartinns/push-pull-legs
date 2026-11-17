@@ -10,8 +10,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Cabecalho } from '../components/UI';
 import { api } from '../utils/api';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 const AVISO = 'Não substitui orientação profissional. Seu professor pode ver suas perguntas.';
 
@@ -20,6 +21,7 @@ export default function TelaAssistente({ aoVoltar }) {
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [carregando, setCarregando] = useState(true);
+  const [focado, setFocado] = useState(false);
   const rolagem = useRef(null);
 
   // Carrega as perguntas anteriores do aluno.
@@ -93,17 +95,7 @@ export default function TelaAssistente({ aoVoltar }) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Pressable onPress={aoVoltar} hitSlop={10} style={styles.voltar}>
-        <Text style={styles.textoVoltar}>← Voltar</Text>
-      </Pressable>
-
-      <View style={styles.titulo}>
-        <View style={styles.barraTitulo} />
-        <View>
-          <Text style={styles.rotulo}>Tire suas dúvidas</Text>
-          <Text style={styles.nome}>Assistente</Text>
-        </View>
-      </View>
+      <Cabecalho titulo="Assistente" subtitulo="Tire suas dúvidas" aoVoltar={aoVoltar} />
 
       <View style={styles.faixaAviso}>
         <Text style={styles.textoAviso}>{AVISO}</Text>
@@ -111,7 +103,7 @@ export default function TelaAssistente({ aoVoltar }) {
 
       {carregando ? (
         <View style={styles.centro}>
-          <ActivityIndicator size="large" color={CORES.destaque} />
+          <ActivityIndicator size="large" color={P.verde} />
         </View>
       ) : (
         <ScrollView
@@ -120,6 +112,7 @@ export default function TelaAssistente({ aoVoltar }) {
           contentContainerStyle={styles.conteudo}
           onContentSizeChange={() => rolagem.current?.scrollToEnd({ animated: false })}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           {mensagens.length === 0 && (
             <Text style={styles.vazio}>
@@ -145,7 +138,7 @@ export default function TelaAssistente({ aoVoltar }) {
 
           {enviando && (
             <View style={[styles.balao, styles.balaoIa]}>
-              <ActivityIndicator size="small" color={CORES.destaque} />
+              <ActivityIndicator size="small" color={P.verde} />
             </View>
           )}
         </ScrollView>
@@ -153,18 +146,24 @@ export default function TelaAssistente({ aoVoltar }) {
 
       <View style={styles.rodape}>
         <TextInput
-          style={styles.campo}
+          style={[styles.campo, focado && styles.campoFocado]}
           value={texto}
           onChangeText={setTexto}
+          onFocus={() => setFocado(true)}
+          onBlur={() => setFocado(false)}
           placeholder="Escreva sua dúvida"
-          placeholderTextColor={CORES.textoSecundario}
+          placeholderTextColor={P.textoSecundario}
           maxLength={500}
           editable={!enviando}
           onSubmitEditing={enviar}
           returnKeyType="send"
         />
         <Pressable
-          style={[styles.botaoEnviar, (enviando || !texto.trim()) && styles.botaoDesativado]}
+          style={({ pressed }) => [
+            styles.botaoEnviar,
+            (enviando || !texto.trim()) && styles.botaoDesativado,
+            pressed && styles.pressionado,
+          ]}
           onPress={enviar}
           disabled={enviando || !texto.trim()}
         >
@@ -176,74 +175,51 @@ export default function TelaAssistente({ aoVoltar }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: CORES.fundo, paddingHorizontal: 20, paddingTop: 50 },
+  container: { flex: 1, backgroundColor: P.fundo, paddingHorizontal: 20, paddingTop: 56 },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  voltar: { alignSelf: 'flex-start', paddingVertical: 6, marginBottom: 16 },
-  textoVoltar: { fontSize: 14, fontWeight: 'bold', color: CORES.textoSecundario },
-  titulo: { flexDirection: 'row', alignItems: 'stretch', marginBottom: 14 },
-  barraTitulo: { width: 4, borderRadius: 2, backgroundColor: CORES.destaque, marginRight: 10 },
-  rotulo: { fontSize: 13, color: CORES.textoSecundario },
-  nome: {
-    fontSize: 28,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-  },
+  pressionado: { transform: [{ scale: 0.97 }], opacity: 0.9 },
   faixaAviso: {
-    borderWidth: 1,
-    borderColor: CORES.destaque,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     marginBottom: 12,
   },
-  textoAviso: { fontSize: 12, color: CORES.destaque, textAlign: 'center' },
+  textoAviso: { fontSize: 12, color: P.textoSecundario, textAlign: 'center' },
   lista: { flex: 1 },
   conteudo: { paddingBottom: 12 },
   vazio: {
     fontSize: 14,
-    color: CORES.textoSecundario,
+    lineHeight: 22,
+    color: P.textoSecundario,
     textAlign: 'center',
     marginTop: 24,
     paddingHorizontal: 12,
   },
-  balao: { maxWidth: '85%', borderRadius: 12, padding: 12, marginBottom: 10 },
-  balaoAluno: { alignSelf: 'flex-end', backgroundColor: CORES.destaque },
-  balaoIa: {
-    alignSelf: 'flex-start',
-    backgroundColor: CORES.cartao,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-  },
-  balaoAlerta: { borderColor: CORES.erro },
-  textoBalao: { fontSize: 15, lineHeight: 21, color: CORES.texto },
-  textoBalaoAluno: { color: CORES.textoSobreDestaque },
+  balao: { maxWidth: '85%', borderRadius: 24, padding: 14, marginBottom: 10 },
+  balaoAluno: { alignSelf: 'flex-end', backgroundColor: P.verde },
+  balaoIa: { alignSelf: 'flex-start', backgroundColor: P.cartao },
+  balaoAlerta: { borderWidth: 2, borderColor: P.erro },
+  textoBalao: { fontSize: 15, lineHeight: 21, color: P.texto },
+  textoBalaoAluno: { color: P.textoSobreVerde },
   rodape: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
   campo: {
     flex: 1,
-    backgroundColor: CORES.cartao,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     fontSize: 15,
-    color: CORES.texto,
+    color: P.texto,
     marginRight: 8,
   },
+  campoFocado: { backgroundColor: P.campoFocado },
   botaoEnviar: {
-    backgroundColor: CORES.destaque,
-    borderRadius: 10,
-    paddingVertical: 13,
-    paddingHorizontal: 16,
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingVertical: 15,
+    paddingHorizontal: 22,
   },
   botaoDesativado: { opacity: 0.5 },
-  textoEnviar: {
-    fontSize: 14,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.textoSobreDestaque,
-  },
+  textoEnviar: { fontSize: 14, fontWeight: '800', color: P.verde },
 });

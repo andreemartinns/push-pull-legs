@@ -1,16 +1,19 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import FadeIn from '../components/FadeIn';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 function Row({ icon, label, onPress, danger }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+    >
       <View style={[styles.rowIcon, danger && styles.rowIconDanger]}>
-        <Ionicons name={icon} size={20} color={danger ? CORES.erro : CORES.destaque} />
+        <Ionicons name={icon} size={20} color={danger ? P.erro : P.limao} />
       </View>
       <Text style={[styles.rowLabel, danger && styles.rowLabelDanger]}>{label}</Text>
-      {!danger && <Ionicons name="chevron-forward" size={18} color={CORES.textoSecundario} />}
+      {!danger && <Ionicons name="chevron-forward" size={18} color={P.textoSecundario} />}
     </Pressable>
   );
 }
@@ -19,7 +22,11 @@ export default function ProfileScreen({ user, onOpenReminder, onReplayTutorial, 
   const initial = (user.nome || '?').trim().charAt(0).toUpperCase();
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
       <FadeIn>
         <View style={styles.head}>
           <View style={styles.avatar}>
@@ -44,42 +51,41 @@ export default function ProfileScreen({ user, onOpenReminder, onReplayTutorial, 
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: CORES.fundo },
-  content: { paddingHorizontal: 20, paddingTop: 70, paddingBottom: 40 },
+  container: { flex: 1, backgroundColor: P.fundo },
+  content: { paddingHorizontal: 20, paddingTop: 70, paddingBottom: 130 },
   head: { alignItems: 'center', marginBottom: 32 },
   avatar: {
     width: 84,
     height: 84,
     borderRadius: 42,
-    backgroundColor: CORES.destaque,
+    backgroundColor: P.verde,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
   },
-  avatarLetter: { fontSize: 36, fontWeight: '900', color: CORES.textoSobreDestaque },
-  name: { fontSize: 22, fontWeight: '900', fontStyle: 'italic', color: CORES.texto },
-  email: { fontSize: 13, color: CORES.textoSecundario, marginTop: 4 },
+  avatarLetter: { fontSize: 36, fontWeight: '800', color: P.limao },
+  name: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5, color: P.texto },
+  email: { fontSize: 13, color: P.textoSecundario, marginTop: 4 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: CORES.cartao,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
+    backgroundColor: P.cartao,
+    borderRadius: 24,
+    padding: 14,
     marginBottom: 10,
   },
-  rowPressed: { opacity: 0.6, transform: [{ scale: 0.98 }] },
+  rowPressed: { opacity: 0.9, transform: [{ scale: 0.97 }] },
   rowIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(245,184,0,0.12)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: P.verde,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 14,
   },
-  rowIconDanger: { backgroundColor: 'rgba(229,72,77,0.12)' },
-  rowLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: CORES.texto },
-  rowLabelDanger: { color: CORES.erro },
+  rowIconDanger: { backgroundColor: 'rgba(194,59,59,0.14)' },
+  rowLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: P.texto },
+  rowLabelDanger: { color: P.erro },
   gap: { height: 14 },
 });

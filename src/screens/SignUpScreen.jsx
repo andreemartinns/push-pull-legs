@@ -1,19 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import Botao from '../components/Button';
-import CampoTexto from '../components/TextField';
-import FundoTela from '../components/ScreenBackground';
+import { Animated, Image, StyleSheet, Text, View } from 'react-native';
+import { BotaoPrincipal, BotaoSecundario, Campo, Tela } from '../components/UI';
 import { avisar } from '../utils/notify';
 import { cadastrar } from '../utils/api';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 export default function SignUpScreen({ onGoToLogin, onSignUpSuccess }) {
   const [name, setName] = useState('');
@@ -22,7 +12,6 @@ export default function SignUpScreen({ onGoToLogin, onSignUpSuccess }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Goes from 0 to 1 when the screen opens. Drives the logo entrance.
   const intro = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -71,152 +60,86 @@ export default function SignUpScreen({ onGoToLogin, onSignUpSuccess }) {
   }
 
   return (
-    <FundoTela>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
+    <Tela centro>
+      <Animated.View
+        style={[
+          styles.brand,
+          {
+            opacity: intro,
+            transform: [
+              {
+                translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }),
+              },
+            ],
+          },
+        ]}
       >
-        <Animated.View
-          style={[
-            styles.brand,
-            {
-              opacity: intro,
-              transform: [
-                {
-                  translateY: intro.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [24, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <Image
-            source={require('../../assets/mascot.png')}
-            style={styles.mascot}
-            resizeMode="contain"
-          />
-          <Text style={styles.gymLabel}>Academia</Text>
-          <Text style={styles.gymName}>Ritmo Brasil</Text>
-        </Animated.View>
-
-        <Text style={styles.title}>Criar conta</Text>
-
-        <CampoTexto
-          rotulo="Nome"
-          valor={name}
-          aoMudar={setName}
-          placeholder="Como quer ser chamado"
-          capitalizar="words"
+        <Image
+          source={require('../../assets/mascot.png')}
+          style={styles.mascot}
+          resizeMode="contain"
         />
-        <CampoTexto
-          rotulo="E-mail"
-          valor={email}
-          aoMudar={setEmail}
-          placeholder="voce@email.com"
-          teclado="email-address"
-        />
-        <CampoTexto
-          rotulo="Senha"
-          valor={password}
-          aoMudar={setPassword}
-          placeholder="Mínimo de 6 caracteres"
-          senha
-        />
-        <CampoTexto
-          rotulo="Confirmar senha"
-          valor={confirmPassword}
-          aoMudar={setConfirmPassword}
-          placeholder="Repita a senha"
-          senha
-        />
+        <Text style={styles.gymLabel}>Academia</Text>
+        <Text style={styles.gymName}>RITMO BRASIL</Text>
+      </Animated.View>
 
-        <Botao titulo="Cadastrar" aoPressionar={handleSignUp} />
+      <Text style={styles.title}>Criar conta</Text>
 
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>ou</Text>
-          <View style={styles.dividerLine} />
-        </View>
+      <Campo
+        rotulo="Nome"
+        valor={name}
+        aoMudar={setName}
+        placeholder="Como quer ser chamado"
+        capitalizar="words"
+      />
+      <Campo
+        rotulo="E-mail"
+        valor={email}
+        aoMudar={setEmail}
+        placeholder="voce@email.com"
+        teclado="email-address"
+      />
+      <Campo
+        rotulo="Senha"
+        valor={password}
+        aoMudar={setPassword}
+        placeholder="Mínimo de 6 caracteres"
+        senha
+      />
+      <Campo
+        rotulo="Confirmar senha"
+        valor={confirmPassword}
+        aoMudar={setConfirmPassword}
+        placeholder="Repita a senha"
+        senha
+      />
 
-        <Pressable
-          onPress={onGoToLogin}
-          style={({ pressed }) => [styles.loginButton, pressed && styles.loginButtonPressed]}
-        >
-          <Text style={styles.loginButtonText}>Já tenho conta</Text>
-        </Pressable>
-      </ScrollView>
-    </FundoTela>
+      <BotaoPrincipal titulo="Cadastrar" aoPressionar={handleSignUp} carregando={submitting} />
+
+      <View style={styles.divider}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.dividerText}>ou</Text>
+        <View style={styles.dividerLine} />
+      </View>
+
+      <BotaoSecundario titulo="Já tenho conta" aoPressionar={onGoToLogin} />
+    </Tela>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  brand: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  mascot: {
-    width: 70,
-    height: 91,
-  },
+  brand: { alignItems: 'center', marginBottom: 20 },
+  mascot: { width: 70, height: 91 },
   gymLabel: {
     marginTop: 10,
     fontSize: 11,
     letterSpacing: 6,
     textTransform: 'uppercase',
-    color: CORES.destaque,
+    color: P.textoSecundario,
   },
-  gymName: {
-    fontSize: 20,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-    textAlign: 'center',
-    color: CORES.texto,
-    marginBottom: 24,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 14,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: CORES.borda,
-  },
-  dividerText: {
-    marginHorizontal: 12,
-    fontSize: 13,
-    color: CORES.textoSecundario,
-  },
-  loginButton: {
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.cartao,
-    borderRadius: 10,
-    paddingVertical: 14,
-  },
-  loginButtonPressed: {
-    opacity: 0.6,
-  },
-  loginButtonText: {
-    fontSize: 15,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-  },
+  gymName: { fontSize: 20, fontWeight: '800', letterSpacing: 1.5, color: P.texto },
+  title: { fontSize: 36, fontWeight: '800', letterSpacing: -0.5, color: P.texto, marginBottom: 24 },
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 14 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: P.pontoVazio },
+  dividerText: { marginHorizontal: 12, fontSize: 13, color: P.textoSecundario },
 });
