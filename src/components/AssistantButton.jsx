@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet } from 'react-native';
-import { CORES } from '../utils/tema';
+import { CORES } from '../utils/theme';
 
 export default function BotaoAssistente({ aoPressionar }) {
   return (

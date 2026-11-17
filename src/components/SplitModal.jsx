@@ -1,5 +1,5 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { CORES } from '../utils/tema';
+import { CORES } from '../utils/theme';
 
 export default function ModalDivisao({ visivel, divisao, jaAdicionados, aoFechar, aoAdicionar }) {
   const exercicios = divisao ? divisao.exercicios : [];

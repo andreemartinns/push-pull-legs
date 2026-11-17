@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import Transicao from './src/components/Transicao';
+import Transicao from './src/components/Transition';
 import Tutorial from './src/components/Tutorial';
-import TelaAgua from './src/screens/TelaAgua';
-import TelaAnamnese from './src/screens/TelaAnamnese';
-import TelaAssistente from './src/screens/TelaAssistente';
-import SignUpScreen from './src/screens/TelaCadastro';
-import ForgotPasswordScreen from './src/screens/TelaEsqueciSenha';
-import TelaHistorico from './src/screens/TelaHistorico';
-import TelaLembrete from './src/screens/TelaLembrete';
-import LoginScreen from './src/screens/TelaLogin';
-import TelaMedidas from './src/screens/TelaMedidas';
-import TelaProfessor from './src/screens/TelaProfessor';
-import TelaTreino from './src/screens/TelaTreino';
+import TelaAgua from './src/screens/WaterScreen';
+import TelaAnamnese from './src/screens/AnamnesisScreen';
+import TelaAssistente from './src/screens/AssistantScreen';
+import SignUpScreen from './src/screens/SignUpScreen';
+import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
+import TelaHistorico from './src/screens/HistoryScreen';
+import TelaLembrete from './src/screens/ReminderScreen';
+import LoginScreen from './src/screens/LoginScreen';
+import TelaMedidas from './src/screens/MeasurementsScreen';
+import TelaProfessor from './src/screens/TrainerScreen';
+import TelaTreino from './src/screens/WorkoutScreen';
 import { api, carregarPerfil, sair } from './src/utils/api';
-import { avisar } from './src/utils/avisar';
-import { CORES } from './src/utils/tema';
+import { avisar } from './src/utils/notify';
+import { CORES } from './src/utils/theme';
 
 export default function App() {
   const [loading, setLoading] = useState(true);

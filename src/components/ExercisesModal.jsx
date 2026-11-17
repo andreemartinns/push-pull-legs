@@ -9,8 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { EXERCICIOS_POR_GRUPO } from '../utils/exercicios';
-import { CORES } from '../utils/tema';
+import { EXERCICIOS_POR_GRUPO } from '../utils/exercises';
+import { CORES } from '../utils/theme';
 
 // Tira maiúsculas, acentos e espaços sobrando, para comparar nomes.
 function normalizar(texto) {

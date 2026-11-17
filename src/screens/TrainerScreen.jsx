@@ -12,9 +12,9 @@ import {
 } from 'react-native';
 import Logo from '../components/Logo';
 import { api } from '../utils/api';
-import { avisar } from '../utils/avisar';
-import { CORES } from '../utils/tema';
-import TelaEditorTreino from './TelaEditorTreino';
+import { avisar } from '../utils/notify';
+import { CORES } from '../utils/theme';
+import TelaEditorTreino from './WorkoutEditorScreen';
 
 // No celular a animação roda no motor nativo (mais fluida). No navegador, não existe.
 const USAR_NATIVO = Platform.OS !== 'web';

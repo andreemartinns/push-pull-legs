@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { CORES } from '../utils/tema';
+import { CORES } from '../utils/theme';
 
 // Quanto o botão − ou + muda a carga a cada toque.
 const PASSO = 2.5;

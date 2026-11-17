@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { CORES } from '../utils/tema';
+import { CORES } from '../utils/theme';
 
 // Janela "Como fazer": mostra a foto de início e a de fim se alternando em loop,
 // os músculos trabalhados e o passo a passo.

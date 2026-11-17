@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { CORES } from '../utils/tema';
+import { CORES } from '../utils/theme';
 
 const ALTURA_MAXIMA = 140;
 // Na escala relativa, a menor barra ocupa metade da altura máxima.

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { api } from '../utils/api';
-import { avisar } from '../utils/avisar';
-import { CORES } from '../utils/tema';
+import { avisar } from '../utils/notify';
+import { CORES } from '../utils/theme';
 
 const OBJETIVOS = [
   'Hipertrofia',

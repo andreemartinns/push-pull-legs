@@ -12,8 +12,8 @@ import {
   View,
 } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
-import { CORES } from '../utils/tema';
-import CartaoCompartilhar, { ALTURA_CARTAO, LARGURA_CARTAO } from './CartaoCompartilhar';
+import { CORES } from '../utils/theme';
+import CartaoCompartilhar, { ALTURA_CARTAO, LARGURA_CARTAO } from './ShareCard';
 
 // No navegador não existe driver nativo, então só usamos no celular.
 const USAR_DRIVER_NATIVO = Platform.OS !== 'web';

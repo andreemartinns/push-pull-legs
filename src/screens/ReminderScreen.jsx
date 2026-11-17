@@ -2,8 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { avisar } from '../utils/avisar';
-import { CORES } from '../utils/tema';
+import { avisar } from '../utils/notify';
+import { CORES } from '../utils/theme';
 
 const CHAVE = 'lembrete_treino';
 const NA_WEB = Platform.OS === 'web';

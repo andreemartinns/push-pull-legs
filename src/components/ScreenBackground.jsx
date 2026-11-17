@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { CORES } from '../utils/tema';
+import { CORES } from '../utils/theme';
 
 export default function FundoTela({ children }) {
   return <View style={styles.fundo}>{children}</View>;

@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import CopoAgua from '../components/CopoAgua';
+import CopoAgua from '../components/WaterGlass';
 import Constants from 'expo-constants';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -12,8 +12,8 @@ import {
   View,
 } from 'react-native';
 import { api } from '../utils/api';
-import { avisar } from '../utils/avisar';
-import { CORES } from '../utils/tema';
+import { avisar } from '../utils/notify';
+import { CORES } from '../utils/theme';
 
 const NA_WEB = Platform.OS === 'web';
 const NO_EXPO_GO = Constants.appOwnership === 'expo';

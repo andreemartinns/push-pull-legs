@@ -9,11 +9,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Calendario, { chaveDoTexto } from '../components/Calendario';
-import GraficoEvolucao from '../components/GraficoEvolucao';
-import { DIVISOES } from '../utils/divisoes';
-import { listarExerciciosComPeso, obterEvolucao } from '../utils/evolucao';
-import { CORES } from '../utils/tema';
+import Calendario, { chaveDoTexto } from '../components/Calendar';
+import GraficoEvolucao from '../components/ProgressChart';
+import { DIVISOES } from '../utils/splits';
+import { listarExerciciosComPeso, obterEvolucao } from '../utils/progress';
+import { CORES } from '../utils/theme';
 
 // ---- ajudantes ----
 

@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { CORES } from '../utils/tema';
+import { CORES } from '../utils/theme';
 import Logo from './Logo';
 
 // Tamanho do cartão em pontos. Na captura vira 1080x1920 (3x), formato de stories.

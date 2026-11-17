@@ -8,14 +8,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import ModalDivisao from '../components/ModalDivisao';
-import ModalEditarExercicio from '../components/ModalEditarExercicio';
-import ModalExercicios from '../components/ModalExercicios';
+import ModalDivisao from '../components/SplitModal';
+import ModalEditarExercicio from '../components/EditExerciseModal';
+import ModalExercicios from '../components/ExercisesModal';
 import { api } from '../utils/api';
-import { avisar } from '../utils/avisar';
-import { DIVISOES } from '../utils/divisoes';
-import { GRUPOS } from '../utils/grupos';
-import { CORES } from '../utils/tema';
+import { avisar } from '../utils/notify';
+import { DIVISOES } from '../utils/splits';
+import { GRUPOS } from '../utils/muscleGroups';
+import { CORES } from '../utils/theme';
 
 export default function TelaEditorTreino({ aluno, professorId, aoVoltar }) {
   const [carregando, setCarregando] = useState(true);

@@ -8,10 +8,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Botao from '../components/Botao';
-import GraficoEvolucao from '../components/GraficoEvolucao';
-import { avisar } from '../utils/avisar';
-import { CORES } from '../utils/tema';
+import Botao from '../components/Button';
+import GraficoEvolucao from '../components/ProgressChart';
+import { avisar } from '../utils/notify';
+import { CORES } from '../utils/theme';
 
 const MEDIDAS = [
   { chave: 'peso', nome: 'Peso', unidade: 'kg' },

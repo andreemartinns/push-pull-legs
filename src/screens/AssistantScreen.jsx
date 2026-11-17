@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { api } from '../utils/api';
-import { CORES } from '../utils/tema';
+import { CORES } from '../utils/theme';
 
 const AVISO = 'Não substitui orientação profissional. Seu professor pode ver suas perguntas.';
 
