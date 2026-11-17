@@ -1,6 +1,48 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { CORES } from '../utils/theme';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { MotiView, AnimatePresence } from 'moti';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { P } from '../utils/theme';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const FONTE = {
+  media: 'BarlowCondensed_600SemiBold',
+  forte: 'BarlowCondensed_700Bold',
+  extra: 'BarlowCondensed_800ExtraBold',
+};
+
+function vibrar() {
+  if (Platform.OS === 'web') return;
+  Haptics.selectionAsync().catch(() => {});
+}
+
+// Botão que afunda com mola e vibra.
+function Toque({ onPress, style, children, hitSlop, escala = 0.95 }) {
+  const scale = useSharedValue(1);
+  const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  return (
+    <AnimatedPressable
+      hitSlop={hitSlop}
+      onPress={() => {
+        vibrar();
+        onPress?.();
+      }}
+      onPressIn={() => {
+        scale.value = withSpring(escala, { damping: 14, stiffness: 320 });
+      }}
+      onPressOut={() => {
+        scale.value = withSpring(1, { damping: 12, stiffness: 260 });
+      }}
+      style={[style, anim]}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+}
 
 const PASSOS = {
   aluno: [
@@ -55,6 +97,17 @@ const PASSOS = {
   ],
 };
 
+// Ponto do indicador: o ativo vira uma barra comprida.
+function Ponto({ ativo }) {
+  return (
+    <MotiView
+      animate={{ width: ativo ? 28 : 8, backgroundColor: ativo ? P.verde : P.pontoVazio }}
+      transition={{ type: 'spring', damping: 15, stiffness: 180 }}
+      style={styles.ponto}
+    />
+  );
+}
+
 export default function Tutorial({ tipo = 'aluno', aoConcluir }) {
   const passos = PASSOS[tipo] || PASSOS.aluno;
   const [indice, setIndice] = useState(0);
@@ -64,44 +117,64 @@ export default function Tutorial({ tipo = 'aluno', aoConcluir }) {
 
   return (
     <View style={styles.container}>
+      {/* faixa diagonal de fundo, igual à do login */}
+      <View style={styles.faixa} />
+
       <View style={styles.topo}>
         <Text style={styles.contador}>
-          {indice + 1} de {passos.length}
+          {indice + 1} / {passos.length}
         </Text>
         {!ultimo && (
-          <Pressable onPress={aoConcluir} hitSlop={10}>
-            <Text style={styles.pular}>Pular</Text>
-          </Pressable>
+          <Toque onPress={aoConcluir} hitSlop={10} style={styles.pular} escala={0.92}>
+            <Text style={styles.textoPular}>PULAR</Text>
+          </Toque>
         )}
       </View>
 
       <View style={styles.meio}>
-        <View style={styles.barraTitulo} />
-        <Text style={styles.titulo}>{passo.titulo}</Text>
-        <Text style={styles.texto}>{passo.texto}</Text>
+        <AnimatePresence exitBeforeEnter>
+          <MotiView
+            key={indice}
+            from={{ opacity: 0, translateX: 40 }}
+            animate={{ opacity: 1, translateX: 0 }}
+            exit={{ opacity: 0, translateX: -40 }}
+            transition={{ type: 'timing', duration: 260 }}
+          >
+            {/* barrinhas inclinadas do logo */}
+            <View style={styles.marca}>
+              <View style={styles.marcaVerde} />
+              <View style={styles.marcaLimao} />
+            </View>
+            <Text style={styles.numeroGrande}>{String(indice + 1).padStart(2, '0')}</Text>
+            <Text style={styles.titulo}>{passo.titulo.toUpperCase()}</Text>
+            <Text style={styles.texto}>{passo.texto}</Text>
+          </MotiView>
+        </AnimatePresence>
       </View>
 
       <View style={styles.pontos}>
         {passos.map((_, i) => (
-          <View key={i} style={[styles.ponto, i === indice && styles.pontoAtivo]} />
+          <Ponto key={i} ativo={i === indice} />
         ))}
       </View>
 
       <View style={styles.linhaBotoes}>
         {indice > 0 && (
-          <Pressable
+          <Toque
             style={[styles.botaoSecundario, styles.botaoEspaco]}
             onPress={() => setIndice(indice - 1)}
           >
-            <Text style={styles.textoSecundario}>Voltar</Text>
-          </Pressable>
+            <Ionicons name="arrow-back" size={20} color={P.texto} />
+            <Text style={styles.textoSecundario}>VOLTAR</Text>
+          </Toque>
         )}
-        <Pressable
+        <Toque
           style={styles.botao}
           onPress={() => (ultimo ? aoConcluir() : setIndice(indice + 1))}
         >
-          <Text style={styles.textoBotao}>{ultimo ? 'Começar' : 'Próximo'}</Text>
-        </Pressable>
+          <Text style={styles.textoBotao}>{ultimo ? 'COMEÇAR' : 'PRÓXIMO'}</Text>
+          <Ionicons name="arrow-forward" size={20} color={P.verde} />
+        </Toque>
       </View>
     </View>
   );
@@ -110,68 +183,126 @@ export default function Tutorial({ tipo = 'aluno', aoConcluir }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: CORES.fundo,
+    backgroundColor: P.fundo,
     paddingHorizontal: 24,
     paddingTop: 56,
     paddingBottom: 32,
+    overflow: 'hidden',
+  },
+  faixa: {
+    position: 'absolute',
+    top: -80,
+    right: -120,
+    width: 260,
+    height: 460,
+    backgroundColor: P.verde,
+    opacity: 0.08,
+    transform: [{ rotate: '25deg' }],
+    pointerEvents: 'none',
   },
   topo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    minHeight: 24,
+    minHeight: 36,
   },
-  contador: { fontSize: 13, color: CORES.textoSecundario },
-  pular: { fontSize: 14, fontWeight: 'bold', color: CORES.textoSecundario },
+  contador: {
+    fontFamily: FONTE.forte,
+    fontSize: 18,
+    letterSpacing: 2,
+    color: P.textoSecundario,
+  },
+  pular: {
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  textoPular: {
+    fontFamily: FONTE.extra,
+    fontSize: 16,
+    letterSpacing: 1.5,
+    color: P.texto,
+  },
   meio: { flex: 1, justifyContent: 'center' },
-  barraTitulo: {
-    width: 48,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: CORES.destaque,
-    marginBottom: 16,
+  marca: { flexDirection: 'row', marginBottom: 8, paddingLeft: 6 },
+  marcaVerde: {
+    width: 44,
+    height: 7,
+    backgroundColor: P.verde,
+    transform: [{ skewX: '-25deg' }],
+  },
+  marcaLimao: {
+    width: 16,
+    height: 7,
+    marginLeft: 6,
+    backgroundColor: P.limao,
+    transform: [{ skewX: '-25deg' }],
+  },
+  numeroGrande: {
+    fontFamily: FONTE.extra,
+    fontSize: 110,
+    lineHeight: 110,
+    color: P.cartao,
+    marginBottom: -20,
   },
   titulo: {
-    fontSize: 28,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
+    fontFamily: FONTE.extra,
+    fontSize: 46,
+    lineHeight: 48,
+    letterSpacing: 0.5,
+    color: P.texto,
     marginBottom: 14,
   },
-  texto: { fontSize: 16, lineHeight: 24, color: CORES.textoSecundario },
-  pontos: { flexDirection: 'row', justifyContent: 'center', marginBottom: 24 },
+  texto: {
+    fontFamily: FONTE.media,
+    fontSize: 21,
+    lineHeight: 28,
+    color: P.textoSecundario,
+  },
+  pontos: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
   ponto: {
-    width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: CORES.borda,
     marginHorizontal: 4,
   },
-  pontoAtivo: { backgroundColor: CORES.destaque, width: 24 },
   linhaBotoes: { flexDirection: 'row' },
   botao: {
     flex: 1,
-    backgroundColor: CORES.destaque,
-    borderRadius: 10,
-    paddingVertical: 14,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingVertical: 16,
   },
   botaoEspaco: { marginRight: 10 },
   textoBotao: {
-    fontSize: 15,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.textoSobreDestaque,
+    fontFamily: FONTE.extra,
+    fontSize: 22,
+    letterSpacing: 1.5,
+    color: P.verde,
+    marginRight: 8,
   },
   botaoSecundario: {
     flex: 1,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 10,
-    paddingVertical: 14,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingVertical: 16,
   },
-  textoSecundario: { fontSize: 14, fontWeight: 'bold', color: CORES.textoSecundario },
+  textoSecundario: {
+    fontFamily: FONTE.extra,
+    fontSize: 20,
+    letterSpacing: 1,
+    color: P.texto,
+    marginLeft: 8,
+  },
 });
