@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { DEMONSTRACOES } from '../utils/demonstrations';
 import { CORES } from '../utils/theme';
 import ModalDemonstracao from './DemoModal';
@@ -31,6 +32,7 @@ function SeloRecorde() {
 
   return (
     <Animated.View style={[styles.selo, { transform: [{ scale: escala }] }]}>
+      <Ionicons name="trophy" size={12} color={CORES.destaque} />
       <Text style={styles.textoSelo}>Novo recorde</Text>
     </Animated.View>
   );
@@ -141,7 +143,7 @@ export default function CartaoExercicio({
         <Animated.View style={[styles.brilho, { opacity: brilho }]} />
 
         <View style={styles.linhaPrincipal}>
-          <TouchableOpacity style={styles.area} onPress={aoAlternar}>
+          <TouchableOpacity style={styles.area} onPress={aoAlternar} activeOpacity={0.7}>
             <Animated.View
               style={[
                 styles.marcador,
@@ -149,20 +151,25 @@ export default function CartaoExercicio({
                 { transform: [{ scale: escalaMarcador }] },
               ]}
             >
-              {exercicio.concluido && <Text style={styles.check}>✓</Text>}
+              {exercicio.concluido && (
+                <Ionicons name="checkmark" size={18} color={CORES.textoSobreDestaque} />
+              )}
             </Animated.View>
 
             <View style={styles.textos}>
               <Text style={[styles.nome, exercicio.concluido && styles.nomeConcluido]}>
                 {exercicio.nome}
               </Text>
-              <View style={styles.linhaDetalhes}>
-                <View style={styles.etiqueta}>
-                  <Text style={styles.textoEtiqueta}>{exercicio.grupo}</Text>
+
+              <Text style={styles.grupo}>{exercicio.grupo}</Text>
+
+              {(detalhe !== '' || peso !== '') && (
+                <View style={styles.linhaDetalhes}>
+                  {detalhe !== '' && <Text style={styles.detalhe}>{detalhe}</Text>}
+                  {detalhe !== '' && peso !== '' && <Text style={styles.separador}>·</Text>}
+                  {peso !== '' && <Text style={styles.peso}>{peso}</Text>}
                 </View>
-                {detalhe !== '' && <Text style={styles.detalhe}>{detalhe}</Text>}
-                {peso !== '' && <Text style={styles.peso}>{peso}</Text>}
-              </View>
+              )}
 
               {textoUltima !== '' && <Text style={styles.ultimaCarga}>{textoUltima}</Text>}
 
@@ -182,7 +189,8 @@ export default function CartaoExercicio({
                   pressed && styles.botaoPressionado,
                 ]}
               >
-                <Text style={styles.textoComoFazer}>▶ Como fazer</Text>
+                <Ionicons name="play-circle" size={18} color={CORES.destaque} />
+                <Text style={styles.textoComoFazer}>Como fazer</Text>
               </Pressable>
             ) : (
               <View />
@@ -192,23 +200,21 @@ export default function CartaoExercicio({
               <View style={styles.acoes}>
                 <Pressable
                   onPress={aoEditar}
+                  hitSlop={8}
                   style={({ pressed }) => [
-                    styles.botaoAcao,
-                    styles.botaoAcaoEspaco,
+                    styles.botaoIcone,
+                    styles.botaoIconeEspaco,
                     pressed && styles.botaoPressionado,
                   ]}
                 >
-                  <Text style={styles.editar}>Editar</Text>
+                  <Ionicons name="create-outline" size={20} color={CORES.texto} />
                 </Pressable>
                 <Pressable
                   onPress={remover}
-                  style={({ pressed }) => [
-                    styles.botaoAcao,
-                    styles.botaoRemover,
-                    pressed && styles.botaoPressionado,
-                  ]}
+                  hitSlop={8}
+                  style={({ pressed }) => [styles.botaoIcone, pressed && styles.botaoPressionado]}
                 >
-                  <Text style={styles.remover}>Remover</Text>
+                  <Ionicons name="trash-outline" size={20} color={CORES.erro} />
                 </Pressable>
               </View>
             )}
@@ -231,22 +237,19 @@ export default function CartaoExercicio({
 const styles = StyleSheet.create({
   cartao: {
     backgroundColor: CORES.cartao,
-    borderWidth: 1,
-    borderColor: CORES.borda,
-    borderRadius: 10,
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 10,
+    marginBottom: 8,
     overflow: 'hidden',
   },
   cartaoConcluido: {
-    borderColor: CORES.destaque,
-    opacity: 0.7,
+    opacity: 0.6,
   },
   brilho: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: CORES.destaque,
     opacity: 0,
-    borderRadius: 10,
+    borderRadius: 16,
     pointerEvents: 'none',
   },
   linhaPrincipal: {
@@ -259,82 +262,73 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   marcador: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: CORES.textoSecundario,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: CORES.cartaoElevado,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 16,
   },
   marcadorAtivo: {
     backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
-  },
-  check: {
-    color: CORES.textoSobreDestaque,
-    fontSize: 14,
-    fontWeight: 'bold',
   },
   textos: {
     flex: 1,
   },
   nome: {
     fontSize: 16,
+    fontWeight: '600',
     color: CORES.texto,
   },
   nomeConcluido: {
     textDecorationLine: 'line-through',
     color: CORES.textoSecundario,
   },
+  grupo: {
+    fontSize: 13,
+    color: CORES.textoSecundario,
+    marginTop: 4,
+  },
   linhaDetalhes: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    marginTop: 6,
-  },
-  etiqueta: {
-    backgroundColor: CORES.borda,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginRight: 8,
-    marginBottom: 4,
-  },
-  textoEtiqueta: {
-    color: CORES.texto,
-    fontSize: 12,
-    fontWeight: 'bold',
+    marginTop: 8,
   },
   detalhe: {
-    fontSize: 13,
+    fontSize: 14,
     color: CORES.textoSecundario,
-    marginRight: 8,
+  },
+  separador: {
+    fontSize: 14,
+    color: CORES.textoSecundario,
+    marginHorizontal: 8,
   },
   peso: {
-    fontSize: 13,
-    color: CORES.texto,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '700',
+    color: CORES.destaque,
   },
   ultimaCarga: {
     fontSize: 12,
     color: CORES.textoSecundario,
-    fontStyle: 'italic',
+    marginTop: 8,
   },
   selo: {
+    flexDirection: 'row',
+    alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: CORES.destaque,
-    borderRadius: 4,
+    backgroundColor: CORES.destaqueSuave,
+    borderRadius: 999,
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginTop: 6,
+    paddingVertical: 4,
+    marginTop: 8,
   },
   textoSelo: {
-    color: CORES.textoSobreDestaque,
+    color: CORES.destaque,
     fontSize: 12,
-    fontWeight: '900',
-    fontStyle: 'italic',
+    fontWeight: '600',
+    marginLeft: 4,
   },
 
   // Linha de botões
@@ -342,51 +336,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: CORES.borda,
+    marginTop: 16,
   },
   botaoComoFazer: {
-    borderWidth: 1,
-    borderColor: CORES.destaque,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: CORES.destaqueSuave,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   textoComoFazer: {
     fontSize: 13,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: CORES.destaque,
+    marginLeft: 8,
   },
   acoes: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  botaoAcao: {
-    borderWidth: 1,
-    borderColor: CORES.borda,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  botaoIcone: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: CORES.cartaoElevado,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  botaoAcaoEspaco: {
+  botaoIconeEspaco: {
     marginRight: 8,
-  },
-  botaoRemover: {
-    borderColor: '#6b2b2b',
   },
   botaoPressionado: {
     opacity: 0.6,
-  },
-  editar: {
-    color: CORES.texto,
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
-  remover: {
-    color: '#e57373',
-    fontSize: 13,
-    fontWeight: 'bold',
   },
 });

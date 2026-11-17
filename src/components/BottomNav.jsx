@@ -1,10 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { CORES } from '../utils/theme';
 
 const NATIVE = Platform.OS !== 'web';
+
+// Mesma paleta do WorkoutScreen. Depois dá para mover tudo para utils/theme.js.
+const P = {
+  verde: '#0F3D2E',
+  limao: '#D6F24A',
+  iconeInativo: '#9DB5A8',
+};
 
 const TABS = [
   { key: 'workout', label: 'Treino', icon: 'barbell-outline', iconOn: 'barbell' },
@@ -17,49 +23,49 @@ const TABS = [
 function TabItem({ tab, active, onPress }) {
   const value = useRef(new Animated.Value(active ? 1 : 0)).current;
 
+  // A largura (flex) e a cor de fundo mudam, então aqui não dá para usar o motor nativo.
   useEffect(() => {
     Animated.spring(value, {
       toValue: active ? 1 : 0,
-      friction: 6,
-      tension: 120,
-      useNativeDriver: NATIVE,
+      friction: 9,
+      tension: 80,
+      useNativeDriver: false,
     }).start();
   }, [active]);
 
-  const lift = value.interpolate({ inputRange: [0, 1], outputRange: [0, -3] });
-  const scale = value.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
+  const flex = value.interpolate({ inputRange: [0, 1], outputRange: [1, 3] });
+  const fundo = value.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['rgba(214,242,74,0)', 'rgba(214,242,74,1)'],
+  });
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.tab, pressed && styles.pressed]}>
-      <Animated.View style={{ transform: [{ translateY: lift }, { scale }] }}>
-        <Ionicons
-          name={active ? tab.iconOn : tab.icon}
-          size={24}
-          color={active ? CORES.destaque : CORES.textoSecundario}
-        />
-      </Animated.View>
-      <Text style={[styles.label, active && styles.labelActive]}>{tab.label}</Text>
-    </Pressable>
+    <Animated.View style={[styles.tabBox, { flex }]}>
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={tab.label}
+        accessibilityState={{ selected: active }}
+        style={({ pressed }) => [styles.tabPressable, pressed && styles.pressed]}
+      >
+        <Animated.View style={[styles.tab, { backgroundColor: fundo }]}>
+          <Ionicons
+            name={active ? tab.iconOn : tab.icon}
+            size={22}
+            color={active ? P.verde : P.iconeInativo}
+          />
+          {active && (
+            <Text style={styles.label} numberOfLines={1}>
+              {tab.label}
+            </Text>
+          )}
+        </Animated.View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 export default function BottomNav({ active, onChange }) {
-  const [width, setWidth] = useState(0);
-  const x = useRef(new Animated.Value(0)).current;
-
-  const index = Math.max(0, TABS.findIndex((t) => t.key === active));
-  const tabWidth = width / TABS.length;
-
-  useEffect(() => {
-    if (!width) return;
-    Animated.spring(x, {
-      toValue: index * tabWidth,
-      friction: 8,
-      tension: 90,
-      useNativeDriver: NATIVE,
-    }).start();
-  }, [index, width]);
-
   function handlePress(key) {
     if (key !== active && NATIVE) {
       Haptics.selectionAsync().catch(() => {});
@@ -68,61 +74,58 @@ export default function BottomNav({ active, onChange }) {
   }
 
   return (
-    <View style={styles.bar} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
-      {width > 0 && (
-        <Animated.View style={[styles.indicatorBox, { width: tabWidth, transform: [{ translateX: x }] }]}>
-          <View style={styles.indicator} />
-        </Animated.View>
-      )}
-      {TABS.map((tab) => (
-        <TabItem
-          key={tab.key}
-          tab={tab}
-          active={active === tab.key}
-          onPress={() => handlePress(tab.key)}
-        />
-      ))}
+    // Flutua sobre a tela. O "box-none" deixa o toque passar nas áreas vazias ao redor.
+    <View style={styles.area} pointerEvents="box-none">
+      <View style={styles.bar}>
+        {TABS.map((tab) => (
+          <TabItem
+            key={tab.key}
+            tab={tab}
+            active={active === tab.key}
+            onPress={() => handlePress(tab.key)}
+          />
+        ))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  area: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: Platform.OS === 'ios' ? 28 : 16,
+  },
   bar: {
     flexDirection: 'row',
-    backgroundColor: CORES.cartao,
-    borderTopWidth: 1,
-    borderTopColor: CORES.borda,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 10,
-  },
-  indicatorBox: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
     alignItems: 'center',
+    backgroundColor: P.verde,
+    borderRadius: 999,
+    padding: 8,
+    boxShadow: '0px 8px 24px rgba(15, 61, 46, 0.35)',
   },
-  indicator: {
-    width: 32,
-    height: 3,
-    borderBottomLeftRadius: 3,
-    borderBottomRightRadius: 3,
-    backgroundColor: CORES.destaque,
+  tabBox: {
+    height: 48,
+  },
+  tabPressable: {
+    flex: 1,
   },
   tab: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 12,
-    paddingBottom: 2,
+    justifyContent: 'center',
+    borderRadius: 999,
+    paddingHorizontal: 8,
   },
   pressed: {
-    opacity: 0.6,
+    opacity: 0.7,
   },
   label: {
-    marginTop: 4,
-    fontSize: 11,
-    fontWeight: '600',
-    color: CORES.textoSecundario,
-  },
-  labelActive: {
-    color: CORES.destaque,
+    marginLeft: 6,
+    fontSize: 13,
+    fontWeight: '800',
+    color: P.verde,
   },
 });

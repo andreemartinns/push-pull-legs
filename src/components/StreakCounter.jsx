@@ -4,8 +4,8 @@ import { CORES } from '../utils/theme';
 
 const DIAS_DA_SEMANA = 7;
 
-// Quantas barrinhas acendem: a sequência dentro da semana atual (1 a 7).
-function barrasAcesas(numero) {
+// Quantas bolinhas acendem: a sequência dentro da semana atual (1 a 7).
+function bolinhasAcesas(numero) {
   if (numero <= 0) return 0;
   return ((numero - 1) % DIAS_DA_SEMANA) + 1;
 }
@@ -48,28 +48,25 @@ export default function ContadorSequencia({ valor }) {
     return <Text style={styles.semSequencia}>Conclua um treino para começar sua sequência</Text>;
   }
 
-  const acesas = barrasAcesas(numero);
+  const acesas = bolinhasAcesas(numero);
 
   return (
     <Animated.View
       style={[styles.container, { transform: [{ scale: pulo }], transformOrigin: 'left center' }]}
     >
-      <View style={styles.linha}>
+      <View style={styles.esquerda}>
         <Text style={styles.numero}>{numero}</Text>
-        <View style={styles.textos}>
-          <Text style={styles.rotulo}>{numero === 1 ? 'dia seguido' : 'dias seguidos'}</Text>
-          <Text style={styles.sub}>de treino</Text>
-        </View>
+        <Text style={styles.rotulo}>{numero === 1 ? 'dia seguido' : 'dias seguidos'}</Text>
       </View>
 
-      <View style={styles.barras}>
+      <View style={styles.bolinhas}>
         {Array.from({ length: DIAS_DA_SEMANA }).map((_, indice) => (
           <View
             key={indice}
             style={[
-              styles.barra,
-              indice < DIAS_DA_SEMANA - 1 && styles.barraEspaco,
-              indice < acesas && styles.barraAcesa,
+              styles.bolinha,
+              indice < DIAS_DA_SEMANA - 1 && styles.bolinhaEspaco,
+              indice < acesas && styles.bolinhaAcesa,
             ]}
           />
         ))}
@@ -80,54 +77,44 @@ export default function ContadorSequencia({ valor }) {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
-  },
-  linha: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  esquerda: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
   numero: {
-    fontSize: 40,
-    lineHeight: 42,
-    fontWeight: '900',
-    fontStyle: 'italic',
+    fontSize: 24,
+    fontWeight: '700',
     color: CORES.destaque,
-    marginRight: 10,
-  },
-  textos: {
-    paddingBottom: 4,
+    marginRight: 8,
   },
   rotulo: {
-    fontSize: 15,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-  },
-  sub: {
-    fontSize: 12,
+    fontSize: 14,
     color: CORES.textoSecundario,
   },
-  barras: {
+  bolinhas: {
     flexDirection: 'row',
-    marginTop: 10,
+    alignItems: 'center',
   },
-  barra: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: CORES.borda,
+  bolinha: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: CORES.cartaoElevado,
   },
-  barraEspaco: {
-    marginRight: 4,
+  bolinhaEspaco: {
+    marginRight: 8,
   },
-  barraAcesa: {
+  bolinhaAcesa: {
     backgroundColor: CORES.destaque,
   },
   semSequencia: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: CORES.destaque,
-    marginBottom: 16,
+    fontSize: 14,
+    color: CORES.textoSecundario,
+    marginBottom: 8,
   },
 });

@@ -250,7 +250,8 @@ const styles = StyleSheet.create({
   },
   root: {
     flex: 1,
-    backgroundColor: CORES.fundo,
+    // Creme do visual novo, para a barra flutuante não ficar sobre fundo escuro.
+    backgroundColor: '#F1EFE4',
   },
   body: {
     flex: 1,

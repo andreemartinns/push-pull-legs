@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { CORES } from '../utils/theme';
 
 export default function BarraProgresso({ total, concluidos }) {
@@ -25,7 +25,7 @@ export default function BarraProgresso({ total, concluidos }) {
     if (concluidos === 0) return;
 
     Animated.sequence([
-      Animated.timing(pulo, { toValue: 1.12, duration: 120, useNativeDriver: false }),
+      Animated.timing(pulo, { toValue: 1.08, duration: 120, useNativeDriver: false }),
       Animated.spring(pulo, {
         toValue: 1,
         friction: 4,
@@ -43,15 +43,19 @@ export default function BarraProgresso({ total, concluidos }) {
 
   return (
     <View style={styles.container}>
-      <Animated.Text
-        style={[
-          styles.texto,
-          completo && styles.textoCompleto,
-          { transform: [{ scale: pulo }], transformOrigin: 'left center' },
-        ]}
-      >
-        {completo ? 'Treino completo!' : `${concluidos} de ${total} concluídos`}
-      </Animated.Text>
+      <View style={styles.linha}>
+        <Animated.Text
+          style={[
+            styles.texto,
+            completo && styles.textoCompleto,
+            { transform: [{ scale: pulo }], transformOrigin: 'left center' },
+          ]}
+        >
+          {completo ? 'Treino completo' : `${concluidos} de ${total} concluídos`}
+        </Animated.Text>
+        <Text style={styles.porcentagem}>{Math.round(porcentagem)}%</Text>
+      </View>
+
       <View style={styles.fundo}>
         <Animated.View style={[styles.preenchimento, { width: larguraTexto }]} />
       </View>
@@ -63,25 +67,34 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
   },
+  linha: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   texto: {
     fontSize: 14,
     color: CORES.textoSecundario,
-    marginBottom: 8,
   },
   textoCompleto: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: CORES.destaque,
   },
+  porcentagem: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: CORES.texto,
+  },
   fundo: {
-    height: 10,
-    backgroundColor: CORES.borda,
-    borderRadius: 5,
+    height: 6,
+    backgroundColor: CORES.cartaoElevado,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   preenchimento: {
-    height: 10,
+    height: 6,
     backgroundColor: CORES.destaque,
-    borderRadius: 5,
+    borderRadius: 3,
   },
 });

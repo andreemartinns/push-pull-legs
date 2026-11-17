@@ -6,16 +6,18 @@ import {
   Image,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import BotaoAssistente from '../components/AssistantButton';
 import BarraProgresso from '../components/ProgressBar';
 import CartaoExercicio from '../components/ExerciseCard';
 import Comemoracao from '../components/Celebration';
-import ContadorSequencia from '../components/StreakCounter';
 import ModalCarga from '../components/WeightModal';
 import ModalDivisao from '../components/SplitModal';
 import ModalExercicios from '../components/ExercisesModal';
@@ -23,10 +25,34 @@ import TemporizadorDescanso from '../components/RestTimer';
 import { api } from '../utils/api';
 import { DIVISOES } from '../utils/splits';
 import { GRUPOS } from '../utils/muscleGroups';
-import { CORES } from '../utils/theme';
 
 // No celular a animação roda no motor nativo (mais fluida). No navegador, não existe.
 const USAR_NATIVO = Platform.OS !== 'web';
+
+// Paleta do visual novo. Fica aqui por enquanto para não afetar as outras telas.
+// Depois dá para mover para utils/theme.js.
+const P = {
+  fundo: '#F1EFE4',
+  verde: '#0F3D2E',
+  verdeClaro: '#14573F',
+  limao: '#D6F24A',
+  texto: '#0B1F17',
+  textoSecundario: '#55655C',
+  cartao: '#E6E3D3',
+  textoSobreVerde: '#F1EFE4',
+  textoSuaveSobreVerde: '#BFD3C6',
+  pontoVazio: '#B5B8A8',
+};
+
+// Fonte condensada do título. Deixe undefined para usar a fonte padrão.
+// Depois de instalar a fonte (veja as instruções), troque por 'Anton_400Regular'.
+const FONTE_TITULO = undefined;
+
+// Vibração leve nos botões principais (no navegador não faz nada).
+function vibrar() {
+  if (Platform.OS === 'web') return;
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+}
 
 // Converte "12,5" ou "12.5" em número. Se não for número, devolve 0.
 function paraNumero(valor) {
@@ -101,6 +127,25 @@ function calcularSequencia(datas) {
   }
 
   return total;
+}
+
+// Monta os 7 dias da semana atual (segunda a domingo) para a faixa do topo.
+function montarSemana(datas) {
+  const conjunto = new Set(datas);
+  const hoje = new Date();
+  const posicaoHoje = (hoje.getDay() + 6) % 7; // segunda = 0 ... domingo = 6
+  const letras = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
+
+  return letras.map((letra, indice) => {
+    const dia = new Date(hoje);
+    dia.setDate(hoje.getDate() - posicaoHoje + indice);
+
+    return {
+      letra,
+      treinou: conjunto.has(formatarData(dia)),
+      hoje: indice === posicaoHoje,
+    };
+  });
 }
 
 // Bom dia, boa tarde ou boa noite, conforme a hora.
@@ -181,7 +226,7 @@ function ultimoTreinoDoHistorico(historico) {
   const lista = Array.isArray(ultimo) ? ultimo : ultimo.exercicios || [];
   if (lista.length === 0) return null;
 
-  return { lista, divisao: divisaoDoTreino(lista) };
+  return { lista, divisao: divisaoDoTreino(lista), data: ultimo.data || null };
 }
 
 // ----- Fila de treinos do professor -----
@@ -243,89 +288,114 @@ function Aparecer({ atraso = 0, children }) {
   );
 }
 
-// Cabeçalho de seção: barrinha amarela, título e uma linha de explicação.
+// Cabeçalho de seção: só título e uma linha de apoio.
 function TituloSecao({ titulo, descricao }) {
   return (
     <View style={styles.secao}>
-      <View style={styles.barraSecao} />
-      <View style={styles.textosSecao}>
-        <Text style={styles.tituloSecao}>{titulo}</Text>
-        <Text style={styles.descricaoSecao}>{descricao}</Text>
-      </View>
+      <Text style={styles.tituloSecao}>{titulo}</Text>
+      <Text style={styles.descricaoSecao}>{descricao}</Text>
     </View>
   );
 }
 
-// Estado vazio: uma barra que faz uma repetição (sobe, segura, desce, descansa).
-// Se já existe um treino no histórico, mostra o botão para repeti-lo.
+// Faixa da semana: sete dias com o de hoje destacado, e a sequência logo abaixo.
+function FaixaSemana({ dias, sequencia }) {
+  return (
+    <View>
+      <View style={styles.semana}>
+        {dias.map((dia, indice) => (
+          <View
+            key={indice}
+            style={[
+              styles.diaSemana,
+              indice < dias.length - 1 && styles.diaSemanaEspaco,
+              dia.hoje && styles.diaSemanaHoje,
+            ]}
+          >
+            <Text style={[styles.letraDia, dia.hoje && styles.letraDiaHoje]}>{dia.letra}</Text>
+            <View
+              style={[
+                styles.pontoDia,
+                dia.treinou && styles.pontoDiaTreinou,
+                dia.hoje && styles.pontoDiaHoje,
+              ]}
+            />
+          </View>
+        ))}
+      </View>
+
+      <Text style={styles.textoSequencia}>
+        <Text style={styles.numeroSequencia}>{sequencia}</Text>{' '}
+        {sequencia === 1 ? 'dia seguido' : 'dias seguidos'} de treino
+      </Text>
+    </View>
+  );
+}
+
+// Cartão grande do treino (usado no treino sugerido e no do professor).
+function CartaoGrande({ etiqueta, nome, descricao, aoComecar }) {
+  return (
+    <View style={styles.cartaoHoje}>
+      <View style={styles.circuloDecorativo} />
+
+      <View style={styles.pilulaEtiqueta}>
+        <Text style={styles.textoEtiqueta}>{etiqueta.toUpperCase()}</Text>
+      </View>
+
+      <Text
+        style={styles.nomeHoje}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.5}
+      >
+        {nome.toUpperCase()}
+      </Text>
+      <Text style={styles.musculosHoje}>{descricao}</Text>
+
+      <Pressable
+        onPress={() => {
+          vibrar();
+          aoComecar();
+        }}
+        style={({ pressed }) => [styles.botaoComecar, pressed && styles.pressionado]}
+      >
+        <Text style={styles.textoBotaoComecar}>Começar treino</Text>
+        <Ionicons name="arrow-forward" size={18} color={P.verde} />
+      </Pressable>
+    </View>
+  );
+}
+
+// Estado vazio: um texto curto e, se houver treino no histórico, uma linha para repeti-lo.
 function EstadoVazio({ ultimoTreino, aoRepetir }) {
-  const subida = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const repeticao = Animated.loop(
-      Animated.sequence([
-        Animated.delay(500),
-        Animated.timing(subida, {
-          toValue: 1,
-          duration: 650,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: USAR_NATIVO,
-        }),
-        Animated.delay(280),
-        Animated.timing(subida, {
-          toValue: 0,
-          duration: 520,
-          easing: Easing.in(Easing.cubic),
-          useNativeDriver: USAR_NATIVO,
-        }),
-      ])
-    );
-    repeticao.start();
-    return () => repeticao.stop();
-  }, []);
-
-  const levantar = subida.interpolate({ inputRange: [0, 1], outputRange: [0, -34] });
-  const encolher = subida.interpolate({ inputRange: [0, 1], outputRange: [1, 0.6] });
-  const clarear = subida.interpolate({ inputRange: [0, 1], outputRange: [1, 0.35] });
-
-  const textoBotao = ultimoTreino
-    ? ultimoTreino.divisao
-      ? `Repetir o último treino (${ultimoTreino.divisao})`
-      : 'Repetir o último treino'
+  const detalhe = ultimoTreino
+    ? [ultimoTreino.divisao, ultimoTreino.data].filter(Boolean).join(' · ')
     : '';
 
   return (
     <Aparecer atraso={450}>
       <View style={styles.vazio}>
-        <View style={styles.palco}>
-          <Animated.View style={[styles.barraCompleta, { transform: [{ translateY: levantar }] }]}>
-            <View style={styles.anilhaGrande} />
-            <View style={styles.anilhaPequena} />
-            <View style={styles.manga} />
-            <View style={styles.barra} />
-            <View style={styles.manga} />
-            <View style={styles.anilhaPequena} />
-            <View style={styles.anilhaGrande} />
-          </Animated.View>
-
-          <Animated.View
-            style={[styles.sombra, { opacity: clarear, transform: [{ scaleX: encolher }] }]}
-          />
-        </View>
-
-        <Text style={styles.tituloVazio}>Nada na barra ainda</Text>
         <Text style={styles.textoVazio}>
-          Escolha uma divisão ou um grupo acima e monte o treino de hoje.
+          Nenhum exercício por aqui ainda. Escolha uma divisão ou um grupo acima para montar o
+          treino de hoje.
         </Text>
 
         {ultimoTreino && (
           <Pressable
-            onPress={aoRepetir}
-            style={({ pressed }) => [styles.botaoRepetir, pressed && styles.botaoRepetirAtivo]}
+            onPress={() => {
+              vibrar();
+              aoRepetir();
+            }}
+            style={({ pressed }) => [styles.linhaRepetir, pressed && styles.pressionado]}
           >
-            {({ pressed }) => (
-              <Text style={[styles.textoRepetir, pressed && styles.textoAtivo]}>{textoBotao}</Text>
-            )}
+            <View style={styles.iconeRepetir}>
+              <Ionicons name="refresh" size={20} color={P.limao} />
+            </View>
+            <View style={styles.textosRepetir}>
+              <Text style={styles.tituloRepetir}>Repetir o último treino</Text>
+              {detalhe !== '' && <Text style={styles.detalheRepetir}>{detalhe}</Text>}
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={P.textoSecundario} />
           </Pressable>
         )}
       </View>
@@ -345,6 +415,7 @@ export default function TelaTreino({
   const [modalVisivel, setModalVisivel] = useState(false);
   const [grupoModal, setGrupoModal] = useState(null);
   const [divisaoAberta, setDivisaoAberta] = useState(null);
+  const [divisaoEscolhida, setDivisaoEscolhida] = useState(null); // só visual: qual aparece no cartão de hoje
   const [exercicioConcluindo, setExercicioConcluindo] = useState(null);
   const [temporizadorVisivel, setTemporizadorVisivel] = useState(false);
   const [anotacao, setAnotacao] = useState('');
@@ -360,6 +431,7 @@ export default function TelaTreino({
     () => calcularSequencia(montarDatasTreino(historico)),
     [historico]
   );
+  const semana = useMemo(() => montarSemana(montarDatasTreino(historico)), [historico]);
   const sugestao = useMemo(() => sugestaoDoHistorico(historico), [historico]);
   const ultimoTreino = useMemo(() => ultimoTreinoDoHistorico(historico), [historico]);
   const treinoAtual = useMemo(() => treinoDaVez(prescrito, historico), [prescrito, historico]);
@@ -369,6 +441,17 @@ export default function TelaTreino({
   // Sequência contando o treino de hoje (que ainda não está no histórico).
   const treinouHoje = historico[0] && historico[0].data === formatarData(new Date());
   const sequenciaComHoje = treinouHoje ? sequencia : sequencia + 1;
+
+  // Divisão mostrada no cartão grande: a que o aluno tocou, senão a sugerida, senão a primeira.
+  const nomeDoCartao = divisaoEscolhida || (sugestao ? sugestao.nome : DIVISOES[0].nome);
+  const divisaoDoCartao = DIVISOES.find((d) => d.nome === nomeDoCartao) || DIVISOES[0];
+  const etiquetaDoCartao = sugestao
+    ? sugestao.nome === divisaoDoCartao.nome
+      ? sugestao.hoje
+        ? 'Treino de hoje'
+        : 'Próximo treino'
+      : 'Outra divisão'
+    : 'Sugestão para começar';
 
   // Carrega o treino em andamento da nuvem.
   useEffect(() => {
@@ -662,7 +745,7 @@ export default function TelaTreino({
             style={styles.mascot}
             resizeMode="contain"
           />
-          <Text style={styles.nomeAcademia}>Ritmo Brasil</Text>
+          <Text style={styles.nomeAcademia}>RITMO BRASIL</Text>
         </View>
 
         <Pressable
@@ -679,25 +762,21 @@ export default function TelaTreino({
           <Text style={styles.saudacao}>
             {saudacaoDoDia()}, {usuario.nome}
           </Text>
-          <Text style={styles.titulo}>Meu Treino</Text>
+          <Text style={styles.titulo}>Meu treino</Text>
         </View>
 
-        <ContadorSequencia valor={sequencia} />
+        <FaixaSemana dias={semana} sequencia={sequencia} />
       </Aparecer>
 
       {/* Se o professor montou treinos, o aluno só faz o treino da vez. */}
       {treinoAtual && exercicios.length === 0 && (
         <Aparecer atraso={200}>
-          <TituloSecao
-            titulo={`Treino do professor · ${treinoAtual.nome}`}
+          <CartaoGrande
+            etiqueta="Treino do professor"
+            nome={treinoAtual.nome}
             descricao={`${treinoAtual.exercicios.length} exercícios montados para você`}
+            aoComecar={carregarTreinoDoProfessor}
           />
-          <Pressable
-            onPress={carregarTreinoDoProfessor}
-            style={({ pressed }) => [styles.botaoProfessor, pressed && styles.limparPressionado]}
-          >
-            <Text style={styles.textoBotaoProfessor}>Começar treino</Text>
-          </Pressable>
         </Aparecer>
       )}
 
@@ -705,64 +784,36 @@ export default function TelaTreino({
       {!prescrito && (
         <>
           <Aparecer atraso={200}>
-            <TituloSecao
-              titulo="Treino pronto"
-              descricao="Escolha uma divisão e adicione tudo de uma vez"
+            <CartaoGrande
+              etiqueta={etiquetaDoCartao}
+              nome={divisaoDoCartao.nome}
+              descricao={divisaoDoCartao.descricao}
+              aoComecar={() => abrirDivisao(divisaoDoCartao)}
             />
 
-            <View style={styles.divisoes}>
+            <View style={styles.opcoesDivisao}>
               {DIVISOES.map((item, indice) => {
-                const aberta = divisaoAberta !== null && divisaoAberta.nome === item.nome;
-                const sugerida = sugestao !== null && sugestao.nome === item.nome;
+                const selecionada = item.nome === divisaoDoCartao.nome;
 
                 return (
                   <Pressable
                     key={item.nome}
-                    onPress={() => abrirDivisao(item)}
+                    onPress={() => setDivisaoEscolhida(item.nome)}
                     style={({ pressed }) => [
-                      styles.divisao,
-                      indice < DIVISOES.length - 1 && styles.divisaoEspaco,
-                      sugerida && styles.divisaoSugerida,
-                      (pressed || aberta) && styles.divisaoAtiva,
+                      styles.opcaoDivisao,
+                      indice < DIVISOES.length - 1 && styles.opcaoDivisaoEspaco,
+                      selecionada && styles.opcaoDivisaoSelecionada,
+                      pressed && styles.pressionado,
                     ]}
                   >
-                    {({ pressed }) => (
-                      <>
-                        <Text
-                          style={[
-                            styles.nomeDivisao,
-                            (pressed || aberta) && styles.textoAtivo,
-                          ]}
-                        >
-                          {item.nome}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.descricaoDivisao,
-                            (pressed || aberta) && styles.textoAtivo,
-                          ]}
-                        >
-                          {item.descricao}
-                        </Text>
-                        {sugerida && (
-                          <View
-                            style={[
-                              styles.etiquetaSugestao,
-                              (pressed || aberta) && styles.etiquetaSugestaoAtiva,
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.textoEtiquetaSugestao,
-                                (pressed || aberta) && styles.textoEtiquetaSugestaoAtiva,
-                              ]}
-                            >
-                              {sugestao.hoje ? 'Hoje' : 'Próximo'}
-                            </Text>
-                          </View>
-                        )}
-                      </>
-                    )}
+                    <Text
+                      style={[
+                        styles.textoOpcaoDivisao,
+                        selecionada && styles.textoOpcaoDivisaoSelecionada,
+                      ]}
+                    >
+                      {item.nome}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -771,11 +822,16 @@ export default function TelaTreino({
 
           <Aparecer atraso={320}>
             <TituloSecao
-              titulo="Por grupo muscular"
-              descricao="Ou monte o seu, exercício por exercício"
+              titulo="Ou escolha por grupo"
+              descricao="Monte o seu, exercício por exercício"
             />
 
-            <View style={styles.grupos}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.gruposScroll}
+              contentContainerStyle={styles.grupos}
+            >
               {GRUPOS.map((item) => {
                 const aberto = modalVisivel && grupoModal === item.nome;
 
@@ -801,19 +857,21 @@ export default function TelaTreino({
                   </Pressable>
                 );
               })}
-            </View>
+            </ScrollView>
           </Aparecer>
         </>
       )}
 
       {exercicios.length > 0 && (
-        <BarraProgresso total={exercicios.length} concluidos={concluidos} />
+        <View style={styles.progresso}>
+          <BarraProgresso total={exercicios.length} concluidos={concluidos} />
+        </View>
       )}
 
       {concluidos > 0 && (
         <Pressable
           onPress={limparConcluidos}
-          style={({ pressed }) => [styles.limpar, pressed && styles.limparPressionado]}
+          style={({ pressed }) => [styles.limpar, pressed && styles.pressionado]}
         >
           <Text style={styles.textoLimpar}>
             Limpar {concluidos} {concluidos === 1 ? 'concluído' : 'concluídos'}
@@ -839,7 +897,7 @@ export default function TelaTreino({
           onFocus={() => setAnotacaoFocada(true)}
           onBlur={() => setAnotacaoFocada(false)}
           placeholder="Anote antes do último exercício. Ex: dormi mal, ombro doendo"
-          placeholderTextColor={CORES.textoSecundario}
+          placeholderTextColor={P.textoSecundario}
           multiline
           maxLength={200}
         />
@@ -924,18 +982,24 @@ export default function TelaTreino({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: CORES.fundo,
+    backgroundColor: P.fundo,
   },
   conteudoLista: {
     paddingHorizontal: 20,
-    paddingBottom: 100,
+    paddingBottom: 130,
   },
+  pressionado: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.9,
+  },
+
+  // Topo
   topo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 50,
-    paddingBottom: 18,
+    paddingTop: 56,
+    paddingBottom: 24,
   },
   marca: {
     flexDirection: 'row',
@@ -943,303 +1007,309 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   mascot: {
-    width: 32,
-    height: 42,
+    width: 24,
+    height: 32,
   },
   nomeAcademia: {
-    marginLeft: 10,
-    fontSize: 17,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
+    marginLeft: 8,
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    color: P.texto,
+    fontFamily: FONTE_TITULO,
   },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: CORES.destaque,
+    backgroundColor: P.verde,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarPressionado: {
-    transform: [{ scale: 0.9 }],
+    transform: [{ scale: 0.92 }],
   },
   avatarLetra: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: CORES.textoSobreDestaque,
+    fontSize: 16,
+    fontWeight: '700',
+    color: P.limao,
   },
+
+  // Saudação e título
   cabecalho: {
-    marginBottom: 8,
+    marginBottom: 20,
   },
   saudacao: {
     fontSize: 15,
-    color: CORES.textoSecundario,
+    color: P.textoSecundario,
+    marginBottom: 6,
   },
   titulo: {
-    fontSize: 28,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
+    fontSize: 36,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    color: P.texto,
+  },
+
+  // Faixa da semana
+  semana: {
+    flexDirection: 'row',
+  },
+  diaSemana: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingVertical: 10,
+  },
+  diaSemanaEspaco: {
+    marginRight: 6,
+  },
+  diaSemanaHoje: {
+    backgroundColor: P.verde,
+  },
+  letraDia: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: P.textoSecundario,
+  },
+  letraDiaHoje: {
+    color: P.textoSobreVerde,
+  },
+  pontoDia: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: P.pontoVazio,
+    marginTop: 8,
+  },
+  pontoDiaTreinou: {
+    backgroundColor: P.verde,
+  },
+  pontoDiaHoje: {
+    backgroundColor: P.limao,
+  },
+  textoSequencia: {
+    fontSize: 13,
+    color: P.textoSecundario,
+    marginTop: 12,
+  },
+  numeroSequencia: {
+    fontWeight: '800',
+    color: P.texto,
   },
 
   // Títulos de seção
   secao: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  barraSecao: {
-    width: 4,
-    borderRadius: 2,
-    backgroundColor: CORES.destaque,
-    marginRight: 10,
-  },
-  textosSecao: {
-    flex: 1,
+    marginTop: 28,
+    marginBottom: 14,
   },
   tituloSecao: {
-    fontSize: 16,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
+    fontSize: 18,
+    fontWeight: '700',
+    color: P.texto,
   },
   descricaoSecao: {
-    fontSize: 12,
-    color: CORES.textoSecundario,
-    marginTop: 2,
+    fontSize: 13,
+    color: P.textoSecundario,
+    marginTop: 4,
   },
 
-  // Treino do professor
-  botaoProfessor: {
-    backgroundColor: CORES.destaque,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 20,
+  // Cartão grande do treino (de hoje ou do professor)
+  cartaoHoje: {
+    backgroundColor: P.verde,
+    borderRadius: 32,
+    padding: 24,
+    marginTop: 20,
+    overflow: 'hidden',
   },
-  textoBotaoProfessor: {
-    fontSize: 15,
+  circuloDecorativo: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    backgroundColor: P.verdeClaro,
+  },
+  pilulaEtiqueta: {
+    alignSelf: 'flex-start',
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  textoEtiqueta: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    color: P.verde,
+  },
+  nomeHoje: {
+    fontSize: 88,
+    lineHeight: 96,
     fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.textoSobreDestaque,
+    letterSpacing: -2,
+    color: P.textoSobreVerde,
+    marginTop: 16,
+    fontFamily: FONTE_TITULO,
+  },
+  musculosHoje: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: P.textoSuaveSobreVerde,
+    marginTop: 4,
+  },
+  botaoComecar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingVertical: 18,
+    marginTop: 24,
+  },
+  textoBotaoComecar: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: P.verde,
+    marginRight: 8,
   },
 
-  divisoes: {
+  // Opções de divisão (Push, Pull, Legs)
+  opcoesDivisao: {
     flexDirection: 'row',
-    marginBottom: 20,
+    marginTop: 16,
   },
-  divisao: {
+  opcaoDivisao: {
     flex: 1,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.cartao,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 6,
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingVertical: 14,
   },
-  divisaoEspaco: {
+  opcaoDivisaoEspaco: {
     marginRight: 8,
   },
-  divisaoSugerida: {
-    borderColor: CORES.destaque,
+  opcaoDivisaoSelecionada: {
+    backgroundColor: P.verde,
   },
-  divisaoAtiva: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
+  textoOpcaoDivisao: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: P.textoSecundario,
   },
-  nomeDivisao: {
-    fontSize: 20,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
+  textoOpcaoDivisaoSelecionada: {
+    color: P.textoSobreVerde,
   },
-  descricaoDivisao: {
-    fontSize: 11,
-    color: CORES.textoSecundario,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  textoAtivo: {
-    color: CORES.textoSobreDestaque,
-  },
-  etiquetaSugestao: {
-    backgroundColor: CORES.destaque,
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 1,
-    marginTop: 8,
-  },
-  etiquetaSugestaoAtiva: {
-    backgroundColor: CORES.textoSobreDestaque,
-  },
-  textoEtiquetaSugestao: {
-    fontSize: 11,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.textoSobreDestaque,
-  },
-  textoEtiquetaSugestaoAtiva: {
-    color: CORES.destaque,
+
+  // Grupos musculares (linha que rola para o lado)
+  gruposScroll: {
+    marginHorizontal: -20,
   },
   grupos: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 16,
+    paddingHorizontal: 20,
   },
   chip: {
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.cartao,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
     marginRight: 8,
-    marginBottom: 8,
   },
   chipAtivo: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
+    backgroundColor: P.verde,
   },
   textoChip: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.texto,
+    fontWeight: '700',
+    color: P.texto,
   },
   textoChipAtivo: {
-    color: CORES.textoSobreDestaque,
+    color: P.textoSobreVerde,
+  },
+
+  // Progresso e limpar concluídos
+  progresso: {
+    marginTop: 24,
   },
   limpar: {
     alignSelf: 'flex-end',
-    borderWidth: 1,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.cartao,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    marginTop: 10,
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 16,
     marginBottom: 16,
-  },
-  limparPressionado: {
-    opacity: 0.6,
   },
   textoLimpar: {
     fontSize: 13,
-    color: CORES.textoSecundario,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: P.textoSecundario,
   },
 
   // Estado vazio
   vazio: {
-    alignItems: 'center',
     paddingTop: 28,
-    paddingBottom: 12,
-  },
-  palco: {
-    height: 100,
-    width: 200,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginBottom: 20,
-  },
-  barraCompleta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  barra: {
-    width: 70,
-    height: 6,
-    backgroundColor: CORES.textoSecundario,
-  },
-  manga: {
-    width: 8,
-    height: 10,
-    backgroundColor: CORES.borda,
-  },
-  anilhaPequena: {
-    width: 8,
-    height: 30,
-    borderRadius: 2,
-    backgroundColor: CORES.texto,
-    marginHorizontal: 1,
-  },
-  anilhaGrande: {
-    width: 12,
-    height: 48,
-    borderRadius: 3,
-    backgroundColor: CORES.destaque,
-    marginHorizontal: 1,
-  },
-  sombra: {
-    width: 150,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: CORES.borda,
-  },
-  tituloVazio: {
-    fontSize: 18,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-    marginBottom: 6,
+    paddingBottom: 8,
   },
   textoVazio: {
     fontSize: 14,
-    color: CORES.textoSecundario,
-    textAlign: 'center',
-    maxWidth: 260,
+    lineHeight: 24,
+    color: P.textoSecundario,
   },
-  botaoRepetir: {
-    borderWidth: 1.5,
-    borderColor: CORES.destaque,
-    borderRadius: 10,
-    paddingHorizontal: 18,
-    paddingVertical: 11,
-    marginTop: 20,
+  linhaRepetir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: P.cartao,
+    borderRadius: 24,
+    padding: 16,
+    marginTop: 24,
   },
-  botaoRepetirAtivo: {
-    backgroundColor: CORES.destaque,
+  iconeRepetir: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: P.verde,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
   },
-  textoRepetir: {
-    fontSize: 14,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.destaque,
+  textosRepetir: {
+    flex: 1,
+  },
+  tituloRepetir: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: P.texto,
+  },
+  detalheRepetir: {
+    fontSize: 13,
+    color: P.textoSecundario,
+    marginTop: 4,
   },
 
   // Anotação do treino
   anotacao: {
-    marginTop: 16,
+    marginTop: 8,
   },
   campoAnotacao: {
-    minHeight: 80,
-    backgroundColor: CORES.cartao,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    minHeight: 96,
+    backgroundColor: P.cartao,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     fontSize: 15,
-    color: CORES.texto,
+    color: P.texto,
     textAlignVertical: 'top',
   },
   campoAnotacaoFocado: {
-    borderColor: CORES.destaque,
+    backgroundColor: '#DDD9C6',
   },
   contadorAnotacao: {
     alignSelf: 'flex-end',
     fontSize: 12,
-    color: CORES.textoSecundario,
-    marginTop: 6,
+    color: P.textoSecundario,
+    marginTop: 8,
   },
 });
