@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import {
+  useFonts,
+  BarlowCondensed_600SemiBold,
+  BarlowCondensed_700Bold,
+  BarlowCondensed_800ExtraBold,
+} from '@expo-google-fonts/barlow-condensed';
 import BottomNav from './src/components/BottomNav';
 import Transicao from './src/components/Transition';
 import Tutorial from './src/components/Tutorial';
@@ -20,6 +26,12 @@ import { avisar } from './src/utils/notify';
 import { CORES } from './src/utils/theme';
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    BarlowCondensed_600SemiBold,
+    BarlowCondensed_700Bold,
+    BarlowCondensed_800ExtraBold,
+  });
+
   const [loading, setLoading] = useState(true);
   const [screen, setScreen] = useState('login');
   const [profile, setProfile] = useState(null);
@@ -145,8 +157,8 @@ export default function App() {
     );
   }
 
-  // Waits for the saved login before showing anything.
-  if (loading) {
+  // Waits for the saved login and the fonts before showing anything.
+  if (loading || !fontsLoaded) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={CORES.destaque} />
