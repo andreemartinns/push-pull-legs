@@ -336,12 +336,8 @@ function EstadoVazio({ ultimoTreino, aoRepetir }) {
 export default function TelaTreino({
   usuario,
   historico = [],
-  aoSair,
   aoSalvarTreino,
-  aoVerHistorico,
-  aoVerMedidas,
-  aoVerLembrete,
-  aoVerAgua,
+  aoVerPerfil,
   aoVerAssistente,
 }) {
   const [exercicios, setExercicios] = useState([]);
@@ -652,6 +648,9 @@ export default function TelaTreino({
     setExercicios(exercicios.filter((item) => !item.concluido));
   }
 
+  // Inicial do nome, para o avatar do topo.
+  const inicial = (usuario.nome || '?').trim().charAt(0).toUpperCase();
+
   // Tudo que fica acima da lista de exercícios.
   // Está dentro da lista para a tela inteira rolar junto.
   const cabecalhoDaLista = (
@@ -663,82 +662,17 @@ export default function TelaTreino({
             style={styles.mascot}
             resizeMode="contain"
           />
-          <View style={styles.nomeMarca}>
-            <Text style={styles.academia}>Academia</Text>
-            <Text style={styles.nomeAcademia}>Ritmo Brasil</Text>
-          </View>
+          <Text style={styles.nomeAcademia}>Ritmo Brasil</Text>
         </View>
 
         <Pressable
-          onPress={aoSair}
-          hitSlop={10}
-          style={({ pressed }) => [styles.botaoSair, pressed && styles.limparPressionado]}
+          onPress={aoVerPerfil}
+          hitSlop={8}
+          style={({ pressed }) => [styles.avatar, pressed && styles.avatarPressionado]}
         >
-          <Text style={styles.sair}>Sair</Text>
+          <Text style={styles.avatarLetra}>{inicial}</Text>
         </Pressable>
       </View>
-
-      <View style={styles.linhaAmarela} />
-
-      <Aparecer atraso={0}>
-        <View style={styles.barraAcoes}>
-          <Pressable
-            onPress={aoVerHistorico}
-            style={({ pressed }) => [
-              styles.botaoCabecalho,
-              styles.botaoCabecalhoEspaco,
-              pressed && styles.botaoCabecalhoAtivo,
-            ]}
-          >
-            {({ pressed }) => (
-              <Text style={[styles.textoBotaoCabecalho, pressed && styles.textoAtivo]}>
-                Histórico
-              </Text>
-            )}
-          </Pressable>
-          <Pressable
-            onPress={aoVerMedidas}
-            style={({ pressed }) => [
-              styles.botaoCabecalho,
-              styles.botaoCabecalhoEspaco,
-              pressed && styles.botaoCabecalhoAtivo,
-            ]}
-          >
-            {({ pressed }) => (
-              <Text style={[styles.textoBotaoCabecalho, pressed && styles.textoAtivo]}>
-                Medidas
-              </Text>
-            )}
-          </Pressable>
-          <Pressable
-            onPress={aoVerLembrete}
-            style={({ pressed }) => [
-              styles.botaoCabecalho,
-              styles.botaoCabecalhoEspaco,
-              pressed && styles.botaoCabecalhoAtivo,
-            ]}
-          >
-            {({ pressed }) => (
-              <Text style={[styles.textoBotaoCabecalho, pressed && styles.textoAtivo]}>
-                Lembrete
-              </Text>
-            )}
-          </Pressable>
-          <Pressable
-            onPress={aoVerAgua}
-            style={({ pressed }) => [
-              styles.botaoCabecalho,
-              pressed && styles.botaoCabecalhoAtivo,
-            ]}
-          >
-            {({ pressed }) => (
-              <Text style={[styles.textoBotaoCabecalho, pressed && styles.textoAtivo]}>
-                Água
-              </Text>
-            )}
-          </Pressable>
-        </View>
-      </Aparecer>
 
       <Aparecer atraso={100}>
         <View style={styles.cabecalho}>
@@ -1001,7 +935,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 50,
-    paddingBottom: 14,
+    paddingBottom: 18,
   },
   marca: {
     flexDirection: 'row',
@@ -1009,65 +943,32 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   mascot: {
-    width: 43,
-    height: 56,
-  },
-  nomeMarca: {
-    marginLeft: 12,
-    flexShrink: 1,
-  },
-  academia: {
-    fontSize: 10,
-    letterSpacing: 5,
-    textTransform: 'uppercase',
-    color: CORES.destaque,
+    width: 32,
+    height: 42,
   },
   nomeAcademia: {
+    marginLeft: 10,
     fontSize: 17,
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
     color: CORES.texto,
   },
-  botaoSair: {
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-  },
-  sair: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
-    fontWeight: 'bold',
-  },
-  linhaAmarela: {
-    height: 4,
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: CORES.destaque,
-    marginHorizontal: -20,
-    marginBottom: 16,
-  },
-  barraAcoes: {
-    flexDirection: 'row',
-    marginBottom: 20,
-  },
-  botaoCabecalho: {
-    flex: 1,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.cartao,
-    borderRadius: 10,
-    paddingVertical: 10,
+    justifyContent: 'center',
   },
-  botaoCabecalhoEspaco: {
-    marginRight: 8,
+  avatarPressionado: {
+    transform: [{ scale: 0.9 }],
   },
-  botaoCabecalhoAtivo: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
-  },
-  textoBotaoCabecalho: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: CORES.texto,
+  avatarLetra: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: CORES.textoSobreDestaque,
   },
   cabecalho: {
     marginBottom: 8,

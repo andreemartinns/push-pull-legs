@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import BottomNav from './src/components/BottomNav';
 import Transicao from './src/components/Transition';
 import Tutorial from './src/components/Tutorial';
 import TelaAgua from './src/screens/WaterScreen';
@@ -11,6 +12,7 @@ import TelaHistorico from './src/screens/HistoryScreen';
 import TelaLembrete from './src/screens/ReminderScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import TelaMedidas from './src/screens/MeasurementsScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
 import TelaProfessor from './src/screens/TrainerScreen';
 import TelaTreino from './src/screens/WorkoutScreen';
 import { api, carregarPerfil, sair } from './src/utils/api';
@@ -202,30 +204,40 @@ export default function App() {
         aoVoltar={goToWorkout}
       />
     ),
-    reminder: <TelaLembrete aoVoltar={goToWorkout} />,
+    reminder: <TelaLembrete aoVoltar={() => setScreen('profile')} />,
     water: <TelaAgua usuario={user} medidas={measurements} aoVoltar={goToWorkout} />,
     assistant: <TelaAssistente aoVoltar={goToWorkout} />,
+    profile: (
+      <ProfileScreen
+        user={user}
+        onOpenReminder={() => setScreen('reminder')}
+        onReplayTutorial={() => setShowTutorial(true)}
+        onSignOut={signOut}
+      />
+    ),
+    workout: (
+      <TelaTreino
+        usuario={user}
+        historico={history}
+        aoSalvarTreino={saveWorkout}
+        aoVerPerfil={() => setScreen('profile')}
+        aoVerAssistente={() => setScreen('assistant')}
+      />
+    ),
   };
 
-  if (studentScreens[screen]) {
-    const from = screen === 'anamnesis' ? undefined : 'direita';
-    return show(screen, studentScreens[screen], from);
-  }
+  const current = studentScreens[screen] ? screen : 'workout';
+  const tabScreens = ['workout', 'history', 'measurements', 'water', 'profile', 'reminder'];
+  const showNav = tabScreens.includes(current);
+  const from = current === 'reminder' || current === 'assistant' ? 'direita' : undefined;
 
-  return show(
-    'workout',
-    <TelaTreino
-      usuario={user}
-      historico={history}
-      aoSair={signOut}
-      aoSalvarTreino={saveWorkout}
-      aoVerHistorico={() => setScreen('history')}
-      aoVerMedidas={() => setScreen('measurements')}
-      aoVerLembrete={() => setScreen('reminder')}
-      aoVerAgua={() => setScreen('water')}
-      aoVerAssistente={() => setScreen('assistant')}
-      aoReverTutorial={() => setShowTutorial(true)}
-    />
+  return (
+    <View style={styles.root}>
+      <View style={styles.body}>{show(current, studentScreens[current], from)}</View>
+      {showNav && (
+        <BottomNav active={current === 'reminder' ? 'profile' : current} onChange={setScreen} />
+      )}
+    </View>
   );
 }
 
@@ -235,5 +247,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: CORES.fundo,
+  },
+  root: {
+    flex: 1,
+    backgroundColor: CORES.fundo,
+  },
+  body: {
+    flex: 1,
   },
 });
