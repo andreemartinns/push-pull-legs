@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 // Quanto o botão − ou + muda a carga a cada toque.
 const PASSO = 2.5;
@@ -66,7 +66,7 @@ export default function ModalCarga({ visivel, exercicio, ultimaCarga, aoCancelar
                 value={peso}
                 onChangeText={setPeso}
                 placeholder="0"
-                placeholderTextColor={CORES.textoSecundario}
+                placeholderTextColor={P.textoSecundario}
                 keyboardType="decimal-pad"
                 selectTextOnFocus
                 maxLength={6}
@@ -114,136 +114,70 @@ export default function ModalCarga({ visivel, exercicio, ultimaCarga, aoCancelar
 const styles = StyleSheet.create({
   fundo: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(11, 31, 23, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   cartao: {
     width: '100%',
-    maxWidth: 320,
-    backgroundColor: CORES.cartao,
-    borderWidth: 1,
-    borderColor: CORES.borda,
-    borderRadius: 12,
-    padding: 20,
+    maxWidth: 340,
+    backgroundColor: P.fundo,
+    borderRadius: 32,
+    padding: 24,
   },
-  titulo: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    marginBottom: 22,
-  },
-  barraTitulo: {
-    width: 4,
-    borderRadius: 2,
-    backgroundColor: CORES.destaque,
-    marginRight: 10,
-  },
-  textosTitulo: {
-    flex: 1,
-  },
-  rotulo: {
-    fontSize: 12,
-    color: CORES.textoSecundario,
-  },
-  nome: {
-    fontSize: 18,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-    marginTop: 2,
-  },
-  linhaPeso: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  titulo: { flexDirection: 'row', alignItems: 'stretch', marginBottom: 22 },
+  barraTitulo: { width: 4, borderRadius: 2, backgroundColor: P.verde, marginRight: 12 },
+  textosTitulo: { flex: 1 },
+  rotulo: { fontSize: 13, color: P.textoSecundario },
+  nome: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3, color: P.texto, marginTop: 2 },
+  linhaPeso: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   botaoMudar: {
     width: 52,
     height: 52,
-    borderRadius: 10,
-    backgroundColor: CORES.fundo,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
+    borderRadius: 26,
+    backgroundColor: P.cartao,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  textoMudar: {
-    fontSize: 26,
-    color: CORES.texto,
-    fontWeight: 'bold',
-  },
-  campoPeso: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'center',
-  },
+  textoMudar: { fontSize: 26, color: P.texto, fontWeight: '700' },
+  campoPeso: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' },
   inputPeso: {
     fontSize: 44,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.destaque,
+    fontWeight: '800',
+    color: P.verde,
     textAlign: 'center',
     width: 90,
     padding: 0,
   },
-  unidade: {
-    fontSize: 16,
-    color: CORES.textoSecundario,
-    marginLeft: 2,
-  },
+  unidade: { fontSize: 16, color: P.textoSecundario, marginLeft: 2 },
   dica: {
     fontSize: 12,
-    color: CORES.textoSecundario,
+    color: P.textoSecundario,
     textAlign: 'center',
     marginTop: 14,
     marginBottom: 20,
   },
   botaoUltima: {
     alignSelf: 'center',
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     marginTop: 14,
     marginBottom: 20,
   },
-  botaoUltimaAtivo: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
-  },
-  textoUltima: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: CORES.textoSecundario,
-  },
-  textoUltimaAtivo: {
-    color: CORES.textoSobreDestaque,
-  },
+  botaoUltimaAtivo: { backgroundColor: P.verde },
+  textoUltima: { fontSize: 13, fontWeight: '700', color: P.textoSecundario },
+  textoUltimaAtivo: { color: P.textoSobreVerde },
   botaoPrincipal: {
     width: '100%',
-    backgroundColor: CORES.destaque,
-    borderRadius: 10,
-    paddingVertical: 14,
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingVertical: 16,
     alignItems: 'center',
   },
-  textoPrincipal: {
-    fontSize: 15,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.textoSobreDestaque,
-  },
-  botaoCancelar: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: 4,
-  },
-  textoCancelar: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.textoSecundario,
-  },
+  textoPrincipal: { fontSize: 16, fontWeight: '800', color: P.verde },
+  botaoCancelar: { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
+  textoCancelar: { fontSize: 14, fontWeight: '700', color: P.textoSecundario },
 });

@@ -1,5 +1,5 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 export default function ModalDivisao({ visivel, divisao, jaAdicionados, aoFechar, aoAdicionar }) {
   const exercicios = divisao ? divisao.exercicios : [];
@@ -85,132 +85,61 @@ export default function ModalDivisao({ visivel, divisao, jaAdicionados, aoFechar
 }
 
 const styles = StyleSheet.create({
-  fundo: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'flex-end',
-  },
+  fundo: { flex: 1, backgroundColor: 'rgba(11, 31, 23, 0.55)', justifyContent: 'flex-end' },
   cartao: {
-    backgroundColor: CORES.cartao,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: CORES.borda,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    padding: 20,
+    backgroundColor: P.fundo,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 24,
     maxHeight: '85%',
   },
-  titulo: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    marginBottom: 14,
-  },
-  barraTitulo: {
-    width: 4,
-    borderRadius: 2,
-    backgroundColor: CORES.destaque,
-    marginRight: 10,
-  },
-  textosTitulo: {
-    flex: 1,
-  },
-  rotulo: {
-    fontSize: 12,
-    color: CORES.textoSecundario,
-  },
+  titulo: { flexDirection: 'row', alignItems: 'stretch', marginBottom: 14 },
+  barraTitulo: { width: 4, borderRadius: 2, backgroundColor: P.verde, marginRight: 12 },
+  textosTitulo: { flex: 1 },
+  rotulo: { fontSize: 13, color: P.textoSecundario },
   nomeDivisao: {
-    fontSize: 26,
-    lineHeight: 30,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
+    fontSize: 30,
+    lineHeight: 34,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    color: P.texto,
     marginTop: 2,
   },
-  descricao: {
-    fontSize: 13,
-    color: CORES.textoSecundario,
-    marginTop: 2,
-  },
-  lista: {
-    flexGrow: 0,
-  },
+  descricao: { fontSize: 13, color: P.textoSecundario, marginTop: 2 },
+  lista: { flexGrow: 0 },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 13,
     borderBottomWidth: 1,
-    borderBottomColor: CORES.borda,
+    borderBottomColor: P.pontoVazio,
   },
-  textos: {
-    flex: 1,
-    marginRight: 12,
-  },
-  textoItem: {
-    fontSize: 16,
-    color: CORES.texto,
-  },
-  textoAdicionado: {
-    color: CORES.textoSecundario,
-  },
-  grupo: {
-    fontSize: 12,
-    color: CORES.textoSecundario,
-    marginTop: 2,
-  },
+  textos: { flex: 1, marginRight: 12 },
+  textoItem: { fontSize: 16, fontWeight: '600', color: P.texto },
+  textoAdicionado: { color: P.textoSecundario },
+  grupo: { fontSize: 12, color: P.textoSecundario, marginTop: 2 },
   marca: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: P.cartao,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  marcaAtiva: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
-  },
-  textoMarca: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: CORES.texto,
-    marginTop: -1,
-  },
-  textoMarcaAtiva: {
-    fontSize: 14,
-    color: CORES.textoSobreDestaque,
-  },
+  marcaAtiva: { backgroundColor: P.verde },
+  textoMarca: { fontSize: 18, fontWeight: '700', color: P.texto, marginTop: -1 },
+  textoMarcaAtiva: { fontSize: 14, color: P.limao },
   botaoTodos: {
-    backgroundColor: CORES.destaque,
-    borderRadius: 10,
-    paddingVertical: 14,
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingVertical: 16,
     alignItems: 'center',
     marginTop: 16,
   },
-  botaoTodosInativo: {
-    backgroundColor: CORES.borda,
-  },
-  textoBotaoTodos: {
-    fontSize: 15,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.textoSobreDestaque,
-  },
-  textoBotaoTodosInativo: {
-    color: CORES.textoSecundario,
-  },
-  fechar: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: 4,
-  },
-  textoFechar: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.textoSecundario,
-  },
+  botaoTodosInativo: { backgroundColor: P.cartao },
+  textoBotaoTodos: { fontSize: 15, fontWeight: '800', color: P.verde },
+  textoBotaoTodosInativo: { color: P.textoSecundario },
+  fechar: { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
+  textoFechar: { fontSize: 14, fontWeight: '700', color: P.textoSecundario },
 });

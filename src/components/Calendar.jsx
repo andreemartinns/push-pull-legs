@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 const SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const MESES = [
@@ -162,13 +162,7 @@ export default function Calendario({ historico, selecionado, aoSelecionar }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: CORES.cartao,
-    borderWidth: 1,
-    borderColor: CORES.borda,
-    borderRadius: 10,
-    padding: 14,
-  },
+  container: { backgroundColor: P.cartao, borderRadius: 24, padding: 16 },
   navegacao: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -179,84 +173,38 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
+    backgroundColor: P.fundo,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  setaAtiva: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
-  },
-  setaDesligada: {
-    opacity: 0.3,
-  },
-  textoSeta: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: CORES.texto,
-    marginTop: -2,
-  },
-  tituloMes: {
-    alignItems: 'center',
-  },
-  nomeMes: {
-    fontSize: 16,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-  },
-  resumoMes: {
-    fontSize: 12,
-    color: CORES.textoSecundario,
-    marginTop: 2,
-  },
-  linhaSemana: {
-    flexDirection: 'row',
-    marginBottom: 6,
-  },
+  setaAtiva: { backgroundColor: P.campoFocado },
+  setaDesligada: { opacity: 0.3 },
+  textoSeta: { fontSize: 20, fontWeight: '700', color: P.texto, marginTop: -2 },
+  tituloMes: { alignItems: 'center' },
+  nomeMes: { fontSize: 16, fontWeight: '800', color: P.texto },
+  resumoMes: { fontSize: 12, color: P.textoSecundario, marginTop: 2 },
+  linhaSemana: { flexDirection: 'row', marginBottom: 6 },
   letraSemana: {
     flex: 1,
     textAlign: 'center',
     fontSize: 11,
-    fontWeight: 'bold',
-    color: CORES.textoSecundario,
+    fontWeight: '700',
+    color: P.textoSecundario,
   },
-  linhaDias: {
-    flexDirection: 'row',
-  },
-  celula: {
-    flex: 1,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  linhaDias: { flexDirection: 'row' },
+  celula: { flex: 1, height: 44, alignItems: 'center', justifyContent: 'center' },
   dia: {
     width: 34,
     height: 34,
-    borderRadius: 8,
-    borderWidth: 1.5,
+    borderRadius: 17,
+    borderWidth: 2,
     borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  diaHoje: {
-    borderColor: CORES.textoSecundario,
-  },
-  diaTreinado: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
-  },
-  diaEscolhido: {
-    borderColor: CORES.texto,
-  },
-  numeroDia: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
-  },
-  numeroDiaTreinado: {
-    fontWeight: '900',
-    color: CORES.textoSobreDestaque,
-  },
+  diaHoje: { borderColor: P.textoSecundario },
+  diaTreinado: { backgroundColor: P.verde },
+  diaEscolhido: { borderColor: P.limao },
+  numeroDia: { fontSize: 14, color: P.textoSecundario },
+  numeroDiaTreinado: { fontWeight: '800', color: P.limao },
 });

@@ -2,15 +2,9 @@ import { useEffect, useRef } from 'react';
 import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { P } from '../utils/theme';
 
 const NATIVE = Platform.OS !== 'web';
-
-// Mesma paleta do WorkoutScreen. Depois dá para mover tudo para utils/theme.js.
-const P = {
-  verde: '#0F3D2E',
-  limao: '#D6F24A',
-  iconeInativo: '#9DB5A8',
-};
 
 const TABS = [
   { key: 'workout', label: 'Treino', icon: 'barbell-outline', iconOn: 'barbell' },
@@ -52,7 +46,7 @@ function TabItem({ tab, active, onPress }) {
           <Ionicons
             name={active ? tab.iconOn : tab.icon}
             size={22}
-            color={active ? P.verde : P.iconeInativo}
+            color={active ? P.verde : P.textoSuaveSobreVerde}
           />
           {active && (
             <Text style={styles.label} numberOfLines={1}>
@@ -75,7 +69,7 @@ export default function BottomNav({ active, onChange }) {
 
   return (
     // Flutua sobre a tela. O "box-none" deixa o toque passar nas áreas vazias ao redor.
-    <View style={styles.area} pointerEvents="box-none">
+    <View style={styles.area}>
       <View style={styles.bar}>
         {TABS.map((tab) => (
           <TabItem
@@ -96,6 +90,7 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     bottom: Platform.OS === 'ios' ? 28 : 16,
+    pointerEvents: 'box-none',
   },
   bar: {
     flexDirection: 'row',

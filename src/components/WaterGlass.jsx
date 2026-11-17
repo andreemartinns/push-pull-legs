@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { P } from '../utils/theme';
 
 const L = 150; // largura do copo
 const A = 190; // altura do copo
@@ -107,8 +108,8 @@ function Gota({ pulso }) {
 
   return (
     <Animated.View
-      pointerEvents="none"
       style={{
+        pointerEvents: 'none',
         position: 'absolute',
         top: -34,
         left: L / 2 - 6,
@@ -180,7 +181,7 @@ export default function CopoAgua({ percentual, pulso }) {
           ))}
 
         <View style={s.brilho} />
-        <View style={s.centro} pointerEvents="none">
+        <View style={s.centro}>
           <Text style={s.pct}>{percentual}%</Text>
         </View>
       </View>
@@ -195,12 +196,12 @@ const s = StyleSheet.create({
     width: L,
     height: A,
     borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: 'rgba(15,61,46,0.35)',
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
     borderBottomLeftRadius: 42,
     borderBottomRightRadius: 42,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(15,61,46,0.05)',
     overflow: 'hidden',
   },
   agua: {
@@ -219,16 +220,13 @@ const s = StyleSheet.create({
     width: 8,
     height: A * 0.55,
     borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.4)',
   },
-  centro: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  pct: {
-    fontSize: 34,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: '#fff',
-    textShadowColor: 'rgba(0,0,0,0.6)',
-    textShadowRadius: 6,
-    textShadowOffset: { width: 0, height: 1 },
+  centro: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    pointerEvents: 'none',
   },
+  pct: { fontSize: 34, fontWeight: '800', color: P.texto },
 });

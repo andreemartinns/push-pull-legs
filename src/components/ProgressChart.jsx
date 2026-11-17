@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 const ALTURA_MAXIMA = 140;
 // Na escala relativa, a menor barra ocupa metade da altura máxima.
@@ -110,55 +110,19 @@ export default function GraficoEvolucao({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginTop: 8,
-  },
+  container: { backgroundColor: P.cartao, borderRadius: 24, padding: 16, marginTop: 8 },
   resumo: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 4,
   },
-  textoResumo: {
-    fontSize: 13,
-    color: CORES.textoSecundario,
-  },
-  variacao: {
-    fontSize: 14,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
-  },
-  grafico: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingVertical: 10,
-  },
-  coluna: {
-    alignItems: 'center',
-    marginRight: 18,
-    minWidth: 40,
-  },
-  valor: {
-    fontSize: 11,
-    color: CORES.destaque,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  barra: {
-    width: 24,
-    backgroundColor: CORES.destaque,
-    borderRadius: 4,
-    minHeight: 4,
-  },
-  data: {
-    fontSize: 10,
-    color: CORES.textoSecundario,
-    marginTop: 6,
-  },
-  vazio: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
-    marginTop: 12,
-  },
+  textoResumo: { fontSize: 13, color: P.textoSecundario },
+  variacao: { fontSize: 14, fontWeight: '800', color: P.texto },
+  grafico: { flexDirection: 'row', alignItems: 'flex-end', paddingVertical: 10 },
+  coluna: { alignItems: 'center', marginRight: 18, minWidth: 40 },
+  valor: { fontSize: 11, color: P.verde, fontWeight: '800', marginBottom: 4 },
+  barra: { width: 24, backgroundColor: P.verde, borderRadius: 8, minHeight: 4 },
+  data: { fontSize: 10, color: P.textoSecundario, marginTop: 6 },
+  vazio: { fontSize: 14, color: P.textoSecundario, marginTop: 12 },
 });

@@ -1,17 +1,9 @@
 import { useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import Botao from '../components/Button';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import GraficoEvolucao from '../components/ProgressChart';
+import { BotaoPrincipal, Cabecalho, Campo, Cartao, Pilula, Secao, Tela } from '../components/UI';
 import { avisar } from '../utils/notify';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 const MEDIDAS = [
   { chave: 'peso', nome: 'Peso', unidade: 'kg' },
@@ -34,7 +26,6 @@ function formatar(numero) {
 
 export default function TelaMedidas({ medidas, aoSalvarMedida, aoRemoverMedida, aoVoltar }) {
   const [campos, setCampos] = useState({});
-  const [campoFocado, setCampoFocado] = useState(null);
   const [medidaSelecionada, setMedidaSelecionada] = useState('peso');
 
   const infoSelecionada = MEDIDAS.find((item) => item.chave === medidaSelecionada);
@@ -98,63 +89,39 @@ export default function TelaMedidas({ medidas, aoSalvarMedida, aoRemoverMedida, 
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.conteudo}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Pressable
-        onPress={aoVoltar}
-        style={({ pressed }) => [styles.botaoVoltar, pressed && styles.botaoVoltarAtivo]}
-      >
-        {({ pressed }) => (
-          <Text style={[styles.voltar, pressed && styles.textoVoltarAtivo]}>‹ Voltar</Text>
-        )}
-      </Pressable>
-      <Text style={styles.titulo}>Medidas</Text>
+    <Tela>
+      <Cabecalho titulo="Medidas" aoVoltar={aoVoltar} />
 
-      <Text style={styles.secao}>Registrar hoje</Text>
-      <Text style={styles.dica}>Preencha só o que você mediu.</Text>
+      <Secao titulo="Registrar hoje" descricao="Preencha só o que você mediu." />
 
       <View style={styles.grade}>
         {MEDIDAS.map((item) => (
           <View key={item.chave} style={styles.campo}>
-            <Text style={styles.rotulo}>
-              {item.nome} ({item.unidade})
-            </Text>
-            <TextInput
-              style={[styles.input, campoFocado === item.chave && styles.inputFocado]}
-              value={campos[item.chave] || ''}
-              onChangeText={(texto) => mudarCampo(item.chave, texto)}
-              onFocus={() => setCampoFocado(item.chave)}
-              onBlur={() => setCampoFocado(null)}
+            <Campo
+              rotulo={`${item.nome} (${item.unidade})`}
+              valor={campos[item.chave] || ''}
+              aoMudar={(texto) => mudarCampo(item.chave, texto)}
               placeholder="0"
-              placeholderTextColor={CORES.textoSecundario}
-              keyboardType="decimal-pad"
+              teclado="decimal-pad"
               maxLength={6}
             />
           </View>
         ))}
       </View>
 
-      <Botao titulo="Salvar medidas" aoPressionar={salvar} />
+      <BotaoPrincipal titulo="Salvar medidas" aoPressionar={salvar} />
 
-      <Text style={[styles.secao, styles.secaoEspaco]}>Evolução</Text>
+      <Secao titulo="Evolução" />
 
       <View style={styles.seletor}>
-        {MEDIDAS.map((item) => {
-          const ativa = medidaSelecionada === item.chave;
-
-          return (
-            <TouchableOpacity
-              key={item.chave}
-              style={[styles.chip, ativa && styles.chipAtivo]}
-              onPress={() => setMedidaSelecionada(item.chave)}
-            >
-              <Text style={[styles.textoChip, ativa && styles.textoChipAtivo]}>{item.nome}</Text>
-            </TouchableOpacity>
-          );
-        })}
+        {MEDIDAS.map((item) => (
+          <Pilula
+            key={item.chave}
+            texto={item.nome}
+            ativo={medidaSelecionada === item.chave}
+            aoPressionar={() => setMedidaSelecionada(item.chave)}
+          />
+        ))}
       </View>
 
       <GraficoEvolucao
@@ -166,177 +133,41 @@ export default function TelaMedidas({ medidas, aoSalvarMedida, aoRemoverMedida, 
 
       {variacao !== '' && <Text style={styles.variacao}>{variacao}</Text>}
 
-      <Text style={[styles.secao, styles.secaoEspaco]}>Registros</Text>
+      <Secao titulo="Registros" />
 
       {medidas.length === 0 ? (
         <Text style={styles.vazio}>Nenhuma medida registrada ainda.</Text>
       ) : (
         medidas.map((registro) => (
-          <View key={registro.id} style={styles.cartaoRegistro}>
+          <Cartao key={registro.id} style={styles.cartaoRegistro}>
             <View style={styles.textosRegistro}>
               <Text style={styles.dataRegistro}>{registro.data}</Text>
               <Text style={styles.resumoRegistro}>{resumoDoRegistro(registro)}</Text>
             </View>
-            <TouchableOpacity onPress={() => aoRemoverMedida(registro.id)}>
+            <Pressable onPress={() => aoRemoverMedida(registro.id)} hitSlop={10}>
               <Text style={styles.remover}>Remover</Text>
-            </TouchableOpacity>
-          </View>
+            </Pressable>
+          </Cartao>
         ))
       )}
-    </ScrollView>
+    </Tela>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: CORES.fundo,
-  },
-  conteudo: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  botaoVoltar: {
-    alignSelf: 'flex-start',
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.cartao,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    marginBottom: 12,
-  },
-  botaoVoltarAtivo: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
-  },
-  voltar: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.texto,
-  },
-  textoVoltarAtivo: {
-    color: CORES.textoSobreDestaque,
-  },
-  titulo: {
-    fontSize: 28,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-    marginBottom: 20,
-  },
-  secao: {
-    fontSize: 16,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-  },
-  secaoEspaco: {
-    marginTop: 28,
-    marginBottom: 12,
-  },
-  dica: {
-    fontSize: 13,
-    color: CORES.textoSecundario,
-    marginTop: 2,
-    marginBottom: 14,
-  },
-  grade: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  campo: {
-    width: '48%',
-    marginBottom: 14,
-  },
-  rotulo: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    color: CORES.textoSecundario,
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: CORES.cartao,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: CORES.texto,
-  },
-  inputFocado: {
-    borderColor: CORES.destaque,
-  },
-  seletor: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  chip: {
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.cartao,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  chipAtivo: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
-  },
-  textoChip: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.texto,
-  },
-  textoChipAtivo: {
-    color: CORES.textoSobreDestaque,
-  },
-  variacao: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.texto,
-    marginTop: 8,
-  },
-  vazio: {
-    fontSize: 15,
-    color: CORES.textoSecundario,
-  },
+  grade: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  campo: { width: '48%' },
+  seletor: { flexDirection: 'row', flexWrap: 'wrap' },
+  variacao: { fontSize: 14, fontWeight: '800', color: P.texto, marginTop: 12 },
+  vazio: { fontSize: 15, color: P.textoSecundario },
   cartaoRegistro: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: CORES.cartao,
-    borderWidth: 1,
-    borderColor: CORES.borda,
-    borderRadius: 10,
-    padding: 14,
     marginBottom: 10,
   },
-  textosRegistro: {
-    flex: 1,
-    marginRight: 12,
-  },
-  dataRegistro: {
-    fontSize: 14,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
-    marginBottom: 4,
-  },
-  resumoRegistro: {
-    fontSize: 13,
-    color: CORES.textoSecundario,
-  },
-  remover: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
-  },
+  textosRegistro: { flex: 1, marginRight: 12 },
+  dataRegistro: { fontSize: 15, fontWeight: '800', color: P.texto, marginBottom: 4 },
+  resumoRegistro: { fontSize: 13, color: P.textoSecundario },
+  remover: { fontSize: 13, fontWeight: '700', color: P.erro },
 });

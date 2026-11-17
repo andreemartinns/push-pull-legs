@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet } from 'react-native';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 export default function BotaoAssistente({ aoPressionar }) {
   return (
@@ -10,7 +10,7 @@ export default function BotaoAssistente({ aoPressionar }) {
       accessibilityLabel="Abrir assistente, tire suas dúvidas"
       style={({ pressed }) => [styles.botao, pressed && styles.pressionado]}
     >
-      <Ionicons name="chatbubble-ellipses" size={28} color={CORES.textoSobreDestaque} />
+      <Ionicons name="chatbubble-ellipses" size={28} color={P.limao} />
     </Pressable>
   );
 }
@@ -23,14 +23,11 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: CORES.destaque,
+    backgroundColor: P.verde,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 6,
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    boxShadow: '0px 4px 8px rgba(15, 61, 46, 0.35)',
   },
   pressionado: {
     transform: [{ scale: 0.92 }],

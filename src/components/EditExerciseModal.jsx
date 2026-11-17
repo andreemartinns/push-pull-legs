@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 // Converte "12,5" ou "12.5" em número. Se não for número, devolve 0.
 function paraNumero(valor) {
@@ -43,7 +43,7 @@ function Campo({ rotulo, valor, aoMudar, passo, unidade, decimal, ultimo }) {
             value={valor}
             onChangeText={aoMudar}
             placeholder="0"
-            placeholderTextColor={CORES.textoSecundario}
+            placeholderTextColor={P.textoSecundario}
             keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
             selectTextOnFocus
             maxLength={6}
@@ -119,121 +119,55 @@ export default function ModalEditarExercicio({ visivel, exercicio, aoFechar, aoS
 const styles = StyleSheet.create({
   fundo: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(11, 31, 23, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   cartao: {
     width: '100%',
-    maxWidth: 320,
-    backgroundColor: CORES.cartao,
-    borderWidth: 1,
-    borderColor: CORES.borda,
-    borderRadius: 12,
-    padding: 20,
+    maxWidth: 340,
+    backgroundColor: P.fundo,
+    borderRadius: 32,
+    padding: 24,
   },
-  titulo: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    marginBottom: 22,
-  },
-  barraTitulo: {
-    width: 4,
-    borderRadius: 2,
-    backgroundColor: CORES.destaque,
-    marginRight: 10,
-  },
-  textosTitulo: {
-    flex: 1,
-  },
-  rotulo: {
-    fontSize: 12,
-    color: CORES.textoSecundario,
-  },
-  nome: {
-    fontSize: 18,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-    marginTop: 2,
-  },
-  campo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  campoEspaco: {
-    marginBottom: 14,
-  },
-  rotuloCampo: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.textoSecundario,
-  },
-  controles: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  titulo: { flexDirection: 'row', alignItems: 'stretch', marginBottom: 22 },
+  barraTitulo: { width: 4, borderRadius: 2, backgroundColor: P.verde, marginRight: 12 },
+  textosTitulo: { flex: 1 },
+  rotulo: { fontSize: 13, color: P.textoSecundario },
+  nome: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3, color: P.texto, marginTop: 2 },
+  campo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  campoEspaco: { marginBottom: 14 },
+  rotuloCampo: { fontSize: 14, fontWeight: '700', color: P.textoSecundario },
+  controles: { flexDirection: 'row', alignItems: 'center' },
   botaoMudar: {
     width: 40,
     height: 40,
-    borderRadius: 10,
-    backgroundColor: CORES.fundo,
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
+    borderRadius: 20,
+    backgroundColor: P.cartao,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  textoMudar: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: CORES.texto,
-  },
-  valor: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'center',
-    width: 78,
-  },
+  textoMudar: { fontSize: 20, fontWeight: '700', color: P.texto },
+  valor: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', width: 78 },
   input: {
     fontSize: 22,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.destaque,
+    fontWeight: '800',
+    color: P.verde,
     textAlign: 'center',
     minWidth: 40,
     padding: 0,
   },
-  unidade: {
-    fontSize: 12,
-    color: CORES.textoSecundario,
-    marginLeft: 2,
-  },
+  unidade: { fontSize: 12, color: P.textoSecundario, marginLeft: 2 },
   botaoPrincipal: {
     width: '100%',
-    backgroundColor: CORES.destaque,
-    borderRadius: 10,
-    paddingVertical: 14,
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingVertical: 16,
     alignItems: 'center',
     marginTop: 24,
   },
-  textoPrincipal: {
-    fontSize: 15,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.textoSobreDestaque,
-  },
-  botaoCancelar: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: 4,
-  },
-  textoCancelar: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.textoSecundario,
-  },
+  textoPrincipal: { fontSize: 16, fontWeight: '800', color: P.verde },
+  botaoCancelar: { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
+  textoCancelar: { fontSize: 14, fontWeight: '700', color: P.textoSecundario },
 });
