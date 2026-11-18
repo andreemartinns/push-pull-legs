@@ -1,12 +1,15 @@
+import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 import Logo from './Logo';
 
 // Tamanho do cartão em pontos. Na captura vira 1080x1920 (3x), formato de stories.
 export const LARGURA_CARTAO = 360;
 export const ALTURA_CARTAO = 640;
 
-const MAXIMO_LINHAS = 6;
+const MAXIMO_LINHAS = 5;
+const VERDE_CLARO = '#14573F';
+const CREME = '#F1EFE4';
 
 // A imagem que vai para os stories. Fica escondida fora da tela e só é "fotografada".
 export default function CartaoCompartilhar({
@@ -21,33 +24,40 @@ export default function CartaoCompartilhar({
 
   return (
     <View style={styles.cartao}>
-      <View style={styles.faixa} />
+      <View style={styles.circuloGrande} />
+      <View style={styles.circuloPequeno} />
 
       <View style={styles.conteudo}>
         <View style={styles.marca}>
-          <Logo tamanho={44} style={styles.logo} />
+          <Logo tamanho={48} style={styles.logo} animado={false} pulsar={false} />
           <View style={styles.nomeMarca}>
             <Text style={styles.academia}>Academia</Text>
             <Text style={styles.nomeAcademia}>Ritmo Brasil</Text>
           </View>
         </View>
 
-        <View style={styles.titulo}>
-          <View style={styles.barraTitulo} />
-          <View style={styles.textosTitulo}>
-            <Text style={styles.rotulo}>{divisao ? `Treino ${divisao}` : 'Treino'}</Text>
-            <Text style={styles.concluido}>Concluído</Text>
-            <Text style={styles.data}>{data}</Text>
-          </View>
+        <View style={styles.pilula}>
+          <Text style={styles.textoPilula}>{divisao ? `TREINO ${divisao}` : 'TREINO'}</Text>
         </View>
+        <Text style={styles.concluido}>CONCLUÍDO</Text>
+        <Text style={styles.data}>{data}</Text>
 
         <View style={styles.numeros}>
           {numeros.map((item, indice) => (
-            <View key={item.rotulo} style={[styles.numero, indice > 0 && styles.numeroDivisor]}>
+            <View
+              key={item.rotulo}
+              style={[
+                styles.numero,
+                indice > 0 && styles.numeroEspaco,
+                item.destaque && styles.numeroDestaque,
+              ]}
+            >
               <Text style={[styles.valor, item.destaque && styles.valorDestaque]}>
                 {item.valor}
               </Text>
-              <Text style={styles.rotuloNumero}>{item.rotulo}</Text>
+              <Text style={[styles.rotuloNumero, item.destaque && styles.rotuloDestaque]}>
+                {item.rotulo}
+              </Text>
             </View>
           ))}
         </View>
@@ -59,28 +69,26 @@ export default function CartaoCompartilhar({
               style={[styles.linha, indice === visiveis.length - 1 && styles.linhaUltima]}
             >
               <View style={styles.marcaCheck}>
-                <Text style={styles.check}>✓</Text>
+                <Ionicons name="checkmark" size={13} color={P.limao} />
               </View>
               <Text style={styles.nomeExercicio} numberOfLines={1}>
                 {exercicio.nome}
               </Text>
               {nomesRecorde.includes(exercicio.nome) && (
                 <View style={styles.etiqueta}>
-                  <Text style={styles.textoEtiqueta}>Recorde</Text>
+                  <Text style={styles.textoEtiqueta}>RECORDE</Text>
                 </View>
               )}
-              {exercicio.peso ? (
-                <Text style={styles.peso}>{exercicio.peso} kg</Text>
-              ) : null}
+              {exercicio.peso ? <Text style={styles.peso}>{exercicio.peso} kg</Text> : null}
             </View>
           ))}
-        </View>
 
-        {restantes > 0 && (
-          <Text style={styles.restantes}>
-            + {restantes} {restantes === 1 ? 'exercício' : 'exercícios'}
-          </Text>
-        )}
+          {restantes > 0 && (
+            <Text style={styles.restantes}>
+              + {restantes} {restantes === 1 ? 'exercício' : 'exercícios'}
+            </Text>
+          )}
+        </View>
 
         <View style={styles.espaco} />
 
@@ -94,23 +102,38 @@ const styles = StyleSheet.create({
   cartao: {
     width: LARGURA_CARTAO,
     height: ALTURA_CARTAO,
-    backgroundColor: CORES.fundo,
+    backgroundColor: P.verde,
     overflow: 'hidden',
   },
-  faixa: {
-    height: 8,
-    backgroundColor: CORES.destaque,
+  circuloGrande: {
+    position: 'absolute',
+    top: -90,
+    right: -90,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: VERDE_CLARO,
+  },
+  circuloPequeno: {
+    position: 'absolute',
+    bottom: -60,
+    left: -60,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: VERDE_CLARO,
+    opacity: 0.6,
   },
   conteudo: {
     flex: 1,
-    paddingHorizontal: 28,
+    paddingHorizontal: 26,
     paddingTop: 28,
-    paddingBottom: 24,
+    paddingBottom: 22,
   },
   marca: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: 22,
   },
   logo: {
     alignSelf: 'auto',
@@ -121,138 +144,146 @@ const styles = StyleSheet.create({
   },
   academia: {
     fontSize: 11,
-    fontStyle: 'italic',
-    color: CORES.textoSecundario,
+    fontWeight: '600',
+    color: CREME,
+    opacity: 0.8,
   },
   nomeAcademia: {
-    fontSize: 18,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
+    fontFamily: 'BarlowCondensed_800ExtraBold',
+    fontSize: 22,
+    lineHeight: 24,
+    color: CREME,
   },
-  titulo: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    marginBottom: 24,
+  pilula: {
+    alignSelf: 'flex-start',
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  barraTitulo: {
-    width: 5,
-    borderRadius: 2,
-    backgroundColor: CORES.destaque,
-    marginRight: 12,
-  },
-  textosTitulo: {
-    flex: 1,
-  },
-  rotulo: {
-    fontSize: 14,
-    color: CORES.textoSecundario,
+  textoPilula: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    color: P.verde,
   },
   concluido: {
-    fontSize: 44,
-    lineHeight: 48,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
+    fontFamily: 'BarlowCondensed_800ExtraBold',
+    fontSize: 72,
+    lineHeight: 74,
+    color: CREME,
+    marginTop: 6,
   },
   data: {
     fontSize: 13,
-    color: CORES.textoSecundario,
-    marginTop: 4,
+    fontWeight: '600',
+    color: CREME,
+    opacity: 0.8,
+    marginTop: 2,
+    marginBottom: 18,
   },
   numeros: {
     flexDirection: 'row',
-    marginBottom: 22,
+    marginBottom: 14,
   },
   numero: {
     flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
-  numeroDivisor: {
-    borderLeftWidth: 1,
-    borderLeftColor: CORES.borda,
-    paddingLeft: 14,
+  numeroEspaco: {
+    marginLeft: 8,
+  },
+  numeroDestaque: {
+    backgroundColor: P.limao,
   },
   valor: {
-    fontSize: 38,
-    lineHeight: 40,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
+    fontFamily: 'BarlowCondensed_800ExtraBold',
+    fontSize: 40,
+    lineHeight: 42,
+    color: CREME,
   },
   valorDestaque: {
-    color: CORES.destaque,
+    color: P.verde,
   },
   rotuloNumero: {
     fontSize: 12,
-    color: CORES.textoSecundario,
+    fontWeight: '600',
+    color: CREME,
+    opacity: 0.85,
     marginTop: 2,
   },
+  rotuloDestaque: {
+    color: P.verde,
+    opacity: 1,
+  },
   lista: {
-    borderTopWidth: 1,
-    borderTopColor: CORES.borda,
+    backgroundColor: P.cartao,
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
   },
   linha: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderBottomWidth: 1,
-    borderBottomColor: CORES.borda,
+    borderBottomColor: P.pontoVazio,
   },
   linhaUltima: {
     borderBottomWidth: 0,
   },
   marcaCheck: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    backgroundColor: CORES.destaque,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: P.verde,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
   },
-  check: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: CORES.textoSobreDestaque,
-  },
   nomeExercicio: {
     flex: 1,
     fontSize: 14,
-    color: CORES.texto,
+    fontWeight: '600',
+    color: P.texto,
     marginRight: 8,
   },
   etiqueta: {
-    backgroundColor: CORES.destaque,
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
     marginRight: 8,
   },
   textoEtiqueta: {
-    fontSize: 10,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.textoSobreDestaque,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    color: P.verde,
   },
   peso: {
     fontSize: 13,
-    fontWeight: 'bold',
-    color: CORES.destaque,
+    fontWeight: '800',
+    color: P.verde,
   },
   restantes: {
     fontSize: 12,
-    color: CORES.textoSecundario,
-    marginTop: 8,
+    fontWeight: '600',
+    color: P.textoSecundario,
+    paddingTop: 4,
+    paddingBottom: 8,
   },
   espaco: {
     flex: 1,
   },
   rodape: {
     fontSize: 12,
-    fontStyle: 'italic',
-    color: CORES.textoSecundario,
+    fontWeight: '600',
+    color: CREME,
+    opacity: 0.8,
     textAlign: 'center',
   },
 });

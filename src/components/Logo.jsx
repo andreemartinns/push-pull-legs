@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, Image, Platform, StyleSheet } from 'react-native';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 // No navegador não existe driver nativo, então só usamos no celular.
 const USAR_DRIVER_NATIVO = Platform.OS !== 'web';
@@ -45,7 +45,7 @@ export default function Logo({
     ]).start();
   }, []);
 
-  // Brilho amarelo que se expande e some, repetindo devagar.
+  // Brilho limão que se expande e some, repetindo devagar.
   useEffect(() => {
     if (!pulsar) return;
 
@@ -112,10 +112,10 @@ const styles = StyleSheet.create({
   },
   brilho: {
     position: 'absolute',
-    backgroundColor: CORES.destaque,
+    backgroundColor: P.limao,
   },
   imagem: {
     borderWidth: 2,
-    borderColor: CORES.destaque,
+    borderColor: P.limao,
   },
 });

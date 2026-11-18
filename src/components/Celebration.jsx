@@ -1,22 +1,27 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
+import { MotiView } from 'moti';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
-  Easing,
+  ActivityIndicator,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 import CartaoCompartilhar, { ALTURA_CARTAO, LARGURA_CARTAO } from './ShareCard';
 
-// No navegador não existe driver nativo, então só usamos no celular.
-const USAR_DRIVER_NATIVO = Platform.OS !== 'web';
+const VERDE_CLARO = '#14573F';
+const CREME = '#F1EFE4';
+
+// Espaço reservado embaixo para a barra flutuante de navegação não cobrir os botões.
+const FOLGA_NAV = 110;
 
 // No navegador: abre o compartilhar do sistema se existir; senão, baixa a imagem.
 async function compartilharNaWeb(dataUri) {
@@ -40,46 +45,70 @@ async function compartilharNaWeb(dataUri) {
   link.click();
 }
 
-// Uma linha da lista: entra deslizando, uma depois da outra.
-function LinhaExercicio({ exercicio, indice, ultima }) {
-  const entrada = useRef(new Animated.Value(0)).current;
+// Faz um número "contar" de 0 até o valor, em vez de aparecer de uma vez.
+function useContagem(alvo, atraso = 500, duracao = 900) {
+  const [valor, setValor] = useState(0);
 
   useEffect(() => {
-    Animated.timing(entrada, {
-      toValue: 1,
-      duration: 320,
-      delay: 450 + Math.min(indice, 8) * 70,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: USAR_DRIVER_NATIVO,
-    }).start();
-  }, []);
+    let quadro;
+    const espera = setTimeout(() => {
+      const inicio = Date.now();
+      const passo = () => {
+        const progresso = Math.min(1, (Date.now() - inicio) / duracao);
+        const suave = 1 - Math.pow(1 - progresso, 3);
+        setValor(Math.round(alvo * suave));
+        if (progresso < 1) quadro = requestAnimationFrame(passo);
+      };
+      quadro = requestAnimationFrame(passo);
+    }, atraso);
+
+    return () => {
+      clearTimeout(espera);
+      cancelAnimationFrame(quadro);
+    };
+  }, [alvo]);
+
+  return valor;
+}
+
+// Um quadradinho de número (exercícios, dias seguidos, recordes).
+function Numero({ valor, rotulo, destaque, indice }) {
+  const contado = useContagem(valor, 450 + indice * 120);
 
   return (
-    <Animated.View
-      style={[
-        styles.linha,
-        ultima && styles.linhaUltima,
-        {
-          opacity: entrada,
-          transform: [
-            {
-              translateX: entrada.interpolate({
-                inputRange: [0, 1],
-                outputRange: [-14, 0],
-              }),
-            },
-          ],
-        },
-      ]}
+    <MotiView
+      from={{ opacity: 0, translateY: 14 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 400, delay: 350 + indice * 120 }}
+      style={[styles.numero, indice > 0 && styles.numeroEspaco, destaque && styles.numeroDestaque]}
+    >
+      <Text style={styles.valor} numberOfLines={1}>
+        {contado}
+      </Text>
+      <Text style={styles.rotuloNumero} numberOfLines={1}>
+        {rotulo}
+      </Text>
+    </MotiView>
+  );
+}
+
+// Uma linha da lista: entra deslizando, uma depois da outra.
+function LinhaExercicio({ exercicio, indice, ultima }) {
+  return (
+    <MotiView
+      from={{ opacity: 0, translateX: -14 }}
+      animate={{ opacity: 1, translateX: 0 }}
+      transition={{ type: 'timing', duration: 320, delay: 600 + Math.min(indice, 8) * 70 }}
+      style={[styles.linha, ultima && styles.linhaUltima]}
     >
       <View style={styles.marca}>
-        <Text style={styles.check}>✓</Text>
+        <Ionicons name="checkmark" size={14} color={P.limao} />
       </View>
       <Text style={styles.nomeExercicio} numberOfLines={1}>
         {exercicio.nome}
       </Text>
       {exercicio.peso ? <Text style={styles.pesoExercicio}>{exercicio.peso} kg</Text> : null}
-    </Animated.View>
+    </MotiView>
   );
 }
 
@@ -93,9 +122,7 @@ export default function Comemoracao({
   nomesRecorde = [],
   aoTerminar,
 }) {
-  const opacidade = useRef(new Animated.Value(0)).current;
-  const subida = useRef(new Animated.Value(16)).current;
-  const faixa = useRef(new Animated.Value(0)).current;
+  const { height: alturaTela } = useWindowDimensions();
   const jaTerminou = useRef(false);
   const cartaoRef = useRef(null);
   const [compartilhando, setCompartilhando] = useState(false);
@@ -104,37 +131,15 @@ export default function Comemoracao({
     if (!visivel) return;
 
     jaTerminou.current = false;
-    opacidade.setValue(0);
-    subida.setValue(16);
-    faixa.setValue(0);
 
     // Vibração de sucesso, quando o aparelho tem.
-    try {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (erro) {
-      // Haptics pode não existir no navegador; ignora.
+    if (Platform.OS !== 'web') {
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      } catch (erro) {
+        // ignora
+      }
     }
-
-    Animated.parallel([
-      Animated.timing(opacidade, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: USAR_DRIVER_NATIVO,
-      }),
-      Animated.timing(subida, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: USAR_DRIVER_NATIVO,
-      }),
-      // A largura não roda no motor nativo, por isso o driver fica desligado aqui.
-      Animated.timing(faixa, {
-        toValue: 1,
-        duration: 700,
-        delay: 150,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }),
-    ]).start();
   }, [visivel]);
 
   // Só vale a primeira vez, para um toque duplo não salvar o treino duas vezes.
@@ -203,66 +208,107 @@ export default function Comemoracao({
 
   return (
     <View style={styles.fundo}>
-      <Animated.View
-        style={[styles.cartao, { opacity: opacidade, transform: [{ translateY: subida }] }]}
+      <MotiView
+        from={{ opacity: 0, translateY: 28, scale: 0.96 }}
+        animate={{ opacity: 1, translateY: 0, scale: 1 }}
+        transition={{ type: 'spring', damping: 15, stiffness: 140 }}
+        style={[styles.cartao, { maxHeight: Math.max(320, alturaTela - FOLGA_NAV - 40) }]}
       >
-        <Animated.View
-          style={[
-            styles.faixa,
-            {
-              width: faixa.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['0%', '100%'],
-              }),
-            },
-          ]}
-        />
+        {/* Topo verde */}
+        <View style={styles.topo}>
+          <View style={styles.circulo} />
 
-        <Text style={styles.rotulo}>Treino</Text>
-        <Text style={styles.titulo}>Concluído</Text>
-
-        <View style={styles.numeros}>
-          {numeros.map((item, indice) => (
-            <View key={item.rotulo} style={[styles.numero, indice > 0 && styles.numeroDivisor]}>
-              <Text style={[styles.valor, item.destaque && styles.valorDestaque]}>
-                {item.valor}
-              </Text>
-              <Text style={styles.rotuloNumero}>{item.rotulo}</Text>
+          <View style={styles.linhaTopo}>
+            <View style={styles.pilula}>
+              <Text style={styles.textoPilula}>{divisao ? `TREINO ${divisao}` : 'TREINO'}</Text>
             </View>
-          ))}
+
+            <View style={styles.selo}>
+              <MotiView
+                from={{ scale: 1, opacity: 0.5 }}
+                animate={{ scale: 1.8, opacity: 0 }}
+                transition={{ type: 'timing', duration: 1600, loop: true }}
+                style={styles.anel}
+              />
+              <MotiView
+                from={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', damping: 9, delay: 250 }}
+                style={styles.seloMiolo}
+              >
+                <Ionicons name="checkmark" size={24} color={P.verde} />
+              </MotiView>
+            </View>
+          </View>
+
+          <Text style={styles.titulo}>CONCLUÍDO</Text>
+          <Text style={styles.data}>{dataFormatada}</Text>
         </View>
 
-        {exercicios.length > 0 && (
-          <ScrollView style={styles.lista} showsVerticalScrollIndicator={false}>
-            {exercicios.map((exercicio, indice) => (
-              <LinhaExercicio
-                key={exercicio.id ?? indice}
-                exercicio={exercicio}
+        {/* Miolo: números e lista (rola se faltar espaço) */}
+        <ScrollView
+          style={styles.miolo}
+          contentContainerStyle={styles.mioloConteudo}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.numeros}>
+            {numeros.map((item, indice) => (
+              <Numero
+                key={item.rotulo}
+                valor={item.valor}
+                rotulo={item.rotulo}
+                destaque={item.destaque}
                 indice={indice}
-                ultima={indice === exercicios.length - 1}
               />
             ))}
-          </ScrollView>
-        )}
+          </View>
 
-        <TouchableOpacity
-          style={[styles.botaoCompartilhar, compartilhando && styles.botaoCompartilharAtivo]}
-          onPress={compartilhar}
-          disabled={compartilhando}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.textoCompartilhar}>
-            {compartilhando ? 'Gerando imagem...' : 'Compartilhar'}
-          </Text>
-        </TouchableOpacity>
+          {exercicios.length > 0 && (
+            <View style={styles.lista}>
+              {exercicios.map((exercicio, indice) => (
+                <LinhaExercicio
+                  key={exercicio.id ?? indice}
+                  exercicio={exercicio}
+                  indice={indice}
+                  ultima={indice === exercicios.length - 1}
+                />
+              ))}
+            </View>
+          )}
+        </ScrollView>
 
-        <TouchableOpacity style={styles.botao} onPress={continuar} activeOpacity={0.8}>
-          <Text style={styles.textoBotao}>Continuar</Text>
-        </TouchableOpacity>
-      </Animated.View>
+        {/* Botões sempre visíveis */}
+        <View style={styles.rodape}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.botaoSecundario,
+              (pressed || compartilhando) && styles.botaoApertado,
+            ]}
+            onPress={compartilhar}
+            disabled={compartilhando}
+            accessibilityLabel="Compartilhar treino"
+          >
+            {compartilhando ? (
+              <ActivityIndicator size="small" color={P.verde} />
+            ) : (
+              <Ionicons name="share-social" size={18} color={P.verde} />
+            )}
+            <Text style={styles.textoSecundario}>
+              {compartilhando ? 'Gerando...' : 'Compartilhar'}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [styles.botao, pressed && styles.botaoApertado]}
+            onPress={continuar}
+          >
+            <Text style={styles.textoBotao}>Continuar</Text>
+          </Pressable>
+        </View>
+      </MotiView>
 
       {/* A imagem para os stories: fica fora da tela e só é usada na captura. */}
-      <View ref={cartaoRef} collapsable={false} style={styles.foraDaTela} pointerEvents="none">
+      <View ref={cartaoRef} collapsable={false} style={styles.foraDaTela}>
         <CartaoCompartilhar
           divisao={divisao}
           data={dataFormatada}
@@ -282,12 +328,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'rgba(4, 36, 28, 0.82)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 100,
     elevation: 100,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: FOLGA_NAV,
   },
   foraDaTela: {
     position: 'absolute',
@@ -295,136 +343,189 @@ const styles = StyleSheet.create({
     top: 0,
     width: LARGURA_CARTAO,
     height: ALTURA_CARTAO,
+    pointerEvents: 'none',
   },
   cartao: {
     width: '100%',
-    maxWidth: 340,
-    backgroundColor: CORES.cartao,
-    borderWidth: 1,
-    borderColor: CORES.borda,
-    borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingTop: 28,
+    maxWidth: 360,
+    backgroundColor: P.cartao,
+    borderRadius: 32,
+    overflow: 'hidden',
+  },
+  topo: {
+    backgroundColor: P.verde,
+    paddingHorizontal: 22,
+    paddingTop: 20,
     paddingBottom: 20,
     overflow: 'hidden',
   },
-  faixa: {
+  circulo: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    height: 5,
-    backgroundColor: CORES.destaque,
+    top: -70,
+    right: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: VERDE_CLARO,
   },
-  rotulo: {
-    fontSize: 13,
-    color: CORES.textoSecundario,
+  linhaTopo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  pilula: {
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  textoPilula: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    color: P.verde,
+  },
+  selo: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  anel: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: P.limao,
+  },
+  seloMiolo: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: P.limao,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   titulo: {
-    fontSize: 34,
-    lineHeight: 38,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
-    marginBottom: 18,
+    fontFamily: 'BarlowCondensed_800ExtraBold',
+    fontSize: 56,
+    lineHeight: 58,
+    color: CREME,
+  },
+  data: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: CREME,
+    opacity: 0.8,
+    marginTop: 2,
+  },
+  miolo: {
+    flexGrow: 0,
+    flexShrink: 1,
+  },
+  mioloConteudo: {
+    padding: 18,
   },
   numeros: {
     flexDirection: 'row',
-    marginBottom: 18,
   },
   numero: {
     flex: 1,
+    backgroundColor: P.fundo,
+    borderRadius: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
   },
-  numeroDivisor: {
-    borderLeftWidth: 1,
-    borderLeftColor: CORES.borda,
-    paddingLeft: 14,
+  numeroEspaco: {
+    marginLeft: 8,
+  },
+  numeroDestaque: {
+    backgroundColor: P.limao,
   },
   valor: {
-    fontSize: 32,
-    lineHeight: 34,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
-  },
-  valorDestaque: {
-    color: CORES.destaque,
+    fontFamily: 'BarlowCondensed_800ExtraBold',
+    fontSize: 40,
+    lineHeight: 42,
+    color: P.verde,
   },
   rotuloNumero: {
     fontSize: 12,
-    color: CORES.textoSecundario,
+    fontWeight: '600',
+    color: P.textoSecundario,
     marginTop: 2,
   },
   lista: {
-    maxHeight: 190,
-    borderTopWidth: 1,
-    borderTopColor: CORES.borda,
+    marginTop: 14,
   },
   linha: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: CORES.borda,
+    borderBottomColor: P.pontoVazio,
   },
   linhaUltima: {
     borderBottomWidth: 0,
   },
   marca: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    backgroundColor: CORES.destaque,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: P.verde,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
   },
-  check: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: CORES.textoSobreDestaque,
-  },
   nomeExercicio: {
     flex: 1,
     fontSize: 14,
-    color: CORES.texto,
+    fontWeight: '600',
+    color: P.texto,
     marginRight: 12,
   },
   pesoExercicio: {
     fontSize: 13,
-    fontWeight: 'bold',
-    color: CORES.destaque,
+    fontWeight: '800',
+    color: P.verde,
   },
-  botaoCompartilhar: {
-    borderWidth: 1.5,
-    borderColor: CORES.destaque,
-    borderRadius: 10,
-    paddingVertical: 12,
+  rodape: {
+    flexDirection: 'row',
+    paddingHorizontal: 18,
+    paddingTop: 4,
+    paddingBottom: 18,
+  },
+  botaoSecundario: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 16,
+    justifyContent: 'center',
+    backgroundColor: P.fundo,
+    borderRadius: 999,
+    paddingVertical: 15,
+    marginRight: 8,
   },
-  botaoCompartilharAtivo: {
-    opacity: 0.6,
-  },
-  textoCompartilhar: {
+  textoSecundario: {
     fontSize: 14,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.destaque,
+    fontWeight: '800',
+    color: P.verde,
+    marginLeft: 6,
   },
   botao: {
-    backgroundColor: CORES.destaque,
-    borderRadius: 10,
-    paddingVertical: 14,
+    flex: 1,
     alignItems: 'center',
-    marginTop: 10,
+    justifyContent: 'center',
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingVertical: 15,
   },
   textoBotao: {
     fontSize: 15,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.textoSobreDestaque,
+    fontWeight: '800',
+    color: P.verde,
+  },
+  botaoApertado: {
+    opacity: 0.7,
+    transform: [{ scale: 0.97 }],
   },
 });
