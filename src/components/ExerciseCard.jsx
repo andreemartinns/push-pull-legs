@@ -11,11 +11,24 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DEMONSTRACOES } from '../utils/demonstrations';
-import { CORES } from '../utils/theme';
 import ModalDemonstracao from './DemoModal';
 
 // No navegador não existe driver nativo, então só usamos no celular.
 const USAR_DRIVER_NATIVO = Platform.OS !== 'web';
+
+// Paleta do visual novo (a mesma da tela de treino).
+// Depois dá para mover para utils/theme.js.
+const P = {
+  verde: '#0F3D2E',
+  limao: '#D6F24A',
+  texto: '#0B1F17',
+  textoSecundario: '#55655C',
+  cartao: '#E6E3D3',
+  cartaoElevado: '#DDD9C6',
+  marcadorVazio: '#CFCBB8',
+  textoSobreVerde: '#F1EFE4',
+  erro: '#B3261E',
+};
 
 // Selo "Novo recorde": aparece com um pulo de mola.
 function SeloRecorde() {
@@ -32,7 +45,7 @@ function SeloRecorde() {
 
   return (
     <Animated.View style={[styles.selo, { transform: [{ scale: escala }] }]}>
-      <Ionicons name="trophy" size={12} color={CORES.destaque} />
+      <Ionicons name="trophy" size={12} color={P.verde} />
       <Text style={styles.textoSelo}>Novo recorde</Text>
     </Animated.View>
   );
@@ -151,9 +164,7 @@ export default function CartaoExercicio({
                 { transform: [{ scale: escalaMarcador }] },
               ]}
             >
-              {exercicio.concluido && (
-                <Ionicons name="checkmark" size={18} color={CORES.textoSobreDestaque} />
-              )}
+              {exercicio.concluido && <Ionicons name="checkmark" size={18} color={P.limao} />}
             </Animated.View>
 
             <View style={styles.textos}>
@@ -189,7 +200,7 @@ export default function CartaoExercicio({
                   pressed && styles.botaoPressionado,
                 ]}
               >
-                <Ionicons name="play-circle" size={18} color={CORES.destaque} />
+                <Ionicons name="play-circle" size={18} color={P.limao} />
                 <Text style={styles.textoComoFazer}>Como fazer</Text>
               </Pressable>
             ) : (
@@ -207,14 +218,14 @@ export default function CartaoExercicio({
                     pressed && styles.botaoPressionado,
                   ]}
                 >
-                  <Ionicons name="create-outline" size={20} color={CORES.texto} />
+                  <Ionicons name="create-outline" size={20} color={P.texto} />
                 </Pressable>
                 <Pressable
                   onPress={remover}
                   hitSlop={8}
                   style={({ pressed }) => [styles.botaoIcone, pressed && styles.botaoPressionado]}
                 >
-                  <Ionicons name="trash-outline" size={20} color={CORES.erro} />
+                  <Ionicons name="trash-outline" size={20} color={P.erro} />
                 </Pressable>
               </View>
             )}
@@ -236,10 +247,10 @@ export default function CartaoExercicio({
 
 const styles = StyleSheet.create({
   cartao: {
-    backgroundColor: CORES.cartao,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 8,
+    backgroundColor: P.cartao,
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 10,
     overflow: 'hidden',
   },
   cartaoConcluido: {
@@ -247,9 +258,9 @@ const styles = StyleSheet.create({
   },
   brilho: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: CORES.destaque,
+    backgroundColor: P.limao,
     opacity: 0,
-    borderRadius: 16,
+    borderRadius: 24,
     pointerEvents: 'none',
   },
   linhaPrincipal: {
@@ -265,29 +276,29 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: CORES.cartaoElevado,
+    backgroundColor: P.marcadorVazio,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
   },
   marcadorAtivo: {
-    backgroundColor: CORES.destaque,
+    backgroundColor: P.verde,
   },
   textos: {
     flex: 1,
   },
   nome: {
     fontSize: 16,
-    fontWeight: '600',
-    color: CORES.texto,
+    fontWeight: '700',
+    color: P.texto,
   },
   nomeConcluido: {
     textDecorationLine: 'line-through',
-    color: CORES.textoSecundario,
+    color: P.textoSecundario,
   },
   grupo: {
     fontSize: 13,
-    color: CORES.textoSecundario,
+    color: P.textoSecundario,
     marginTop: 4,
   },
   linhaDetalhes: {
@@ -297,37 +308,37 @@ const styles = StyleSheet.create({
   },
   detalhe: {
     fontSize: 14,
-    color: CORES.textoSecundario,
+    color: P.textoSecundario,
   },
   separador: {
     fontSize: 14,
-    color: CORES.textoSecundario,
+    color: P.textoSecundario,
     marginHorizontal: 8,
   },
   peso: {
     fontSize: 14,
-    fontWeight: '700',
-    color: CORES.destaque,
+    fontWeight: '800',
+    color: P.verde,
   },
   ultimaCarga: {
     fontSize: 12,
-    color: CORES.textoSecundario,
+    color: P.textoSecundario,
     marginTop: 8,
   },
   selo: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: CORES.destaqueSuave,
+    backgroundColor: P.limao,
     borderRadius: 999,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     marginTop: 8,
   },
   textoSelo: {
-    color: CORES.destaque,
+    color: P.verde,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '800',
     marginLeft: 4,
   },
 
@@ -341,15 +352,15 @@ const styles = StyleSheet.create({
   botaoComoFazer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: CORES.destaqueSuave,
+    backgroundColor: P.verde,
     borderRadius: 999,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   textoComoFazer: {
     fontSize: 13,
-    fontWeight: '600',
-    color: CORES.destaque,
+    fontWeight: '700',
+    color: P.textoSobreVerde,
     marginLeft: 8,
   },
   acoes: {
@@ -360,7 +371,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: CORES.cartaoElevado,
+    backgroundColor: P.cartaoElevado,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -10,7 +10,19 @@ import {
   Text,
   View,
 } from 'react-native';
-import { CORES } from '../utils/theme';
+import { Ionicons } from '@expo/vector-icons';
+
+// Paleta do visual novo (a mesma da tela de treino).
+// Depois dá para mover para utils/theme.js.
+const P = {
+  fundo: '#F1EFE4',
+  verde: '#0F3D2E',
+  limao: '#D6F24A',
+  texto: '#0B1F17',
+  textoSecundario: '#55655C',
+  cartao: '#E6E3D3',
+  textoSobreVerde: '#F1EFE4',
+};
 
 // Janela "Como fazer": mostra a foto de início e a de fim se alternando em loop,
 // os músculos trabalhados e o passo a passo.
@@ -67,8 +79,12 @@ export default function ModalDemonstracao({ visivel, nome, demonstracao, aoFecha
             <Text style={styles.titulo} numberOfLines={2}>
               {nome}
             </Text>
-            <Pressable onPress={aoFechar} hitSlop={12}>
-              <Text style={styles.fechar}>Fechar</Text>
+            <Pressable
+              onPress={aoFechar}
+              hitSlop={12}
+              style={({ pressed }) => [styles.botaoFechar, pressed && styles.pressionado]}
+            >
+              <Ionicons name="close" size={20} color={P.texto} />
             </Pressable>
           </View>
 
@@ -81,7 +97,7 @@ export default function ModalDemonstracao({ visivel, nome, demonstracao, aoFecha
                 resizeMode="cover"
               />
               <View style={styles.rotulo}>
-                <Text style={styles.textoRotulo}>{mostrandoFim ? 'Fim' : 'Início'}</Text>
+                <Text style={styles.textoRotulo}>{mostrandoFim ? 'FIM' : 'INÍCIO'}</Text>
               </View>
             </View>
 
@@ -118,7 +134,7 @@ export default function ModalDemonstracao({ visivel, nome, demonstracao, aoFecha
 const styles = StyleSheet.create({
   fundo: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(11, 31, 23, 0.55)',
     justifyContent: 'flex-end',
   },
   areaFora: {
@@ -129,46 +145,48 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 560,
     alignSelf: 'center',
-    backgroundColor: CORES.fundo,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderTopWidth: 3,
-    borderColor: CORES.destaque,
-    paddingTop: 16,
+    backgroundColor: P.fundo,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingTop: 24,
   },
   cabecalho: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    paddingHorizontal: 24,
+    marginBottom: 16,
   },
   titulo: {
     flex: 1,
-    fontSize: 22,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.texto,
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+    color: P.texto,
     marginRight: 12,
   },
-  fechar: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: CORES.destaque,
+  botaoFechar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: P.cartao,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pressionado: {
+    transform: [{ scale: 0.95 }],
+    opacity: 0.85,
   },
   conteudo: {
-    paddingHorizontal: 20,
-    paddingBottom: 32,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
   },
   moldura: {
     width: '100%',
     aspectRatio: 850 / 567,
-    borderRadius: 12,
+    borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: CORES.cartao,
-    borderWidth: 1,
-    borderColor: CORES.borda,
+    backgroundColor: P.cartao,
   },
   foto: {
     width: '100%',
@@ -181,64 +199,62 @@ const styles = StyleSheet.create({
   },
   rotulo: {
     position: 'absolute',
-    left: 10,
-    bottom: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    left: 12,
+    bottom: 12,
+    backgroundColor: P.verde,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
   },
   textoRotulo: {
-    fontSize: 12,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.destaque,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    color: P.limao,
   },
   musculos: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 14,
+    marginTop: 16,
   },
   etiqueta: {
-    backgroundColor: CORES.borda,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     marginRight: 8,
     marginBottom: 8,
   },
   etiquetaPrincipal: {
-    backgroundColor: CORES.destaque,
+    backgroundColor: P.verde,
   },
   textoEtiqueta: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: CORES.texto,
+    fontSize: 13,
+    fontWeight: '700',
+    color: P.textoSecundario,
   },
   textoEtiquetaPrincipal: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: CORES.textoSobreDestaque,
+    fontSize: 13,
+    fontWeight: '800',
+    color: P.limao,
   },
   subtitulo: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.textoSecundario,
-    marginTop: 8,
-    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: '700',
+    color: P.texto,
+    marginTop: 12,
+    marginBottom: 14,
   },
   passo: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   numero: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: CORES.cartao,
-    borderWidth: 1.5,
-    borderColor: CORES.destaque,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: P.verde,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -246,13 +262,13 @@ const styles = StyleSheet.create({
   },
   textoNumero: {
     fontSize: 12,
-    fontWeight: '900',
-    color: CORES.destaque,
+    fontWeight: '800',
+    color: P.limao,
   },
   textoPasso: {
     flex: 1,
     fontSize: 15,
     lineHeight: 22,
-    color: CORES.texto,
+    color: P.texto,
   },
 });

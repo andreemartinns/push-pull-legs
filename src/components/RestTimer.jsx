@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { CORES } from '../utils/theme';
+import { P } from '../utils/theme';
 
 const OPCOES = [30, 60, 90, 120, 180];
 
@@ -167,60 +167,60 @@ export default function TemporizadorDescanso({ visivel, aoFechar }) {
 const styles = StyleSheet.create({
   fundo: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(11, 31, 23, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   cartao: {
     width: '100%',
-    maxWidth: 320,
-    backgroundColor: CORES.cartao,
-    borderWidth: 1,
-    borderColor: CORES.borda,
-    borderRadius: 12,
-    padding: 20,
+    maxWidth: 340,
+    backgroundColor: P.fundo,
+    borderRadius: 32,
+    padding: 24,
   },
   titulo: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    marginBottom: 16,
+    marginBottom: 18,
   },
   barraTitulo: {
     width: 4,
     borderRadius: 2,
-    backgroundColor: CORES.destaque,
-    marginRight: 10,
+    backgroundColor: P.verde,
+    marginRight: 12,
   },
   textosTitulo: {
     flex: 1,
   },
   rotulo: {
-    fontSize: 12,
-    color: CORES.textoSecundario,
+    fontSize: 13,
+    color: P.textoSecundario,
   },
   tempo: {
-    fontSize: 56,
-    lineHeight: 62,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    color: CORES.texto,
+    fontSize: 60,
+    lineHeight: 66,
+    fontWeight: '800',
+    letterSpacing: -1,
+    color: P.verde,
   },
   tempoPronto: {
-    color: CORES.destaque,
+    fontSize: 44,
+    lineHeight: 66,
     textTransform: 'uppercase',
   },
   barraFundo: {
     width: '100%',
-    height: 6,
-    backgroundColor: CORES.borda,
-    borderRadius: 3,
+    height: 8,
+    backgroundColor: P.cartao,
+    borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: 20,
+    marginBottom: 22,
   },
   barraPreenchimento: {
-    height: 6,
-    backgroundColor: CORES.destaque,
+    height: 8,
+    backgroundColor: P.verde,
+    borderRadius: 4,
   },
   opcoes: {
     flexDirection: 'row',
@@ -229,27 +229,24 @@ const styles = StyleSheet.create({
   opcao: {
     flex: 1,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    backgroundColor: CORES.fundo,
-    borderRadius: 10,
-    paddingVertical: 9,
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingVertical: 11,
   },
   opcaoEspaco: {
     marginRight: 6,
   },
   opcaoAtiva: {
-    backgroundColor: CORES.destaque,
-    borderColor: CORES.destaque,
+    backgroundColor: P.verde,
   },
   textoOpcao: {
     fontSize: 13,
-    fontWeight: 'bold',
-    color: CORES.texto,
+    fontWeight: '700',
+    color: P.texto,
   },
   textoOpcaoAtiva: {
-    color: CORES.textoSobreDestaque,
-    fontWeight: '900',
+    color: P.limao,
+    fontWeight: '800',
   },
   acoes: {
     flexDirection: 'row',
@@ -258,31 +255,28 @@ const styles = StyleSheet.create({
   botaoSecundario: {
     flex: 1,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: CORES.borda,
-    borderRadius: 10,
-    paddingVertical: 11,
+    backgroundColor: P.cartao,
+    borderRadius: 999,
+    paddingVertical: 14,
   },
   botaoSecundarioEspaco: {
     marginRight: 8,
   },
   textoSecundario: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: CORES.textoSecundario,
+    fontWeight: '700',
+    color: P.textoSecundario,
   },
   botaoPrincipal: {
     width: '100%',
-    backgroundColor: CORES.destaque,
-    borderRadius: 10,
-    paddingVertical: 14,
+    backgroundColor: P.limao,
+    borderRadius: 999,
+    paddingVertical: 16,
     alignItems: 'center',
   },
   textoPrincipal: {
-    fontSize: 15,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    textTransform: 'uppercase',
-    color: CORES.textoSobreDestaque,
+    fontSize: 16,
+    fontWeight: '800',
+    color: P.verde,
   },
 });

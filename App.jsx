@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, View } from 'react-native';
 import {
   useFonts,
   BarlowCondensed_600SemiBold,
@@ -23,7 +23,10 @@ import TelaProfessor from './src/screens/TrainerScreen';
 import TelaTreino from './src/screens/WorkoutScreen';
 import { api, carregarPerfil, sair } from './src/utils/api';
 import { avisar } from './src/utils/notify';
-import { CORES } from './src/utils/theme';
+
+// Cores do visual novo (as mesmas das outras telas).
+const FUNDO = '#F1EFE4';
+const VERDE = '#0F3D2E';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -161,7 +164,12 @@ export default function App() {
   if (loading || !fontsLoaded) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color={CORES.destaque} />
+        <Image
+          source={require('./assets/mascot.png')}
+          style={styles.mascote}
+          resizeMode="contain"
+        />
+        <ActivityIndicator size="large" color={VERDE} />
       </View>
     );
   }
@@ -259,12 +267,17 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: CORES.fundo,
+    backgroundColor: FUNDO,
+  },
+  mascote: {
+    width: 56,
+    height: 76,
+    marginBottom: 24,
   },
   root: {
     flex: 1,
     // Creme do visual novo, para a barra flutuante não ficar sobre fundo escuro.
-    backgroundColor: '#F1EFE4',
+    backgroundColor: FUNDO,
   },
   body: {
     flex: 1,
