@@ -205,19 +205,20 @@ export default function App() {
   // From here on: student screens.
   const goToWorkout = () => setScreen('workout');
 
+  // History, measurements and water are tabs in the bottom bar,
+  // so they have no "back" button.
   const studentScreens = {
     anamnesis: <TelaAnamnese usuario={user} aoConcluir={goToWorkout} />,
-    history: <TelaHistorico historico={history} aoVoltar={goToWorkout} />,
+    history: <TelaHistorico historico={history} />,
     measurements: (
       <TelaMedidas
         medidas={measurements}
         aoSalvarMedida={saveMeasurement}
         aoRemoverMedida={removeMeasurement}
-        aoVoltar={goToWorkout}
       />
     ),
     reminder: <TelaLembrete aoVoltar={() => setScreen('profile')} />,
-    water: <TelaAgua usuario={user} medidas={measurements} aoVoltar={goToWorkout} />,
+    water: <TelaAgua usuario={user} medidas={measurements} />,
     assistant: <TelaAssistente aoVoltar={goToWorkout} />,
     profile: (
       <ProfileScreen
