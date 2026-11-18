@@ -1,8 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import CopoAgua from '../components/WaterGlass';
 import Constants from 'expo-constants';
+import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import TanqueAgua from '../components/WaterGlass';
+import SemanaAgua from '../components/WaterWeek';
 import { Cabecalho, Cartao, Secao, Tela } from '../components/UI';
 import { api } from '../utils/api';
 import { avisar } from '../utils/notify';
@@ -14,6 +19,22 @@ const SEM_SUPORTE = NA_WEB || (Platform.OS === 'android' && NO_EXPO_GO);
 
 const INTERVALOS = [1, 2, 3];
 const QUANTIDADES = [100, 200, 300, 500];
+
+const BotaoAnimado = Animated.createAnimatedComponent(Pressable);
+
+// Vibração leve ao adicionar. Mais forte quando bate a meta. (No navegador não faz nada.)
+function vibrar(tipo) {
+  if (Platform.OS === 'web') return;
+  try {
+    if (tipo === 'sucesso') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+  } catch (erro) {
+    // ignora
+  }
+}
 
 function pegarNotificacoes() {
   if (SEM_SUPORTE) return null;
@@ -74,6 +95,88 @@ function proximoLembrete(inicio, fim, intervalo) {
   return prox !== undefined ? `${prox}h` : `${horas[0]}h (amanhã)`;
 }
 
+// Quantos dias seguidos bateu a meta. Se hoje ainda não bateu, conta a partir de ontem.
+function calcularSequencia(historico, consumidoHoje, metaHoje) {
+  let total = 0;
+  const dia = new Date();
+
+  for (let i = 0; i < 365; i++) {
+    const chave = dia.toLocaleDateString('pt-BR');
+    const reg = i === 0 ? { ml: consumidoHoje, meta: metaHoje } : historico[chave];
+    const bateu = !!reg && !!reg.meta && reg.ml >= reg.meta;
+
+    if (bateu) total += 1;
+    else if (i > 0) break;
+
+    dia.setDate(dia.getDate() - 1);
+  }
+
+  return total;
+}
+
+// Monta os últimos 7 dias (terminando hoje) para o gráfico.
+function montarSemana(historico, consumidoHoje, metaHoje) {
+  const letras = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+  const dias = [];
+
+  for (let i = 6; i >= 0; i--) {
+    const dia = new Date();
+    dia.setDate(dia.getDate() - i);
+
+    const reg =
+      i === 0
+        ? { ml: consumidoHoje, meta: metaHoje }
+        : historico[dia.toLocaleDateString('pt-BR')];
+    const ml = reg?.ml || 0;
+    const metaDia = reg?.meta || null;
+
+    dias.push({
+      letra: letras[dia.getDay()],
+      hoje: i === 0,
+      batida: !!metaDia && ml >= metaDia,
+      proporcao: metaDia ? Math.min(1, ml / metaDia) : 0,
+    });
+  }
+
+  return dias;
+}
+
+// Faz o bloco aparecer subindo suavemente. "atraso" escalona a entrada.
+function Entrar({ atraso = 0, children }) {
+  return (
+    <MotiView
+      from={{ opacity: 0, translateY: 18 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 450, delay: atraso }}
+    >
+      {children}
+    </MotiView>
+  );
+}
+
+// Botão que "afunda" com uma mola quando tocado.
+function BotaoMola({ onPress, disabled, style, children, accessibilityLabel }) {
+  const escala = useSharedValue(1);
+  const estilo = useAnimatedStyle(() => ({ transform: [{ scale: escala.value }] }));
+
+  return (
+    <BotaoAnimado
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityLabel={accessibilityLabel}
+      onPressIn={() => {
+        escala.value = withSpring(0.94, { damping: 15, stiffness: 300 });
+      }}
+      onPressOut={() => {
+        escala.value = withSpring(1, { damping: 10, stiffness: 200 });
+      }}
+      style={[style, estilo]}
+    >
+      {children}
+    </BotaoAnimado>
+  );
+}
+
 function Mini({ rotulo, valor, aoMudar }) {
   return (
     <View style={styles.mini}>
@@ -96,6 +199,7 @@ export default function TelaAgua({ usuario, medidas = [], aoVoltar }) {
   const [config, setConfig] = useState({ modo: 'automatico', meta_ml: null });
   const [ficha, setFicha] = useState(null);
   const [registros, setRegistros] = useState([]);
+  const [historico, setHistorico] = useState({});
   const [quantidade, setQuantidade] = useState(200);
   const [lembreteAtivo, setLembreteAtivo] = useState(false);
   const [intervalo, setIntervalo] = useState(2);
@@ -106,6 +210,7 @@ export default function TelaAgua({ usuario, medidas = [], aoVoltar }) {
 
   const chaveConsumo = `agua_consumo_${usuario.id}`;
   const chaveLembrete = `agua_lembrete_${usuario.id}`;
+  const chaveHistorico = `agua_historico_${usuario.id}`;
 
   const consumido = registros.reduce((soma, r) => soma + r.ml, 0);
 
@@ -127,7 +232,7 @@ export default function TelaAgua({ usuario, medidas = [], aoVoltar }) {
   const desligado = config.modo === 'desligado';
 
   const carregar = useCallback(async () => {
-    const [respConfig, respFicha, textoConsumo, textoLembrete] = await Promise.all([
+    const [respConfig, respFicha, textoConsumo, textoLembrete, textoHistorico] = await Promise.all([
       api('GET', '/agua').catch((e) => {
         console.log('Erro ao carregar config de água', e);
         return null;
@@ -138,6 +243,7 @@ export default function TelaAgua({ usuario, medidas = [], aoVoltar }) {
       }),
       AsyncStorage.getItem(chaveConsumo),
       AsyncStorage.getItem(chaveLembrete),
+      AsyncStorage.getItem(chaveHistorico),
     ]);
 
     if (respConfig) setConfig({ modo: respConfig.modo, meta_ml: respConfig.meta_ml });
@@ -158,8 +264,15 @@ export default function TelaAgua({ usuario, medidas = [], aoVoltar }) {
       setInicio(salvo.inicio ?? 8);
       setFim(salvo.fim ?? 20);
     }
+    if (textoHistorico) {
+      try {
+        setHistorico(JSON.parse(textoHistorico) || {});
+      } catch (erro) {
+        setHistorico({});
+      }
+    }
     setCarregando(false);
-  }, [usuario.id, chaveConsumo, chaveLembrete]);
+  }, [usuario.id, chaveConsumo, chaveLembrete, chaveHistorico]);
 
   useEffect(() => {
     carregar();
@@ -176,16 +289,25 @@ export default function TelaAgua({ usuario, medidas = [], aoVoltar }) {
     }
   }, [carregando, desligado, meta]);
 
+  // Guarda o consumo de hoje e também o total do dia no histórico (para o gráfico da semana).
   async function guardarRegistros(novos) {
     setRegistros(novos);
-    await AsyncStorage.setItem(
-      chaveConsumo,
-      JSON.stringify({ data: new Date().toLocaleDateString('pt-BR'), registros: novos })
-    );
+
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    const total = novos.reduce((soma, r) => soma + r.ml, 0);
+    const novoHistorico = { ...historico, [hoje]: { ml: total, meta } };
+    setHistorico(novoHistorico);
+
+    await AsyncStorage.setItem(chaveConsumo, JSON.stringify({ data: hoje, registros: novos }));
+    await AsyncStorage.setItem(chaveHistorico, JSON.stringify(novoHistorico));
   }
 
   const registrar = () => {
+    const depois = consumido + quantidade;
+    const bateuAgora = meta !== null && consumido < meta && depois >= meta;
+
     setPulso((p) => p + 1);
+    vibrar(bateuAgora ? 'sucesso' : 'leve');
     guardarRegistros([...registros, { ml: quantidade, h: agora() }]);
   };
   const desfazer = () => guardarRegistros(registros.slice(0, -1));
@@ -295,6 +417,9 @@ export default function TelaAgua({ usuario, medidas = [], aoVoltar }) {
   const falta = meta ? Math.max(0, meta - consumido) : 0;
   const batida = meta !== null && consumido >= meta;
 
+  const semana = montarSemana(historico, consumido, meta);
+  const sequencia = calcularSequencia(historico, consumido, meta);
+
   return (
     <Tela>
       <Cabecalho titulo="Água" subtitulo="Hidratação" aoVoltar={aoVoltar} />
@@ -326,56 +451,64 @@ export default function TelaAgua({ usuario, medidas = [], aoVoltar }) {
 
       {meta !== null && (
         <>
-          <Cartao style={[styles.bloco, batida && styles.cartaoBatida]}>
-            <Text style={styles.rotuloCartao}>Meta de hoje</Text>
+          <Entrar>
+            <TanqueAgua
+              consumido={consumido}
+              meta={meta}
+              percentual={percentual}
+              falta={falta}
+              batida={batida}
+              pulso={pulso}
+            />
+          </Entrar>
 
-            <CopoAgua percentual={percentual} pulso={pulso} />
-            <Text style={[styles.valorGrande, { textAlign: 'center' }]}>
-              {consumido} <Text style={styles.valorMeta}>/ {meta} ml</Text>
-            </Text>
-            <Text style={[styles.pequeno, { textAlign: 'center' }, batida && styles.textoBatida]}>
-              {batida ? 'Meta batida! Parabéns!' : `faltam ${falta} ml`}
-            </Text>
+          <Entrar atraso={120}>
+            <Cartao style={styles.bloco}>
+              <Text style={styles.rotuloCartao}>Quanto você bebeu?</Text>
 
-            <View style={styles.linhaBotoes}>
-              {QUANTIDADES.map((q, i) => {
-                const on = quantidade === q;
-                return (
-                  <Pressable
-                    key={q}
-                    onPress={() => setQuantidade(q)}
-                    style={[
-                      styles.opcao,
-                      i < QUANTIDADES.length - 1 && styles.opcaoEspaco,
-                      on && styles.opcaoAtiva,
-                    ]}
-                  >
-                    <Text style={[styles.textoOpcao, on && styles.textoOpcaoAtiva]}>{q}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+              <View style={styles.linhaBotoes}>
+                {QUANTIDADES.map((q, i) => {
+                  const on = quantidade === q;
+                  return (
+                    <BotaoMola
+                      key={q}
+                      onPress={() => setQuantidade(q)}
+                      style={[
+                        styles.opcao,
+                        i < QUANTIDADES.length - 1 && styles.opcaoEspaco,
+                        on && styles.opcaoAtiva,
+                      ]}
+                    >
+                      <Text style={[styles.textoOpcao, on && styles.textoOpcaoAtiva]}>{q}</Text>
+                    </BotaoMola>
+                  );
+                })}
+              </View>
 
-            <View style={styles.linhaBotoes}>
-              <Pressable
-                style={({ pressed }) => [styles.botao, styles.botaoEspaco, pressed && styles.pressionado]}
-                onPress={registrar}
-              >
-                <Text style={styles.textoBotao}>+ {quantidade} ml</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.botaoIcone, registros.length === 0 && styles.desabilitado]}
-                onPress={desfazer}
-                disabled={registros.length === 0}
-                accessibilityLabel="Desfazer"
-              >
-                <Text style={styles.textoIcone}>↶</Text>
-              </Pressable>
-            </View>
-          </Cartao>
+              <View style={styles.linhaBotoes}>
+                <BotaoMola style={[styles.botao, styles.botaoEspaco]} onPress={registrar}>
+                  <Ionicons name="water" size={18} color={P.verde} />
+                  <Text style={styles.textoBotao}>+ {quantidade} ml</Text>
+                </BotaoMola>
+                <BotaoMola
+                  style={[styles.botaoIcone, registros.length === 0 && styles.desabilitado]}
+                  onPress={desfazer}
+                  disabled={registros.length === 0}
+                  accessibilityLabel="Desfazer"
+                >
+                  <Ionicons name="arrow-undo" size={20} color={P.texto} />
+                </BotaoMola>
+              </View>
+            </Cartao>
+          </Entrar>
+
+          <Entrar atraso={240}>
+            <Secao titulo="Últimos 7 dias" />
+            <SemanaAgua dias={semana} sequencia={sequencia} />
+          </Entrar>
 
           {registros.length > 0 && (
-            <>
+            <Entrar atraso={320}>
               <Secao titulo="Hoje" />
               <Cartao style={styles.bloco}>
                 {registros
@@ -395,7 +528,7 @@ export default function TelaAgua({ usuario, medidas = [], aoVoltar }) {
                     </View>
                   ))}
               </Cartao>
-            </>
+            </Entrar>
           )}
 
           <Pressable onPress={() => setAvisoAberto((v) => !v)} style={styles.infoLinha}>
@@ -409,56 +542,58 @@ export default function TelaAgua({ usuario, medidas = [], aoVoltar }) {
             </Text>
           )}
 
-          <Secao titulo="Lembretes" />
-          <Cartao style={styles.bloco}>
-            <View style={styles.linhaMini}>
-              <Mini rotulo="Das" valor={inicio} aoMudar={mudarInicio} />
-              <Mini rotulo="Às" valor={fim} aoMudar={mudarFim} />
-            </View>
+          <Entrar atraso={400}>
+            <Secao titulo="Lembretes" />
+            <Cartao style={styles.bloco}>
+              <View style={styles.linhaMini}>
+                <Mini rotulo="Das" valor={inicio} aoMudar={mudarInicio} />
+                <Mini rotulo="Às" valor={fim} aoMudar={mudarFim} />
+              </View>
 
-            <Text style={[styles.rotuloCartao, { marginTop: 16 }]}>A cada:</Text>
-            <View style={styles.linhaBotoes}>
-              {INTERVALOS.map((valor, i) => {
-                const ativo = intervalo === valor;
-                return (
-                  <Pressable
-                    key={valor}
-                    onPress={() => mudarConfig({ intervalo: valor, inicio, fim })}
-                    style={[
-                      styles.opcao,
-                      i < INTERVALOS.length - 1 && styles.opcaoEspaco,
-                      ativo && styles.opcaoAtiva,
-                    ]}
-                  >
-                    <Text style={[styles.textoOpcao, ativo && styles.textoOpcaoAtiva]}>
-                      {valor}h
-                    </Text>
+              <Text style={[styles.rotuloCartao, { marginTop: 16 }]}>A cada:</Text>
+              <View style={styles.linhaBotoes}>
+                {INTERVALOS.map((valor, i) => {
+                  const ativo = intervalo === valor;
+                  return (
+                    <Pressable
+                      key={valor}
+                      onPress={() => mudarConfig({ intervalo: valor, inicio, fim })}
+                      style={[
+                        styles.opcao,
+                        i < INTERVALOS.length - 1 && styles.opcaoEspaco,
+                        ativo && styles.opcaoAtiva,
+                      ]}
+                    >
+                      <Text style={[styles.textoOpcao, ativo && styles.textoOpcaoAtiva]}>
+                        {valor}h
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {lembreteAtivo ? (
+                <>
+                  <Text style={styles.proximo}>
+                    Próximo lembrete: {proximoLembrete(inicio, fim, intervalo)}
+                  </Text>
+                  <Pressable style={styles.botaoSecundarioCheio} onPress={desativarLembretes}>
+                    <Text style={styles.textoSecundario}>Desativar lembretes</Text>
                   </Pressable>
-                );
-              })}
-            </View>
-
-            {lembreteAtivo ? (
-              <>
-                <Text style={styles.proximo}>
-                  Próximo lembrete: {proximoLembrete(inicio, fim, intervalo)}
-                </Text>
-                <Pressable style={styles.botaoSecundarioCheio} onPress={desativarLembretes}>
-                  <Text style={styles.textoSecundario}>Desativar lembretes</Text>
+                </>
+              ) : (
+                <Pressable style={styles.botaoCheio} onPress={() => ativarLembretes()}>
+                  <Text style={styles.textoBotao}>Ativar lembretes</Text>
                 </Pressable>
-              </>
-            ) : (
-              <Pressable style={styles.botaoCheio} onPress={() => ativarLembretes()}>
-                <Text style={styles.textoBotao}>Ativar lembretes</Text>
-              </Pressable>
-            )}
+              )}
 
-            {SEM_SUPORTE && (
-              <Pressable style={styles.botaoSecundarioCheio} onPress={simular}>
-                <Text style={styles.textoSecundario}>Simular lembrete</Text>
-              </Pressable>
-            )}
-          </Cartao>
+              {SEM_SUPORTE && (
+                <Pressable style={styles.botaoSecundarioCheio} onPress={simular}>
+                  <Text style={styles.textoSecundario}>Simular lembrete</Text>
+                </Pressable>
+              )}
+            </Cartao>
+          </Entrar>
         </>
       )}
     </Tela>
@@ -468,23 +603,19 @@ export default function TelaAgua({ usuario, medidas = [], aoVoltar }) {
 const styles = StyleSheet.create({
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: P.fundo },
   bloco: { marginBottom: 12 },
-  pressionado: { transform: [{ scale: 0.97 }], opacity: 0.9 },
   cartaoAlerta: { borderWidth: 2, borderColor: P.erro },
-  cartaoBatida: { borderWidth: 2, borderColor: P.verde },
   textoCartao: { fontSize: 14, lineHeight: 20, color: P.texto },
   textoAlerta: { fontSize: 14, lineHeight: 20, fontWeight: '700', color: P.erro },
   rotuloCartao: { fontSize: 13, fontWeight: '700', color: P.textoSecundario },
-  valorGrande: { fontSize: 40, fontWeight: '800', color: P.texto, marginTop: 4 },
-  valorMeta: { fontSize: 18, fontWeight: '600', color: P.textoSecundario },
-  pequeno: { fontSize: 13, color: P.textoSecundario, marginTop: 6 },
-  textoBatida: { color: P.verde, fontWeight: '800' },
   linhaBotoes: { flexDirection: 'row', marginTop: 16 },
   botao: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: P.limao,
     borderRadius: 999,
     paddingVertical: 16,
-    alignItems: 'center',
   },
   botaoEspaco: { marginRight: 8 },
   botaoIcone: {
@@ -494,7 +625,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  textoIcone: { fontSize: 20, color: P.texto },
   desabilitado: { opacity: 0.35 },
   botaoCheio: {
     backgroundColor: P.limao,
@@ -503,7 +633,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
   },
-  textoBotao: { fontSize: 15, fontWeight: '800', color: P.verde },
+  textoBotao: { fontSize: 15, fontWeight: '800', color: P.verde, marginLeft: 6 },
   botaoSecundarioCheio: {
     backgroundColor: P.fundo,
     borderRadius: 999,
